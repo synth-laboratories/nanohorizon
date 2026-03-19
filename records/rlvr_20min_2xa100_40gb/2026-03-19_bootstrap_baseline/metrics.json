@@ -1,0 +1,7 @@
+{
+  "status": "placeholder",
+  "primary_score": null,
+  "wall_clock_minutes_budget": 20,
+  "gpu_count": 2,
+  "gpu_type": "A100-40GB"
+}

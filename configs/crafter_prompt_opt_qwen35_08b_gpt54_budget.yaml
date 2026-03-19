@@ -1,0 +1,27 @@
+task:
+  name: crafter
+
+policy:
+  model: Qwen/Qwen3.5-0.8B
+
+optimizer:
+  budget_usd: 1.0
+  proposer_model: gpt-5.4-mini
+  allowed_models:
+  - gpt-5.4
+  - gpt-5.4-mini
+  - gpt-5.4-nano
+  allowed_split: any
+
+search:
+  objective: improve_crafter_rollout_reward
+  num_candidates: 8
+
+prompt:
+  seed_prompt: You are a Crafter student policy. Return strict JSON only as {"actions":[...]} and prioritize valid progression actions.
+
+data:
+  task_jsonl: /Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/prompt_opt_tasks.sample.jsonl
+
+output:
+  root_dir: /Users/joshpurtell/Documents/GitHub/nanohorizon/artifacts/prompt_opt_baseline

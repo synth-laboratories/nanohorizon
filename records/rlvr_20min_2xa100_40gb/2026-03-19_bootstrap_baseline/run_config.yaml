@@ -1,0 +1,4 @@
+track: rlvr_20min_2xa100_40gb
+task: crafter
+base_model: Qwen/Qwen3.5-0.8B
+bootstrap_source: /Users/joshpurtell/Documents/GitHub/nanolong/examples/crafter_multistep/run_non_stacked_qwen08b_full_job.sh

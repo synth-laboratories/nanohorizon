@@ -1,0 +1,4 @@
+track: offline_20min_1xa100_40gb
+task: crafter
+base_model: Qwen/Qwen3.5-0.8B
+bootstrap_source: /Users/joshpurtell/Documents/GitHub/nanolong/training/posttrain/sft/export_rollouts_to_sft.py

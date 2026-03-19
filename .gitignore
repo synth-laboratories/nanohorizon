@@ -1,0 +1,10 @@
+.DS_Store
+.pytest_cache/
+.venv/
+__pycache__/
+*.pyc
+artifacts/
+records/*/*/artifacts/
+records/*/*/checkpoints/
+records/*/*/train.log
+records/*/*/eval_rollouts.jsonl

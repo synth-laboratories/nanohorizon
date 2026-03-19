@@ -1,0 +1,11 @@
+{
+  "task": "crafter",
+  "track": "rlvr_20min_2xa100_40gb",
+  "description": "Starter rollout seeds for NanoHorizon RLVR baseline collection.",
+  "train_seeds": [7, 11, 17, 23, 29, 31, 37, 41, 43, 47],
+  "eval_seeds": [101, 103, 107, 109],
+  "notes": [
+    "Use train_seeds for rollout generation during the budget window.",
+    "Keep eval_seeds separate for final reporting when possible."
+  ]
+}
