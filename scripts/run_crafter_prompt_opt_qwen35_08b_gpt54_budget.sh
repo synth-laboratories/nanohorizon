@@ -6,7 +6,7 @@ CONFIG_PATH="${NANOHORIZON_PROMPT_OPT_CONFIG:-$ROOT/configs/crafter_prompt_opt_q
 OUTPUT_ROOT="${NANOHORIZON_PROMPT_OPT_OUTPUT_ROOT:-$ROOT/artifacts/prompt_opt_baseline}"
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 
-if [[ -n "${RUNPOD_POD_ID:-}" || "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
+if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
   python3 -m pip install -q "httpx>=0.28.1" "pyyaml>=6.0.2"
 fi
 

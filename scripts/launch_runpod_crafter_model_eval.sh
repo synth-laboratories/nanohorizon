@@ -8,6 +8,7 @@ GIT_REF="${NANOHORIZON_GIT_REF:-main}"
 BASE_MODEL="${NANOHORIZON_EVAL_BASE_MODEL:-Qwen/Qwen3.5-0.8B}"
 WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-1800}"
 COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
+IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-eval:latest}"
 
 FORWARDED_ENV=()
 for key in GITHUB_TOKEN HF_TOKEN; do
@@ -29,17 +30,17 @@ for item in "${TRAIN_ENV[@]}"; do
 done
 
 python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+  --image-name "$IMAGE_NAME" \
   --name "nanohorizon-eval-$(date -u +%Y%m%d-%H%M%S)" \
   --gpu-type-id "${NANOHORIZON_RUNPOD_GPU_TYPE:-NVIDIA A100 80GB PCIe}" \
   --gpu-count "${NANOHORIZON_RUNPOD_GPU_COUNT:-1}" \
   --container-disk-gb "${NANOHORIZON_RUNPOD_CONTAINER_DISK_GB:-80}" \
   --volume-gb "${NANOHORIZON_RUNPOD_VOLUME_GB:-120}" \
   --support-public-ip \
-  --install-uv \
   --git-repo "$GIT_REPO" \
   --git-ref "$GIT_REF" \
   --repo-dir nanohorizon \
-  --setup-cmd "cd /workspace/nanohorizon && python3 -m pip install --upgrade pip && python3 -m pip install -q 'peft>=0.17.0' 'transformers>=4.57.0' 'torch>=2.7.0' 'pyyaml>=6.0.2'" \
+  --setup-cmd "cd /workspace/nanohorizon && python3 -V && echo using prebuilt eval runtime image" \
   --train-cmd "cd /workspace/nanohorizon && ${TRAIN_PREFIX}bash scripts/run_crafter_model_eval.sh" \
   --wait-until-running \
   --wait-for-completion \

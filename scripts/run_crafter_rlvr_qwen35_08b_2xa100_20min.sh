@@ -6,7 +6,7 @@ CONFIG_PATH="${NANOHORIZON_RLVR_CONFIG:-$ROOT/configs/crafter_rlvr_qwen35_08b_2x
 OUTPUT_ROOT="${NANOHORIZON_RLVR_OUTPUT_ROOT:-$ROOT/artifacts/rlvr_baseline}"
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 
-if [[ -n "${RUNPOD_POD_ID:-}" || "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
+if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
   python3 -m pip install -q "httpx>=0.28.1" "pyyaml>=6.0.2" "accelerate>=1.10.0" "peft>=0.17.0" "transformers>=4.57.0"
 fi
 

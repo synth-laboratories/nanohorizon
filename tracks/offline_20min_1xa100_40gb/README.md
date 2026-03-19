@@ -22,6 +22,7 @@ This is the fixed-data benchmark track for NanoHorizon.
 - RunPod for execution
 - `vllm serve Qwen/Qwen3.5-27B` for teacher inference
 - TRL `SFTTrainer` for `Qwen/Qwen3.5-0.8B`
+- prebuilt image: `ghcr.io/synth-laboratories/nanohorizon-offline:latest`
 
 ## Not Allowed During The Budget Window
 
@@ -44,6 +45,8 @@ If you want the full intended end-to-end user flow, edit and run:
 ```
 
 That file is the main surface a competitor should tweak for the reference baseline.
+
+The reference script filters the generated SFT rows by heuristic reward and keeps the top 50% before fine-tuning.
 
 ## Expected Record Bundle
 

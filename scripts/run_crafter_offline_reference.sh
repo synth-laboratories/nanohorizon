@@ -30,6 +30,7 @@ VOLUME_GB="${NANOHORIZON_RUNPOD_VOLUME_GB:-160}"
 KEEPALIVE_AFTER="${NANOHORIZON_KEEPALIVE_AFTER:-0}"
 WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-2400}"
 COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
+IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-offline:latest}"
 
 # These env vars are forwarded into the pod when present.
 FORWARDED_ENV=()
@@ -45,7 +46,7 @@ if [[ "$KEEPALIVE_AFTER" == "1" ]]; then
 fi
 
 TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=0 NANOHORIZON_START_LOCAL_TEACHER=1 bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
-SETUP_CMD="cd /workspace/nanohorizon && python3 -m pip install --upgrade pip && python3 -m pip install -q 'httpx>=0.28.1' 'pyyaml>=6.0.2' 'accelerate>=1.10.0' 'datasets>=4.1.0' 'peft>=0.17.0' 'transformers>=4.57.0' 'trl>=0.21.0' 'vllm>=0.10.0'"
+SETUP_CMD="cd /workspace/nanohorizon && python3 -V && echo using prebuilt offline runtime image"
 
 echo "NanoHorizon offline reference run"
 echo "  started at: $STARTED_AT"
@@ -54,17 +55,18 @@ echo "  git repo: $GIT_REPO"
 echo "  git ref: $GIT_REF"
 echo "  config: $CONFIG_PATH"
 echo "  gpu: $GPU_TYPE x$GPU_COUNT"
+echo "  image: $IMAGE_NAME"
 echo "  wait timeout seconds: $WAIT_TIMEOUT_SECONDS"
 echo "  completion webhook: $COMPLETION_WEBHOOK_URL"
 
 python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+  --image-name "$IMAGE_NAME" \
   --name "$RUN_NAME" \
   --gpu-type-id "$GPU_TYPE" \
   --gpu-count "$GPU_COUNT" \
   --container-disk-gb "$CONTAINER_DISK_GB" \
   --volume-gb "$VOLUME_GB" \
   --support-public-ip \
-  --install-uv \
   --wait-until-running \
   --wait-for-completion \
   --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \

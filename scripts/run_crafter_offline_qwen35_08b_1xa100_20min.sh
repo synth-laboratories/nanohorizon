@@ -10,7 +10,7 @@ TEACHER_BASE_URL_DEFAULT="${NANOHORIZON_TEACHER_BASE_URL:-http://127.0.0.1:8000/
 START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-0}"
 TEACHER_LOG="$OUTPUT_ROOT/vllm_teacher.log"
 
-if [[ -n "${RUNPOD_POD_ID:-}" || "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
+if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
   python3 -m pip install -q "httpx>=0.28.1" "pyyaml>=6.0.2" "accelerate>=1.10.0" "datasets>=4.1.0" "peft>=0.17.0" "transformers>=4.57.0" "trl>=0.21.0" "vllm>=0.10.0"
 fi
 

@@ -53,12 +53,33 @@ cd /Users/joshpurtell/Documents/GitHub/nanohorizon
 RUNPOD_API_KEY=... ./scripts/run_crafter_offline_reference.sh
 ```
 
+Runtime images:
+
+- `ghcr.io/synth-laboratories/nanohorizon-offline:latest`
+- `ghcr.io/synth-laboratories/nanohorizon-rlvr:latest`
+- `ghcr.io/synth-laboratories/nanohorizon-prompt-opt:latest`
+- `ghcr.io/synth-laboratories/nanohorizon-eval:latest`
+
+Build and optionally push them with:
+
+```bash
+cd /Users/joshpurtell/Documents/GitHub/nanohorizon
+./scripts/build_track_image.sh base
+NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh base
+NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh offline
+NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh rlvr
+NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh prompt_opt
+NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh eval
+```
+
+Every RunPod launcher accepts `NANOHORIZON_RUNPOD_IMAGE=...` to override the default image tag.
+
 What it does:
 
 - launches a RunPod A100 pod
 - starts `vllm` for `Qwen/Qwen3.5-27B`
 - generates teacher SFT rows
-- filters them with the reward heuristic
+- keeps the top half of generated rows by heuristic reward
 - fine-tunes `Qwen/Qwen3.5-0.8B` with TRL
 - evaluates the finetuned adapter
 
