@@ -31,22 +31,28 @@ KEEPALIVE_AFTER="${NANOHORIZON_KEEPALIVE_AFTER:-0}"
 WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-2400}"
 COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
 IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-offline:latest}"
+AUTO_INSTALL="${NANOHORIZON_AUTO_INSTALL:-0}"
+START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-1}"
 
 # These env vars are forwarded into the pod when present.
-FORWARDED_ENV=()
+declare -a FORWARDED_ENV=()
 for key in GITHUB_TOKEN HF_TOKEN OPENAI_API_KEY NANOHORIZON_TEACHER_API_KEY NANOHORIZON_TEACHER_BASE_URL; do
   if [[ -n "${!key:-}" ]]; then
     FORWARDED_ENV+=(--env "$key=${!key}")
   fi
 done
 
-STOP_ARGS=(--auto-stop)
+declare -a STOP_ARGS=(--auto-stop)
 if [[ "$KEEPALIVE_AFTER" == "1" ]]; then
   STOP_ARGS=(--keepalive-after)
 fi
 
-TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=0 NANOHORIZON_START_LOCAL_TEACHER=1 bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
-SETUP_CMD="cd /workspace/nanohorizon && python3 -V && echo using prebuilt offline runtime image"
+TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=${AUTO_INSTALL} NANOHORIZON_START_LOCAL_TEACHER=${START_LOCAL_TEACHER} bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
+if [[ "$AUTO_INSTALL" == "1" ]]; then
+  SETUP_CMD="cd /workspace/nanohorizon && python3 -V && echo using public bootstrap runtime image"
+else
+  SETUP_CMD="cd /workspace/nanohorizon && python3 -V && echo using prebuilt offline runtime image"
+fi
 
 echo "NanoHorizon offline reference run"
 echo "  started at: $STARTED_AT"
@@ -56,29 +62,53 @@ echo "  git ref: $GIT_REF"
 echo "  config: $CONFIG_PATH"
 echo "  gpu: $GPU_TYPE x$GPU_COUNT"
 echo "  image: $IMAGE_NAME"
+echo "  auto install: $AUTO_INSTALL"
+echo "  start local teacher: $START_LOCAL_TEACHER"
 echo "  wait timeout seconds: $WAIT_TIMEOUT_SECONDS"
 echo "  completion webhook: $COMPLETION_WEBHOOK_URL"
 
-python3 "$ROOT/reference/runpod_training_launcher.py" launch \
-  --image-name "$IMAGE_NAME" \
-  --name "$RUN_NAME" \
-  --gpu-type-id "$GPU_TYPE" \
-  --gpu-count "$GPU_COUNT" \
-  --container-disk-gb "$CONTAINER_DISK_GB" \
-  --volume-gb "$VOLUME_GB" \
-  --support-public-ip \
-  --wait-until-running \
-  --wait-for-completion \
-  --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
-  --completion-webhook-url "$COMPLETION_WEBHOOK_URL" \
-  --git-repo "$GIT_REPO" \
-  --git-ref "$GIT_REF" \
-  --repo-dir nanohorizon \
-  --setup-cmd "$SETUP_CMD" \
-  --train-cmd "$TRAIN_CMD" \
-  "${STOP_ARGS[@]}" \
-  "${FORWARDED_ENV[@]}" \
-  "$@"
+if (( ${#FORWARDED_ENV[@]} > 0 )); then
+  python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+    --image-name "$IMAGE_NAME" \
+    --name "$RUN_NAME" \
+    --gpu-type-id "$GPU_TYPE" \
+    --gpu-count "$GPU_COUNT" \
+    --container-disk-gb "$CONTAINER_DISK_GB" \
+    --volume-gb "$VOLUME_GB" \
+    --support-public-ip \
+    --wait-until-running \
+    --wait-for-completion \
+    --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
+    --completion-webhook-url "$COMPLETION_WEBHOOK_URL" \
+    --git-repo "$GIT_REPO" \
+    --git-ref "$GIT_REF" \
+    --repo-dir nanohorizon \
+    --setup-cmd "$SETUP_CMD" \
+    --train-cmd "$TRAIN_CMD" \
+    "${STOP_ARGS[@]}" \
+    "${FORWARDED_ENV[@]}" \
+    "$@"
+else
+  python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+    --image-name "$IMAGE_NAME" \
+    --name "$RUN_NAME" \
+    --gpu-type-id "$GPU_TYPE" \
+    --gpu-count "$GPU_COUNT" \
+    --container-disk-gb "$CONTAINER_DISK_GB" \
+    --volume-gb "$VOLUME_GB" \
+    --support-public-ip \
+    --wait-until-running \
+    --wait-for-completion \
+    --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
+    --completion-webhook-url "$COMPLETION_WEBHOOK_URL" \
+    --git-repo "$GIT_REPO" \
+    --git-ref "$GIT_REF" \
+    --repo-dir nanohorizon \
+    --setup-cmd "$SETUP_CMD" \
+    --train-cmd "$TRAIN_CMD" \
+    "${STOP_ARGS[@]}" \
+    "$@"
+fi
 
 ENDED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "  ended at: $ENDED_AT"
