@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GIT_REPO="${NANOHORIZON_GIT_REPO:-https://github.com/synth-laboratories/nanohorizon.git}"
+GIT_REF="${NANOHORIZON_GIT_REF:-main}"
+BASE_MODEL="${NANOHORIZON_EVAL_BASE_MODEL:-Qwen/Qwen3.5-0.8B}"
+
+FORWARDED_ENV=()
+for key in GITHUB_TOKEN HF_TOKEN; do
+  if [[ -n "${!key:-}" ]]; then
+    FORWARDED_ENV+=(--env "$key=${!key}")
+  fi
+done
+
+TRAIN_ENV=(
+  "NANOHORIZON_EVAL_BASE_MODEL=$BASE_MODEL"
+)
+if [[ -n "${NANOHORIZON_EVAL_ADAPTER_DIR:-}" ]]; then
+  TRAIN_ENV+=("NANOHORIZON_EVAL_ADAPTER_DIR=${NANOHORIZON_EVAL_ADAPTER_DIR}")
+fi
+
+TRAIN_PREFIX=""
+for item in "${TRAIN_ENV[@]}"; do
+  TRAIN_PREFIX+="$item "
+done
+
+python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+  --name "nanohorizon-eval-$(date -u +%Y%m%d-%H%M%S)" \
+  --gpu-type-id "${NANOHORIZON_RUNPOD_GPU_TYPE:-NVIDIA A100 40GB PCIe}" \
+  --gpu-count "${NANOHORIZON_RUNPOD_GPU_COUNT:-1}" \
+  --container-disk-gb "${NANOHORIZON_RUNPOD_CONTAINER_DISK_GB:-80}" \
+  --volume-gb "${NANOHORIZON_RUNPOD_VOLUME_GB:-120}" \
+  --support-public-ip \
+  --install-uv \
+  --git-repo "$GIT_REPO" \
+  --git-ref "$GIT_REF" \
+  --repo-dir nanohorizon \
+  --setup-cmd "cd /workspace/nanohorizon && python3 -m pip install --upgrade pip && python3 -m pip install -q 'peft>=0.17.0' 'transformers>=4.57.0' 'torch>=2.7.0' 'pyyaml>=6.0.2'" \
+  --train-cmd "cd /workspace/nanohorizon && ${TRAIN_PREFIX}bash scripts/run_crafter_model_eval.sh" \
+  --auto-stop \
+  "${FORWARDED_ENV[@]}" \
+  "$@"

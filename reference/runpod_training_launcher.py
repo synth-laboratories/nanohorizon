@@ -397,7 +397,13 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
         lines.extend(
             [
                 "if ! command -v git >/dev/null 2>&1; then echo 'git missing from image' >&2; exit 2; fi",
-                f"if [ ! -d {_quote(repo_dir)} ]; then git clone {_quote(git_repo)} {_quote(repo_dir)}; fi",
+                f"CLONE_URL={_quote(git_repo)}",
+                "if [ -n \"${GITHUB_TOKEN:-}\" ]; then",
+                "  case \"$CLONE_URL\" in",
+                "    https://github.com/*) CLONE_URL=\"https://x-access-token:${GITHUB_TOKEN}@${CLONE_URL#https://}\" ;;",
+                "  esac",
+                "fi",
+                f"if [ ! -d {_quote(repo_dir)} ]; then git clone \"$CLONE_URL\" {_quote(repo_dir)}; fi",
                 f"cd {_quote(repo_dir)}",
             ]
         )

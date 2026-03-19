@@ -255,3 +255,56 @@ def generate_with_adapter(
         new_tokens = generated[0][prompt_len:]
         outputs.append(tokenizer.decode(new_tokens, skip_special_tokens=True).strip())
     return outputs
+
+
+def generate_with_model(
+    *,
+    base_model: str,
+    prompts: list[str],
+    max_length: int,
+    max_new_tokens: int,
+    adapter_dir: str | Path | None = None,
+) -> list[str]:
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    if not prompts:
+        return []
+
+    model_path = base_model
+    load_adapter = adapter_dir is not None
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        device_map="auto" if torch.cuda.is_available() else None,
+    )
+    if load_adapter:
+        from peft import PeftModel
+
+        model = PeftModel.from_pretrained(model, str(Path(adapter_dir).expanduser().resolve()))
+    model.eval()
+
+    outputs: list[str] = []
+    for prompt in prompts:
+        batch = tokenizer(
+            prompt,
+            return_tensors="pt",
+            truncation=True,
+            max_length=max_length,
+        )
+        batch = {key: value.to(model.device) for key, value in batch.items()}
+        generated = model.generate(
+            **batch,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+        )
+        prompt_len = batch["input_ids"].shape[1]
+        new_tokens = generated[0][prompt_len:]
+        outputs.append(tokenizer.decode(new_tokens, skip_special_tokens=True).strip())
+    return outputs

@@ -30,7 +30,7 @@ KEEPALIVE_AFTER="${NANOHORIZON_KEEPALIVE_AFTER:-0}"
 
 # These env vars are forwarded into the pod when present.
 FORWARDED_ENV=()
-for key in HF_TOKEN OPENAI_API_KEY NANOHORIZON_TEACHER_API_KEY NANOHORIZON_TEACHER_BASE_URL; do
+for key in GITHUB_TOKEN HF_TOKEN OPENAI_API_KEY NANOHORIZON_TEACHER_API_KEY NANOHORIZON_TEACHER_BASE_URL; do
   if [[ -n "${!key:-}" ]]; then
     FORWARDED_ENV+=(--env "$key=${!key}")
   fi
