@@ -16,6 +16,29 @@ DEFAULT_TARGET_MODULES = [
 ]
 
 
+def _load_text_only_causal_lm(*, base_model: str, device: str, use_cache: bool = True) -> Any:
+    import torch
+    from transformers import AutoModelForCausalLM
+
+    model_kwargs: dict[str, Any] = {
+        "trust_remote_code": True,
+        "torch_dtype": torch.bfloat16 if device == "cuda" else torch.float32,
+    }
+    if device == "cuda":
+        model_kwargs["device_map"] = "auto"
+
+    try:
+        model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
+    except Exception:
+        # Match NanoLong's Qwen3.5 fallback for environments where AutoModel mapping lags.
+        from transformers import Qwen3_5ForCausalLM
+
+        model = Qwen3_5ForCausalLM.from_pretrained(base_model, **model_kwargs)
+
+    model.config.use_cache = use_cache
+    return model
+
+
 @dataclass
 class TrainResult:
     output_dir: str
@@ -55,7 +78,7 @@ def train_weighted_lora(
 ) -> TrainResult:
     import torch
     from peft import LoraConfig, get_peft_model
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
 
     if not examples:
         raise ValueError("no examples provided for training")
@@ -65,12 +88,7 @@ def train_weighted_lora(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        base_model,
-        trust_remote_code=True,
-        torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
-        device_map="auto" if device == "cuda" else None,
-    )
+    model = _load_text_only_causal_lm(base_model=base_model, device=device, use_cache=True)
     lora_config = LoraConfig(
         r=lora_rank,
         lora_alpha=lora_rank * 2,
@@ -153,6 +171,8 @@ def train_sft_with_trl(
     tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = _load_text_only_causal_lm(base_model=base_model, device=device, use_cache=False)
 
     rows = []
     for example in examples:
@@ -188,7 +208,7 @@ def train_sft_with_trl(
         remove_unused_columns=False,
     )
     trainer = SFTTrainer(
-        model=base_model,
+        model=model,
         args=training_args,
         train_dataset=dataset,
         processing_class=tokenizer,
@@ -217,7 +237,7 @@ def generate_with_adapter(
 ) -> list[str]:
     import torch
     from peft import PeftModel
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
 
     if not prompts:
         return []
@@ -226,12 +246,7 @@ def generate_with_adapter(
     tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(
-        base_model,
-        trust_remote_code=True,
-        torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
-        device_map="auto" if device == "cuda" else None,
-    )
+    model = _load_text_only_causal_lm(base_model=base_model, device=device, use_cache=True)
     model = PeftModel.from_pretrained(model, str(Path(adapter_dir).expanduser().resolve()))
     model.eval()
 
@@ -266,7 +281,7 @@ def generate_with_model(
     adapter_dir: str | Path | None = None,
 ) -> list[str]:
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
 
     if not prompts:
         return []
@@ -276,11 +291,10 @@ def generate_with_model(
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        trust_remote_code=True,
-        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        device_map="auto" if torch.cuda.is_available() else None,
+    model = _load_text_only_causal_lm(
+        base_model=model_path,
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        use_cache=True,
     )
     if load_adapter:
         from peft import PeftModel
