@@ -13,23 +13,42 @@ START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-0}"
 TEACHER_STARTUP_ATTEMPTS="${NANOHORIZON_TEACHER_STARTUP_ATTEMPTS:-180}"
 TEACHER_STARTUP_SLEEP_SECONDS="${NANOHORIZON_TEACHER_STARTUP_SLEEP_SECONDS:-2}"
 TEACHER_LOG="$OUTPUT_ROOT/vllm_teacher.log"
+VENV_ROOT="${NANOHORIZON_VENV_ROOT:-$ROOT/.runpod_venvs}"
+TEACHER_VENV="$VENV_ROOT/teacher"
+TRAINING_VENV="$VENV_ROOT/training"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+VLLM_BIN="${VLLM_BIN:-vllm}"
 
 log() {
   printf '[%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"
 }
 
 if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
-  log "installing Python runtime dependencies"
-  python3 -m pip install \
+  mkdir -p "$VENV_ROOT"
+
+  log "creating teacher virtualenv"
+  python3 -m venv "$TEACHER_VENV"
+  "$TEACHER_VENV/bin/python" -m pip install --upgrade pip
+  "$TEACHER_VENV/bin/python" -m pip install \
+    "httpx>=0.28.1" \
+    "pyyaml>=6.0.2" \
+    "vllm>=0.10.0"
+
+  log "creating training virtualenv"
+  python3 -m venv "$TRAINING_VENV"
+  "$TRAINING_VENV/bin/python" -m pip install --upgrade pip
+  "$TRAINING_VENV/bin/python" -m pip install \
     "httpx>=0.28.1" \
     "pyyaml>=6.0.2" \
     "accelerate>=1.10.0" \
     "datasets>=4.1.0" \
     "peft>=0.15.0" \
-    "trl>=0.28.0" \
-    "vllm>=0.10.0"
-  python3 -m pip install --upgrade \
+    "trl>=0.28.0"
+  "$TRAINING_VENV/bin/python" -m pip install --upgrade \
     "transformers @ git+https://github.com/huggingface/transformers.git@main"
+
+  PYTHON_BIN="$TRAINING_VENV/bin/python"
+  VLLM_BIN="$TEACHER_VENV/bin/vllm"
   log "finished installing Python runtime dependencies"
 fi
 
@@ -56,7 +75,7 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
   log "teacher log: $TEACHER_LOG"
   log "teacher startup attempts: $TEACHER_STARTUP_ATTEMPTS"
   log "teacher startup sleep seconds: $TEACHER_STARTUP_SLEEP_SECONDS"
-  vllm serve "$TEACHER_MODEL" \
+  "$VLLM_BIN" serve "$TEACHER_MODEL" \
     --host 127.0.0.1 \
     --port "$TEACHER_PORT" \
     --api-key "$NANOHORIZON_TEACHER_API_KEY" \
@@ -82,5 +101,5 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
 fi
 
 log "starting offline SFT baseline"
-python3 -m nanohorizon.baselines.offline_sft --config "$CONFIG_PATH" --output-dir "$OUTPUT_ROOT" "$@"
+"$PYTHON_BIN" -m nanohorizon.baselines.offline_sft --config "$CONFIG_PATH" --output-dir "$OUTPUT_ROOT" "$@"
 log "offline SFT baseline finished"
