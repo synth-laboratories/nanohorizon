@@ -59,6 +59,7 @@ Runtime images:
 - `ghcr.io/synth-laboratories/nanohorizon-rlvr:latest`
 - `ghcr.io/synth-laboratories/nanohorizon-prompt-opt:latest`
 - `ghcr.io/synth-laboratories/nanohorizon-eval:latest`
+- built remotely by GitHub Actions in `.github/workflows/build-track-images.yml`
 
 Build and optionally push them with:
 
@@ -73,6 +74,8 @@ NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh eval
 ```
 
 Every RunPod launcher accepts `NANOHORIZON_RUNPOD_IMAGE=...` to override the default image tag.
+
+If local Docker is unreliable or too slow, run the GitHub Actions image workflow and wait for the GHCR tags to publish before launching RunPod.
 
 What it does:
 
