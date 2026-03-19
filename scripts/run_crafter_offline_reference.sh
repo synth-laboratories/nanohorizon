@@ -33,7 +33,7 @@ COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
 IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-offline:latest}"
 AUTO_INSTALL="${NANOHORIZON_AUTO_INSTALL:-0}"
 START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-1}"
-TEACHER_MODEL="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-4B-Base}"
+TEACHER_MODEL="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-4B}"
 
 # These env vars are forwarded into the pod when present.
 declare -a FORWARDED_ENV=()
