@@ -21,7 +21,7 @@ The intended public evaluation loop is:
 3. save trainer-ready rollout JSONL
 4. score held-out episodes with a pinned eval harness
 
-The in-repo Crafter runtime lives at [reference/crafter/crafter_rs_container](/Users/joshpurtell/Documents/GitHub/nanohorizon/reference/crafter/crafter_rs_container).
+The in-repo Crafter runtime lives at [runtime/crafter_rs](../runtime/crafter_rs).
 
 ## Official Model
 
@@ -32,13 +32,13 @@ The in-repo Crafter runtime lives at [reference/crafter/crafter_rs_container](/U
 The repo now includes two benchmark starter assets:
 
 - FT starter dataset:
-  - [crafter_ft_starter.jsonl](/Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/crafter_ft_starter.jsonl)
+  - [crafter_ft_starter.jsonl](../data/crafter/crafter_ft_starter.jsonl)
   - intended as the starting fixed-data bundle for the offline baseline
 - FT seed prompts for teacher generation:
-  - [crafter_ft_seed_prompts.jsonl](/Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/crafter_ft_seed_prompts.jsonl)
+  - [crafter_ft_seed_prompts.jsonl](../data/crafter/crafter_ft_seed_prompts.jsonl)
   - intended for the reference offline script to expand into fresh SFT rows with `Qwen/Qwen3.5-27B` during the budget window
 - RLVR starter seeds:
-  - [crafter_rlvr_starter_seeds.json](/Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/crafter_rlvr_starter_seeds.json)
+  - [crafter_rlvr_starter_seeds.json](../data/crafter/crafter_rlvr_starter_seeds.json)
   - intended as the starting rollout seed set for the RLVR baseline
 
 ## Track-Specific Policy

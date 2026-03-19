@@ -1,47 +1,33 @@
-# Track Overview
+# Track overview
 
-NanoHorizon starts with two official tracks.
+NanoHorizon has **three** official tracks on the Crafter task. Full rules and contracts live in per-track docs:
 
-## RLVR Track
+| Track ID | Doc |
+| --- | --- |
+| `rlvr_20min_2xa100_40gb` | [RLVR track](tracks/rlvr_20min_2xa100_40gb.md) |
+| `offline_20min_1xa100_40gb` | [Offline track](tracks/offline_20min_1xa100_40gb.md) |
+| `prompt_opt_1usd_gpt54_family` | [Prompt optimization track](tracks/prompt_opt_1usd_gpt54_family.md) |
 
-Path: `tracks/rlvr_20min_2xa100_40gb`
+Task definition: [docs/task-crafter.md](task-crafter.md)
 
-Intent:
-- measure end-to-end engineering skill for a short-horizon real training run
-- allow model-in-the-loop data collection and RLVR-style updating
+## RLVR track — summary
 
-Budget:
-- 20 minutes wall clock
-- 2x A100 40GB
+- Intent: end-to-end engineering for a short real training run; model-in-the-loop data and RLVR-style updates.
+- Budget: 20 minutes wall clock, 2× A100 40GB.
 
-## Offline Track
+## Offline track — summary
 
-Path: `tracks/offline_20min_1xa100_40gb`
+- Intent: gains from fixed Crafter data under a strict single-GPU budget; data selection and offline post-training.
+- Budget: 20 minutes wall clock, 1× A100 40GB.
 
-Intent:
-- measure what can be gained from fixed Crafter data under a strict single-GPU budget
-- encourage strong data selection, filtering, and offline post-training
+## Prompt optimization track — summary
 
-Budget:
-- 20 minutes wall clock
-- 1x A100 40GB
+- Intent: improve Crafter performance via prompts and prompt search, not weight updates; $1 optimizer budget on GPT-5.4 family models; deployed policy stays `Qwen/Qwen3.5-0.8B`.
+- Budget: $1 total optimizer spend across `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`.
 
-## Shared Principles
+## Shared principles
 
-- same task family: Crafter
-- same base model family: `Qwen/Qwen3.5-0.8B`
-- same public record bundle shape
-- evaluation should be reproducible from pinned code and config
-
-## Prompt Optimization Track
-
-Path: `tracks/prompt_opt_1usd_gpt54_family`
-
-Intent:
-- measure how much Crafter performance can be improved through prompt engineering and prompt search rather than weight updates
-- let entrants spend a small fixed optimizer budget on GPT-5.4 family models while keeping the deployed policy fixed to `Qwen/Qwen3.5-0.8B`
-
-Budget:
-- $1 total optimizer spend
-- spend may be split across `gpt-5.4`, `gpt-5.4-mini`, and `gpt-5.4-nano`
-- evaluation policy remains `Qwen/Qwen3.5-0.8B`
+- Same task family: Crafter ([task doc](task-crafter.md)).
+- Same base model family: `Qwen/Qwen3.5-0.8B` (except optimizer APIs on the prompt track).
+- Same public record bundle shape under `records/<track_id>/…`.
+- Evaluation should be reproducible from pinned code and config.

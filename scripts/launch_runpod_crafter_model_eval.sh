@@ -29,7 +29,7 @@ for item in "${TRAIN_ENV[@]}"; do
   TRAIN_PREFIX+="$item "
 done
 
-python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_training_launcher launch \
   --image-name "$IMAGE_NAME" \
   --name "nanohorizon-eval-$(date -u +%Y%m%d-%H%M%S)" \
   --gpu-type-id "${NANOHORIZON_RUNPOD_GPU_TYPE:-NVIDIA A100 80GB PCIe}" \

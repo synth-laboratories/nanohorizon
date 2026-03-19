@@ -4,4 +4,4 @@ __pycache__
 *.pyc
 artifacts
 records
-reference/crafter/crafter_rs_container/target
+runtime/crafter_rs/target

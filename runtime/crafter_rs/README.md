@@ -24,7 +24,7 @@ Current scope:
 Run locally:
 
 ```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon/reference/crafter/crafter_rs_container
+cd runtime/crafter_rs
 cargo run
 ```
 

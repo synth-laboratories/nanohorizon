@@ -1,214 +1,153 @@
 # NanoHorizon
 
-NanoHorizon is a focused ML engineering golf repo for Crafter post-training under hard runtime and hardware budgets.
+**Crafter post-training under hard time, hardware, and budget caps.** Improve `Qwen/Qwen3.5-0.8B` on [Crafter](https://danijar.com/project/crafter/) with reproducible runs, pinned metrics, and public records anyone can verify.
 
-The initial goal is simple:
+NanoHorizon is the public competition surface for this problem. It is intentionally narrow: broader research lives elsewhere; here the task, tracks, and submission format are fixed so results stay comparable.
 
-- make `Qwen/Qwen3.5-0.8B` better at Crafter
-- keep the task reproducible and comparable
-- publish records in a format that is easy to verify
+---
 
-NanoHorizon is related to the private `nanolong` lab, but it is intentionally narrower. `nanolong` remains the broader research workspace. `nanohorizon` is the public-facing competition surface.
+## Leaderboard
 
-## Get Started
+Status: **bootstrap baselines** — scores are placeholders until first verified runs land.
 
-NanoHorizon is meant to have one obvious entrypoint per competition track.
+| Track | Rank | Run | Score | Summary | Record |
+| --- | ---: | --- | --- | --- | --- |
+| `rlvr_20min_2xa100_40gb` | 1 | `bootstrap_baseline` | TBD | Reward-weighted LoRA from Crafter rollout JSONL | [info](records/rlvr_20min_2xa100_40gb/2026-03-19_bootstrap_baseline/) |
+| `offline_20min_1xa100_40gb` | 1 | `bootstrap_baseline` | TBD | Teacher SFT + TRL fine-tune on 1×A100 | [info](records/offline_20min_1xa100_40gb/2026-03-19_bootstrap_baseline/) |
+| `prompt_opt_1usd_gpt54_family` | 1 | `bootstrap_baseline` | TBD | GEPA-style prompt search (default proposer: `gpt-5.4-mini`) | [info](records/prompt_opt_1usd_gpt54_family/2026-03-19_bootstrap_baseline/) |
 
-1. Clone `nanohorizon`.
-2. Pick a track.
-3. Run the single blessed script for that track.
-4. Save the resulting artifacts as a record under `records/<track>/...`.
+Rankings follow **pinned metrics** in each record’s `metrics.json`, not screenshots or ad hoc claims. New SOTA rows should add a dated directory under `records/<track>/` and update this table in the same PR.
 
-Track entrypoints:
+---
 
-| Track | What it is | One-command entrypoint |
-|---|---|---|
-| `rlvr_20min_2xa100_40gb` | RLVR-style Crafter training in 20 minutes on 2x A100 40GB | `./scripts/run_crafter_rlvr_qwen35_08b_2xa100_20min.sh` |
-| `offline_20min_1xa100_40gb` | Purely offline Crafter training in 20 minutes on 1x A100 40GB | `./scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh` |
-| `prompt_opt_1usd_gpt54_family` | Prompt optimization for Crafter with a $1 optimizer budget across `gpt-5.4`, `gpt-5.4-mini`, and `gpt-5.4-nano` | `./scripts/run_crafter_prompt_opt_qwen35_08b_gpt54_budget.sh` |
+## Tracks
+
+Each track has **one blessed entrypoint script** and a fixed resource envelope.
+
+| Track | Objective | Wall clock | Hardware / budget |
+| --- | --- | --- | --- |
+| `rlvr_20min_2xa100_40gb` | RLVR-style training for Crafter | 20 min | 2× A100 40GB |
+| `offline_20min_1xa100_40gb` | Purely offline training (e.g. SFT / distillation) | 20 min | 1× A100 40GB |
+| `prompt_opt_1usd_gpt54_family` | Prompt / policy scaffolding for the same base model | — | **$1** total optimizer spend across `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano` |
+
+**Base model target:** `Qwen/Qwen3.5-0.8B` unless a [track doc](docs/tracks/) states otherwise.
+
+---
+
+## Getting started
+
+1. **Clone** this repository.
+2. **Pick a track** from the table above.
+3. **Run** the matching script from the repo root.
+4. **Publish** outputs as a record under `records/<track>/<YYYY-MM-DD>_<name>/` (see [records/README.md](records/README.md)).
+
+### One-command entrypoints
+
+| Track | Command |
+| --- | --- |
+| RLVR | `./scripts/run_crafter_rlvr_qwen35_08b_2xa100_20min.sh` |
+| Offline | `./scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh` |
+| Prompt optimization | `./scripts/run_crafter_prompt_opt_qwen35_08b_gpt54_budget.sh` |
 
 Example:
 
 ```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
+git clone https://github.com/synth-laboratories/nanohorizon.git
+cd nanohorizon
 ./scripts/run_crafter_rlvr_qwen35_08b_2xa100_20min.sh
 ```
 
-## Offline Reference Run
-
-The main user-editable surface for the offline track is:
-
-- [run_crafter_offline_reference.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_crafter_offline_reference.sh)
-
-That script is intended to be the easiest end-to-end path:
-
-1. edit the knobs at the top if you want to change repo/ref/config/GPU
-2. run it with `RUNPOD_API_KEY`
-3. let RunPod execute the full pipeline
-
-Command:
+### Validate a record
 
 ```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
+PYTHONPATH=src python3 -m nanohorizon.validate_record records/rlvr_20min_2xa100_40gb/2026-03-19_bootstrap_baseline
+```
+
+---
+
+## Submissions
+
+Submissions are **directories**, not issues.
+
+1. Add `records/<track>/<date>_<slug>/` with at least: `metadata.json`, `metrics.json`, `system_info.json`, `command.txt`, `run_config.yaml` (full checklist: [records/README.md](records/README.md)).
+2. Open a PR that includes the record and an updated **Leaderboard** row pointing at it.
+3. Prefer enough logging and config detail that an independent rerun can reproduce the claim within the track’s rules.
+
+Records use **stable paths**, **explicit commands**, and **system metadata** so comparisons stay fair and auditable.
+
+---
+
+## Offline / RunPod reference path
+
+For the offline track, the most hands-off cloud path is the reference launcher (RunPod + API key):
+
+```bash
 RUNPOD_API_KEY=... ./scripts/run_crafter_offline_reference.sh
 ```
 
-Runtime images:
+Editable knobs live at the top of [scripts/run_crafter_offline_reference.sh](scripts/run_crafter_offline_reference.sh). That pipeline can generate teacher SFT rows with `Qwen/Qwen3.5-27B` (vLLM) and fine-tune `Qwen/Qwen3.5-0.8B` with TRL inside the track’s time budget.
 
-- `ghcr.io/synth-laboratories/nanohorizon-offline:latest`
-- `ghcr.io/synth-laboratories/nanohorizon-rlvr:latest`
-- `ghcr.io/synth-laboratories/nanohorizon-prompt-opt:latest`
-- `ghcr.io/synth-laboratories/nanohorizon-eval:latest`
-- built remotely by GitHub Actions in `.github/workflows/build-track-images.yml`
+**Container images** (built via [`.github/workflows/build-track-images.yml`](.github/workflows/build-track-images.yml)):
 
-Build and optionally push them with:
+| Image | Role |
+| --- | --- |
+| `ghcr.io/synth-laboratories/nanohorizon-offline:latest` | Offline track |
+| `ghcr.io/synth-laboratories/nanohorizon-rlvr:latest` | RLVR track |
+| `ghcr.io/synth-laboratories/nanohorizon-prompt-opt:latest` | Prompt optimization |
+| `ghcr.io/synth-laboratories/nanohorizon-eval:latest` | Evaluation |
+
+Override the default tag with `NANOHORIZON_RUNPOD_IMAGE=...` on any RunPod launcher.
+
+**Build locally** (optional push with `NANOHORIZON_DOCKER_PUSH=1`):
 
 ```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
 ./scripts/build_track_image.sh base
-NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh base
 NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh offline
 NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh rlvr
 NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh prompt_opt
 NANOHORIZON_DOCKER_PUSH=1 ./scripts/build_track_image.sh eval
 ```
 
-Every RunPod launcher accepts `NANOHORIZON_RUNPOD_IMAGE=...` to override the default image tag.
+---
 
-If local Docker is unreliable or too slow, run the GitHub Actions image workflow and wait for the GHCR tags to publish before launching RunPod.
+## Repository layout
 
-What it does:
+Layout reference: [docs/repo-structure.md](docs/repo-structure.md). Track rules: [docs/tracks.md](docs/tracks.md).
 
-- launches a RunPod A100 pod
-- starts `vllm` for `Qwen/Qwen3.5-27B`
-- generates teacher SFT rows
-- keeps the top half of generated rows by heuristic reward
-- fine-tunes `Qwen/Qwen3.5-0.8B` with TRL
-- evaluates the finetuned adapter
+| Path | Purpose |
+| --- | --- |
+| [docs/task-crafter.md](docs/task-crafter.md) | Crafter task definition, eval shape, starter assets |
+| [docs/tracks/](docs/tracks/) | Per-track contracts (`<track_id>.md`) |
+| [runtime/crafter_rs/](runtime/crafter_rs/) | In-repo Rust Crafter runtime (rollout contract) |
+| [scripts/](scripts/) | Blessed baseline launchers |
+| [configs/](configs/) | Pinned configs for those scripts |
+| [src/nanohorizon/](src/nanohorizon/) | Python package (baselines, eval, `validate_record`, `runpod_training_launcher`) |
+| [records/](records/) | Public baselines and submissions |
 
-Baseline note:
+**Starter data** (small bootstrap bundle, not the final benchmark corpus):
 
-- each track now has a self-contained baseline entrypoint in this repo
-- the offline baseline is a RunPod-oriented `vllm` + `trl` pipeline
-- the reference offline path may generate fresh SFT rows with `Qwen/Qwen3.5-27B` inside the same 20-minute budget window before training `Qwen/Qwen3.5-0.8B`
-- the RLVR baseline is reward-weighted LoRA training from Crafter rollout JSONL
-- the prompt optimization baseline is GEPA-style prompt search with `gpt-5.4-mini` as the default proposer
-- the repo includes starter benchmark assets:
-  - FT starter data: `data/crafter/crafter_ft_starter.jsonl`
-  - FT seed prompts for `Qwen/Qwen3.5-27B`: `data/crafter/crafter_ft_seed_prompts.jsonl`
-  - RLVR starter seeds: `data/crafter/crafter_rlvr_starter_seeds.json`
-  - tiny rollout bootstrap data for local smoke tests
+- `data/crafter/crafter_ft_starter.jsonl`
+- `data/crafter/crafter_ft_seed_prompts.jsonl`
+- `data/crafter/crafter_rlvr_starter_seeds.json`
+- Rollout samples for local smoke tests
 
-## Leaderboard
+---
 
-Current leaderboard status: bootstrap baselines.
+## FAQ
 
-| Track | Rank | Entry | Score | Status | Record |
-|---|---|---|---|---|---|
-| `rlvr_20min_2xa100_40gb` | 1 | `bootstrap_baseline` | `TBD` | reward-weighted LoRA | [record](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/rlvr_20min_2xa100_40gb/2026-03-19_bootstrap_baseline) |
-| `offline_20min_1xa100_40gb` | 1 | `bootstrap_baseline` | `TBD` | simple SFT | [record](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/offline_20min_1xa100_40gb/2026-03-19_bootstrap_baseline) |
-| `prompt_opt_1usd_gpt54_family` | 1 | `bootstrap_baseline` | `TBD` | GEPA-style prompt search | [record](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/prompt_opt_1usd_gpt54_family/2026-03-19_bootstrap_baseline) |
+**What counts as the score?**  
+Whatever the track pins in `metrics.json` and documents in the record; the leaderboard should name that field explicitly as scores stabilize.
 
-The intended long-term model is the same as Parameter Golf:
+**Can I change hyperparameters?**  
+Yes, within the track’s time, hardware, and (for prompt optimization) dollar caps. Document everything in `run_config.yaml` and `command.txt`.
 
-- every serious run gets a durable record directory
-- the README leaderboard points at those records
-- rankings are derived from pinned metrics, not ad hoc screenshots
+**Is this an official OpenAI project?**  
+No.
 
-## Initial Tracks
+---
 
-- `rlvr_20min_2xa100_40gb`
-  - train `Qwen/Qwen3.5-0.8B` for Crafter with RLVR-style methods
-  - hard budget: 20 minutes wall clock
-  - hardware budget: 2x A100 40GB
-- `offline_20min_1xa100_40gb`
-  - train `Qwen/Qwen3.5-0.8B` for Crafter with purely offline methods
-  - hard budget: 20 minutes wall clock
-  - hardware budget: 1x A100 40GB
-- `prompt_opt_1usd_gpt54_family`
-  - improve the Crafter prompting and policy scaffolding for `Qwen/Qwen3.5-0.8B`
-  - optimization budget: $1 total compute spend
-  - allowed optimizers: any mix of `gpt-5.4`, `gpt-5.4-mini`, and `gpt-5.4-nano`
+## Current status
 
-## Repo Layout
-
-- `tasks/crafter/`
-  - task definition, evaluation notes, and allowed data assumptions
-- `reference/crafter/crafter_rs_container/`
-  - in-repo Rust Crafter runtime exposing the rollout container contract
-- `tracks/`
-  - one folder per official competition track
-- `scripts/`
-  - blessed launcher scripts for the official baselines
-- `configs/`
-  - pinned configs used by the blessed scripts
-- `tools/`
-  - record validation and metadata helpers
-- `records/`
-  - reproducible public submissions and baselines
-
-## Current Status
-
-This repository is a first public benchmark scaffold with real baseline entrypoints.
-
-That means:
-
-- the task, tracks, and record layout are defined here
-- the starter scripts are real and executable
-- the baselines live fully inside `nanohorizon`
-- the Crafter runtime now lives in-repo under `reference/crafter/crafter_rs_container`
-- the checked-in data is small bootstrap data, not the final benchmark bundle
-
-## Starter Commands
-
-RLVR track bootstrap:
-
-```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
-./scripts/run_crafter_rlvr_qwen35_08b_2xa100_20min.sh
-```
-
-Offline track bootstrap:
-
-```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
-./scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh
-```
-
-Offline track RunPod launch:
-
-```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
-RUNPOD_API_KEY=... ./scripts/run_crafter_offline_reference.sh
-```
-
-Prompt optimization track bootstrap:
-
-```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
-./scripts/run_crafter_prompt_opt_qwen35_08b_gpt54_budget.sh
-```
-
-Validate a record bundle:
-
-```bash
-cd /Users/joshpurtell/Documents/GitHub/nanohorizon
-python3 tools/validate_record.py records/rlvr_20min_2xa100_40gb/2026-03-19_bootstrap_baseline
-```
-
-## Relationship To Parameter Golf
-
-NanoHorizon is inspired by the reproducibility norms in OpenAI's Parameter Golf records:
-
-- every submission should live in a stable directory
-- every submission should include exact config and command metadata
-- every submission should carry enough metrics and system information to compare fairly
-
-Reference:
-- [OpenAI Parameter Golf records](https://github.com/openai/parameter-golf/tree/main/records)
-
-## Next Steps
-
-- extract the minimum Crafter runtime and eval harness needed for open sourcing
-- publish one baseline record for each track
-- tighten the track rules around timing, allowed inputs, and verification
+- Task, tracks, and record layout are defined; baseline scripts are real and runnable from this repo.
+- Crafter runtime is vendored under `runtime/crafter_rs/`.
+- Checked-in data is **bootstrap-scale**; benchmark bundles and stricter verification rules may tighten over time.

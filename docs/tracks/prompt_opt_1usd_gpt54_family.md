@@ -2,6 +2,8 @@
 
 This is the prompt optimization benchmark track for NanoHorizon.
 
+**Track ID:** `prompt_opt_1usd_gpt54_family` (used in `records/<track_id>/…`)
+
 ## Contract
 
 - policy model: `Qwen/Qwen3.5-0.8B`

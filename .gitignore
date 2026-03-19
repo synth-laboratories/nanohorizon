@@ -4,8 +4,9 @@
 __pycache__/
 *.pyc
 target/
-reference/crafter/crafter_rs_container/target/
+runtime/crafter_rs/target/
 artifacts/
+.out/
 records/*/*/artifacts/
 records/*/*/checkpoints/
 records/*/*/train.log

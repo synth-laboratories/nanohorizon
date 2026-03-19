@@ -70,7 +70,7 @@ echo "  wait timeout seconds: $WAIT_TIMEOUT_SECONDS"
 echo "  completion webhook: $COMPLETION_WEBHOOK_URL"
 
 if (( ${#FORWARDED_ENV[@]} > 0 )); then
-  python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+  PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_training_launcher launch \
     --image-name "$IMAGE_NAME" \
     --name "$RUN_NAME" \
     --gpu-type-id "$GPU_TYPE" \
@@ -91,7 +91,7 @@ if (( ${#FORWARDED_ENV[@]} > 0 )); then
     "${FORWARDED_ENV[@]}" \
     "$@"
 else
-  python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+  PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_training_launcher launch \
     --image-name "$IMAGE_NAME" \
     --name "$RUN_NAME" \
     --gpu-type-id "$GPU_TYPE" \

@@ -11,7 +11,7 @@ if [[ -z "$GIT_REPO" ]]; then
   exit 1
 fi
 
-python3 "$ROOT/reference/runpod_training_launcher.py" launch \
+PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_training_launcher launch \
   --image-name "$IMAGE_NAME" \
   --name "nanohorizon-offline-$(date -u +%Y%m%d-%H%M%S)" \
   --gpu-type-id "NVIDIA A100 80GB PCIe" \

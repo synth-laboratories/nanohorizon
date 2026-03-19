@@ -19,4 +19,4 @@ Optional files:
 - `eval_rollouts.jsonl`
 - `train.log`
 
-The validator in `tools/validate_record.py` checks only the minimum bundle shape for now.
+The validator (`PYTHONPATH=src python3 -m nanohorizon.validate_record`) checks only the minimum bundle shape for now.

@@ -2,6 +2,8 @@
 
 This is the fixed-data benchmark track for NanoHorizon.
 
+**Track ID:** `offline_20min_1xa100_40gb` (used in `records/<track_id>/…`)
+
 ## Contract
 
 - base model: `Qwen/Qwen3.5-0.8B`

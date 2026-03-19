@@ -120,8 +120,8 @@ RUNPOD_PRESETS: dict[str, dict[str, Any]] = {
         "description": "Default generic PyTorch image path.",
         "image_name": DEFAULT_IMAGE,
     },
-    "parameter-golf-official": {
-        "description": "OpenAI Parameter Golf official RunPod template.",
+    "public_benchmark_template": {
+        "description": "RunPod community GPU template (fixed template ID).",
         "template_id": "y5cejece4j",
     },
 }

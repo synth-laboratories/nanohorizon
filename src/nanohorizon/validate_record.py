@@ -16,7 +16,10 @@ REQUIRED_FILES = (
 
 def main() -> int:
     if len(sys.argv) != 2:
-        print("usage: python3 tools/validate_record.py <record_dir>", file=sys.stderr)
+        print(
+            "usage: PYTHONPATH=src python3 -m nanohorizon.validate_record <record_dir>",
+            file=sys.stderr,
+        )
         return 2
 
     record_dir = Path(sys.argv[1]).expanduser().resolve()

@@ -2,6 +2,8 @@
 
 This is the online RLVR-style benchmark track for NanoHorizon.
 
+**Track ID:** `rlvr_20min_2xa100_40gb` (used in `records/<track_id>/…`)
+
 ## Contract
 
 - base model: `Qwen/Qwen3.5-0.8B`
