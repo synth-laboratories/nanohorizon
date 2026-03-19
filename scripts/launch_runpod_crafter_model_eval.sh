@@ -2,9 +2,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/scripts/lib_runpod_webhook.sh"
 GIT_REPO="${NANOHORIZON_GIT_REPO:-https://github.com/synth-laboratories/nanohorizon.git}"
 GIT_REF="${NANOHORIZON_GIT_REF:-main}"
 BASE_MODEL="${NANOHORIZON_EVAL_BASE_MODEL:-Qwen/Qwen3.5-0.8B}"
+WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-1800}"
+COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
 
 FORWARDED_ENV=()
 for key in GITHUB_TOKEN HF_TOKEN; do
@@ -38,6 +41,10 @@ python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --repo-dir nanohorizon \
   --setup-cmd "cd /workspace/nanohorizon && python3 -m pip install --upgrade pip && python3 -m pip install -q 'peft>=0.17.0' 'transformers>=4.57.0' 'torch>=2.7.0' 'pyyaml>=6.0.2'" \
   --train-cmd "cd /workspace/nanohorizon && ${TRAIN_PREFIX}bash scripts/run_crafter_model_eval.sh" \
+  --wait-until-running \
+  --wait-for-completion \
+  --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
+  --completion-webhook-url "$COMPLETION_WEBHOOK_URL" \
   --auto-stop \
   "${FORWARDED_ENV[@]}" \
   "$@"

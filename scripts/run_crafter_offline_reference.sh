@@ -15,6 +15,7 @@ set -euo pipefail
 #   5. evaluate the resulting adapter
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/scripts/lib_runpod_webhook.sh"
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # Main knobs to change for your run.
@@ -28,6 +29,7 @@ CONTAINER_DISK_GB="${NANOHORIZON_RUNPOD_CONTAINER_DISK_GB:-80}"
 VOLUME_GB="${NANOHORIZON_RUNPOD_VOLUME_GB:-160}"
 KEEPALIVE_AFTER="${NANOHORIZON_KEEPALIVE_AFTER:-0}"
 WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-2400}"
+COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
 
 # These env vars are forwarded into the pod when present.
 FORWARDED_ENV=()
@@ -53,6 +55,7 @@ echo "  git ref: $GIT_REF"
 echo "  config: $CONFIG_PATH"
 echo "  gpu: $GPU_TYPE x$GPU_COUNT"
 echo "  wait timeout seconds: $WAIT_TIMEOUT_SECONDS"
+echo "  completion webhook: $COMPLETION_WEBHOOK_URL"
 
 python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --name "$RUN_NAME" \
@@ -65,6 +68,7 @@ python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --wait-until-running \
   --wait-for-completion \
   --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
+  --completion-webhook-url "$COMPLETION_WEBHOOK_URL" \
   --git-repo "$GIT_REPO" \
   --git-ref "$GIT_REF" \
   --repo-dir nanohorizon \
