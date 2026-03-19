@@ -91,6 +91,7 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
     --max-model-len 2048 \
     --gpu-memory-utilization 0.92 >"$TEACHER_LOG" 2>&1 &
   TEACHER_PID=$!
+  export NANOHORIZON_LOCAL_TEACHER_PID="$TEACHER_PID"
   for attempt in $(seq 1 "$TEACHER_STARTUP_ATTEMPTS"); do
     if curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" "http://127.0.0.1:${TEACHER_PORT}/v1/models" >/dev/null 2>&1; then
       log "teacher ready after $(( attempt * TEACHER_STARTUP_SLEEP_SECONDS )) seconds"
