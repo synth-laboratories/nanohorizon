@@ -16,17 +16,23 @@ def chat_completion(
     temperature: float = 0.2,
     base_url: str | None = None,
     api_key: str | None = None,
+    timeout_seconds: float | None = None,
 ) -> str:
     resolved_api_key = str(api_key or os.getenv("OPENAI_API_KEY") or "").strip()
     resolved_base_url = str(base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
     parsed = urlparse(resolved_base_url)
     is_local = parsed.hostname in {"127.0.0.1", "localhost"}
+    resolved_timeout = float(
+        timeout_seconds
+        or os.getenv("NANOHORIZON_OPENAI_TIMEOUT_SECONDS")
+        or (300.0 if is_local else 60.0)
+    )
     if not resolved_api_key and not is_local:
         raise RuntimeError("OPENAI_API_KEY is required for non-local OpenAI-compatible completions")
     headers: dict[str, str] = {}
     if resolved_api_key:
         headers["Authorization"] = f"Bearer {resolved_api_key}"
-    with httpx.Client(timeout=60.0) as client:
+    with httpx.Client(timeout=httpx.Timeout(resolved_timeout, connect=30.0)) as client:
         response = client.post(
             f"{resolved_base_url}/chat/completions",
             headers=headers,
