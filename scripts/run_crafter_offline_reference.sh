@@ -33,6 +33,7 @@ COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
 IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-offline:latest}"
 AUTO_INSTALL="${NANOHORIZON_AUTO_INSTALL:-0}"
 START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-1}"
+TEACHER_MODEL="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-4B-Base}"
 
 # These env vars are forwarded into the pod when present.
 declare -a FORWARDED_ENV=()
@@ -47,7 +48,7 @@ if [[ "$KEEPALIVE_AFTER" == "1" ]]; then
   STOP_ARGS=(--keepalive-after)
 fi
 
-TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=${AUTO_INSTALL} NANOHORIZON_START_LOCAL_TEACHER=${START_LOCAL_TEACHER} bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
+TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=${AUTO_INSTALL} NANOHORIZON_START_LOCAL_TEACHER=${START_LOCAL_TEACHER} NANOHORIZON_TEACHER_MODEL=${TEACHER_MODEL} bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
 if [[ "$AUTO_INSTALL" == "1" ]]; then
   SETUP_CMD="cd /workspace/nanohorizon && python3 -V && echo using public bootstrap runtime image"
 else
@@ -64,6 +65,7 @@ echo "  gpu: $GPU_TYPE x$GPU_COUNT"
 echo "  image: $IMAGE_NAME"
 echo "  auto install: $AUTO_INSTALL"
 echo "  start local teacher: $START_LOCAL_TEACHER"
+echo "  teacher model: $TEACHER_MODEL"
 echo "  wait timeout seconds: $WAIT_TIMEOUT_SECONDS"
 echo "  completion webhook: $COMPLETION_WEBHOOK_URL"
 
