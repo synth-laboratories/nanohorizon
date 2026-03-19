@@ -16,8 +16,8 @@ data:
 
 teacher_generation:
   enabled: true
-  teacher_model: Qwen/Qwen3.5-27B
-  teacher_base_url: http://127.0.0.1:8000/v1
+  teacher_model: Qwen/Qwen3.5-4B-Base
+  teacher_base_url: http://127.0.0.1:8001/v1
   seed_prompts_jsonl: ../data/crafter/crafter_ft_seed_prompts.jsonl
   max_tokens: 64
   temperature: 0.1

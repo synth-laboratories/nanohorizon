@@ -9,6 +9,8 @@ TEACHER_MODEL="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-27B}"
 TEACHER_PORT="${NANOHORIZON_TEACHER_PORT:-8001}"
 TEACHER_BASE_URL_DEFAULT="${NANOHORIZON_TEACHER_BASE_URL:-http://127.0.0.1:${TEACHER_PORT}/v1}"
 START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-0}"
+TEACHER_STARTUP_ATTEMPTS="${NANOHORIZON_TEACHER_STARTUP_ATTEMPTS:-180}"
+TEACHER_STARTUP_SLEEP_SECONDS="${NANOHORIZON_TEACHER_STARTUP_SLEEP_SECONDS:-2}"
 TEACHER_LOG="$OUTPUT_ROOT/vllm_teacher.log"
 
 if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
@@ -36,6 +38,8 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
   echo "  starting teacher: $TEACHER_MODEL"
   echo "  teacher base url: $NANOHORIZON_TEACHER_BASE_URL"
   echo "  teacher log: $TEACHER_LOG"
+  echo "  teacher startup attempts: $TEACHER_STARTUP_ATTEMPTS"
+  echo "  teacher startup sleep seconds: $TEACHER_STARTUP_SLEEP_SECONDS"
   vllm serve "$TEACHER_MODEL" \
     --host 127.0.0.1 \
     --port "$TEACHER_PORT" \
@@ -43,16 +47,16 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
     --max-model-len 2048 \
     --gpu-memory-utilization 0.92 >"$TEACHER_LOG" 2>&1 &
   TEACHER_PID=$!
-  for attempt in $(seq 1 120); do
+  for attempt in $(seq 1 "$TEACHER_STARTUP_ATTEMPTS"); do
     if curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" "http://127.0.0.1:${TEACHER_PORT}/v1/models" >/dev/null 2>&1; then
-      echo "  teacher ready after $(( attempt * 2 )) seconds"
+      echo "  teacher ready after $(( attempt * TEACHER_STARTUP_SLEEP_SECONDS )) seconds"
       break
     fi
     if (( attempt % 10 == 0 )); then
       echo "  waiting for teacher startup... attempt=$attempt"
       tail -n 20 "$TEACHER_LOG" 2>/dev/null || true
     fi
-    sleep 2
+    sleep "$TEACHER_STARTUP_SLEEP_SECONDS"
   done
   if ! curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" "http://127.0.0.1:${TEACHER_PORT}/v1/models" >/dev/null; then
     echo "  teacher failed to become ready"
