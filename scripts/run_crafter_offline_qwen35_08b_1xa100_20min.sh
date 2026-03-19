@@ -52,6 +52,13 @@ if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
   log "finished installing Python runtime dependencies"
 fi
 
+if [[ -x "$TRAINING_VENV/bin/python" ]]; then
+  PYTHON_BIN="$TRAINING_VENV/bin/python"
+fi
+if [[ -x "$TEACHER_VENV/bin/vllm" ]]; then
+  VLLM_BIN="$TEACHER_VENV/bin/vllm"
+fi
+
 mkdir -p "$OUTPUT_ROOT"
 
 cleanup() {
@@ -66,6 +73,8 @@ log "repo: $ROOT"
 log "config: $CONFIG_PATH"
 log "budget target: 20 minutes on 1x A100 40GB"
 log "baseline: vLLM teacher -> heuristic filter -> TRL SFT on 0.8B -> eval"
+log "training python: $PYTHON_BIN"
+log "teacher vllm: $VLLM_BIN"
 
 if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
   export NANOHORIZON_TEACHER_BASE_URL="$TEACHER_BASE_URL_DEFAULT"
