@@ -12,7 +12,7 @@ fi
 
 python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --name "nanohorizon-offline-$(date -u +%Y%m%d-%H%M%S)" \
-  --gpu-type-id "NVIDIA A100 40GB PCIe" \
+  --gpu-type-id "NVIDIA A100 80GB PCIe" \
   --gpu-count 1 \
   --container-disk-gb 80 \
   --volume-gb 160 \

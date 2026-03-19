@@ -27,7 +27,7 @@ done
 
 python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --name "nanohorizon-eval-$(date -u +%Y%m%d-%H%M%S)" \
-  --gpu-type-id "${NANOHORIZON_RUNPOD_GPU_TYPE:-NVIDIA A100 40GB PCIe}" \
+  --gpu-type-id "${NANOHORIZON_RUNPOD_GPU_TYPE:-NVIDIA A100 80GB PCIe}" \
   --gpu-count "${NANOHORIZON_RUNPOD_GPU_COUNT:-1}" \
   --container-disk-gb "${NANOHORIZON_RUNPOD_CONTAINER_DISK_GB:-80}" \
   --volume-gb "${NANOHORIZON_RUNPOD_VOLUME_GB:-120}" \
