@@ -48,7 +48,7 @@ if [[ "$KEEPALIVE_AFTER" == "1" ]]; then
   STOP_ARGS=(--keepalive-after)
 fi
 
-TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=${AUTO_INSTALL} NANOHORIZON_START_LOCAL_TEACHER=${START_LOCAL_TEACHER} NANOHORIZON_TEACHER_MODEL=${TEACHER_MODEL} bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
+TRAIN_CMD="cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=${AUTO_INSTALL} NANOHORIZON_START_LOCAL_TEACHER=${START_LOCAL_TEACHER} NANOHORIZON_TEACHER_MODEL=${TEACHER_MODEL} NANOHORIZON_TEACHER_STARTUP_ATTEMPTS=${NANOHORIZON_TEACHER_STARTUP_ATTEMPTS:-240} NANOHORIZON_TEACHER_STARTUP_SLEEP_SECONDS=${NANOHORIZON_TEACHER_STARTUP_SLEEP_SECONDS:-2} bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh --config /workspace/nanohorizon/${CONFIG_PATH}"
 if [[ "$AUTO_INSTALL" == "1" ]]; then
   SETUP_CMD="cd /workspace/nanohorizon && python3 -V && echo using shared base runtime image"
 else
