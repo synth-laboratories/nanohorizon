@@ -278,6 +278,7 @@ def _selected_image_name(args: argparse.Namespace) -> str:
 def build_bootstrap_script(args: argparse.Namespace) -> str:
     repo_dir = args.repo_dir.strip() or "repo"
     output_dir = args.output_dir.strip() or "/workspace/smr-runpod"
+    workspace_dir = args.volume_mount_path.strip() or DEFAULT_VOLUME_MOUNT
     setup_cmd = str(args.setup_cmd or "").strip()
     train_cmd = str(args.train_cmd or "").strip()
     if not train_cmd:
@@ -301,6 +302,7 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
         f"export SMR_RUNPOD_MANIFEST_PATH={_quote(manifest_path)}",
         f"export SMR_RUNPOD_HTTP_LOG_PATH={_quote(http_log_path)}",
         f"mkdir -p {_quote(output_dir)}",
+        f"mkdir -p {_quote(workspace_dir)}",
         "FINALIZED=0",
         "write_manifest() {",
         "python3 - <<'PY'",
@@ -397,6 +399,7 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
         lines.extend(
             [
                 "if ! command -v git >/dev/null 2>&1; then echo 'git missing from image' >&2; exit 2; fi",
+                f"cd {_quote(workspace_dir)}",
                 f"CLONE_URL={_quote(git_repo)}",
                 "if [ -n \"${GITHUB_TOKEN:-}\" ]; then",
                 "  case \"$CLONE_URL\" in",
@@ -410,6 +413,7 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
     else:
         lines.extend(
             [
+                f"cd {_quote(workspace_dir)}",
                 f"mkdir -p {_quote(repo_dir)}",
                 f"cd {_quote(repo_dir)}",
             ]
