@@ -27,6 +27,7 @@ GPU_COUNT="${NANOHORIZON_RUNPOD_GPU_COUNT:-1}"
 CONTAINER_DISK_GB="${NANOHORIZON_RUNPOD_CONTAINER_DISK_GB:-80}"
 VOLUME_GB="${NANOHORIZON_RUNPOD_VOLUME_GB:-160}"
 KEEPALIVE_AFTER="${NANOHORIZON_KEEPALIVE_AFTER:-0}"
+WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-2400}"
 
 # These env vars are forwarded into the pod when present.
 FORWARDED_ENV=()
@@ -51,6 +52,7 @@ echo "  git repo: $GIT_REPO"
 echo "  git ref: $GIT_REF"
 echo "  config: $CONFIG_PATH"
 echo "  gpu: $GPU_TYPE x$GPU_COUNT"
+echo "  wait timeout seconds: $WAIT_TIMEOUT_SECONDS"
 
 python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --name "$RUN_NAME" \
@@ -60,6 +62,9 @@ python3 "$ROOT/reference/runpod_training_launcher.py" launch \
   --volume-gb "$VOLUME_GB" \
   --support-public-ip \
   --install-uv \
+  --wait-until-running \
+  --wait-for-completion \
+  --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
   --git-repo "$GIT_REPO" \
   --git-ref "$GIT_REF" \
   --repo-dir nanohorizon \
