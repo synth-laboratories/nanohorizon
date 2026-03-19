@@ -27,7 +27,7 @@ if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
   mkdir -p "$VENV_ROOT"
 
   log "creating teacher virtualenv"
-  python3 -m venv "$TEACHER_VENV"
+  python3 -m venv --system-site-packages "$TEACHER_VENV"
   "$TEACHER_VENV/bin/python" -m pip install --upgrade pip
   "$TEACHER_VENV/bin/python" -m pip install \
     "httpx>=0.28.1" \
@@ -35,7 +35,7 @@ if [[ "${NANOHORIZON_AUTO_INSTALL:-0}" == "1" ]]; then
     "vllm>=0.10.0"
 
   log "creating training virtualenv"
-  python3 -m venv "$TRAINING_VENV"
+  python3 -m venv --system-site-packages "$TRAINING_VENV"
   "$TRAINING_VENV/bin/python" -m pip install --upgrade pip
   "$TRAINING_VENV/bin/python" -m pip install \
     "httpx>=0.28.1" \
