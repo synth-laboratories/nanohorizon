@@ -28,6 +28,14 @@ def load_config(path: str | Path) -> dict[str, Any]:
     return payload
 
 
+def resolve_path(path: str | Path, *, base_dir: str | Path | None = None) -> Path:
+    target = Path(path).expanduser()
+    if target.is_absolute():
+        return target.resolve()
+    anchor = Path(base_dir).expanduser().resolve() if base_dir is not None else Path.cwd().resolve()
+    return (anchor / target).resolve()
+
+
 def ensure_dir(path: str | Path) -> Path:
     target = Path(path).expanduser().resolve()
     target.mkdir(parents=True, exist_ok=True)

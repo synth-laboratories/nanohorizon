@@ -11,20 +11,20 @@ budget:
   gpu_type: A100-40GB
 
 data:
-  dataset_jsonl: /Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/crafter_ft_starter.jsonl
+  dataset_jsonl: ../data/crafter/crafter_ft_starter.jsonl
   dataset_name: crafter_ft_starter
 
 teacher_generation:
   enabled: true
   teacher_model: Qwen/Qwen3.5-27B
   teacher_base_url: http://127.0.0.1:8000/v1
-  seed_prompts_jsonl: /Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/crafter_ft_seed_prompts.jsonl
+  seed_prompts_jsonl: ../data/crafter/crafter_ft_seed_prompts.jsonl
   max_tokens: 64
   temperature: 0.1
 
 filtering:
   enabled: true
-  min_reward: 0.75
+  keep_top_fraction: 0.5
 
 training:
   method: trl_sft
@@ -37,8 +37,8 @@ training:
   gradient_accumulation_steps: 1
 
 output:
-  root_dir: /Users/joshpurtell/Documents/GitHub/nanohorizon/artifacts/offline_sft_baseline
+  root_dir: ../artifacts/offline_sft_baseline
 
 evaluation:
-  eval_prompts_jsonl: /Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/crafter_eval_prompts.jsonl
+  eval_prompts_jsonl: ../data/crafter/crafter_eval_prompts.jsonl
   max_new_tokens: 32

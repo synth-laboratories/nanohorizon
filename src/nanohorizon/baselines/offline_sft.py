@@ -4,8 +4,9 @@ import argparse
 import json
 import os
 from pathlib import Path
+from statistics import mean
 
-from nanohorizon.common import Timer, ensure_dir, load_config, read_jsonl, system_info, write_json, write_text
+from nanohorizon.common import Timer, ensure_dir, load_config, read_jsonl, resolve_path, system_info, write_json, write_text
 from nanohorizon.crafter_data import build_sft_examples
 from nanohorizon.eval_model import evaluate_model, reward_heuristic
 from nanohorizon.openai_compat import chat_completion
@@ -19,9 +20,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _generate_teacher_dataset(*, config: dict, output_dir: Path) -> Path:
+def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Path) -> Path:
     teacher_cfg = config["teacher_generation"]
-    seed_rows = read_jsonl(teacher_cfg["seed_prompts_jsonl"])
+    seed_rows = read_jsonl(resolve_path(teacher_cfg["seed_prompts_jsonl"], base_dir=config_dir))
     dataset_path = output_dir / "generated_sft_data.jsonl"
     generated_rows: list[str] = []
     for row in seed_rows:
@@ -67,10 +68,9 @@ def _generate_teacher_dataset(*, config: dict, output_dir: Path) -> Path:
     return dataset_path
 
 
-def _filter_teacher_dataset(*, dataset_path: Path, output_dir: Path, min_reward: float) -> tuple[Path, dict]:
+def _filter_teacher_dataset(*, dataset_path: Path, output_dir: Path, keep_top_fraction: float) -> tuple[Path, dict]:
     rows = read_jsonl(dataset_path)
-    kept: list[str] = []
-    rewards: list[float] = []
+    scored_rows: list[tuple[float, dict]] = []
     for row in rows:
         messages = row.get("messages")
         if not isinstance(messages, list) or len(messages) < 2:
@@ -78,42 +78,53 @@ def _filter_teacher_dataset(*, dataset_path: Path, output_dir: Path, min_reward:
         user_message = next((message for message in messages if isinstance(message, dict) and message.get("role") == "user"), {})
         assistant_message = messages[-1] if isinstance(messages[-1], dict) else {}
         reward = reward_heuristic(str(user_message.get("content") or ""), str(assistant_message.get("content") or ""))
-        rewards.append(reward)
-        if reward >= min_reward:
-            row = {
-                **row,
-                "metadata": {
-                    **(row.get("metadata") if isinstance(row.get("metadata"), dict) else {}),
-                    "heuristic_reward": reward,
+        scored_rows.append(
+            (
+                reward,
+                {
+                    **row,
+                    "metadata": {
+                        **(row.get("metadata") if isinstance(row.get("metadata"), dict) else {}),
+                        "heuristic_reward": reward,
+                    },
                 },
-            }
-            kept.append(json.dumps(row, sort_keys=True))
+            )
+        )
+    scored_rows.sort(key=lambda item: item[0], reverse=True)
+    keep_count = max(1, int(len(scored_rows) * keep_top_fraction)) if scored_rows else 0
+    kept_rows = scored_rows[:keep_count]
+    kept = [json.dumps(row, sort_keys=True) for _, row in kept_rows]
     filtered_path = output_dir / "filtered_sft_data.jsonl"
     filtered_path.write_text("\n".join(kept) + ("\n" if kept else ""), encoding="utf-8")
+    rewards = [reward for reward, _ in scored_rows]
+    kept_rewards = [reward for reward, _ in kept_rows]
     summary = {
         "input_rows": len(rows),
         "kept_rows": len(kept),
-        "min_reward": min_reward,
-        "mean_reward": (sum(rewards) / len(rewards)) if rewards else 0.0,
+        "keep_top_fraction": keep_top_fraction,
+        "cutoff_reward": kept_rewards[-1] if kept_rewards else None,
+        "mean_reward": mean(rewards) if rewards else 0.0,
+        "kept_mean_reward": mean(kept_rewards) if kept_rewards else 0.0,
     }
     return filtered_path, summary
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    config_dir = Path(args.config).expanduser().resolve().parent
     output_dir = ensure_dir(args.output_dir or config["output"]["root_dir"])
     timer = Timer()
 
     teacher_generation = config.get("teacher_generation", {})
     teacher_enabled = bool(teacher_generation.get("enabled", False))
-    dataset_path = Path(config["data"]["dataset_jsonl"]).expanduser().resolve()
+    dataset_path = resolve_path(config["data"]["dataset_jsonl"], base_dir=config_dir)
     if teacher_enabled:
-        dataset_path = _generate_teacher_dataset(config=config, output_dir=output_dir)
+        dataset_path = _generate_teacher_dataset(config=config, config_dir=config_dir, output_dir=output_dir)
     filter_cfg = config.get("filtering", {})
     if bool(filter_cfg.get("enabled", False)):
         dataset_path, filter_summary = _filter_teacher_dataset(
             dataset_path=dataset_path,
             output_dir=output_dir,
-            min_reward=float(filter_cfg.get("min_reward", 0.5)),
+            keep_top_fraction=float(filter_cfg.get("keep_top_fraction", 0.5)),
         )
         write_json(output_dir / "filter_summary.json", filter_summary)
 
@@ -133,7 +144,7 @@ def main() -> None:
     eval_summary = evaluate_model(
         base_model=config["model"]["model"],
         adapter_dir=output_dir / "adapter",
-        eval_prompts_jsonl=config["evaluation"]["eval_prompts_jsonl"],
+        eval_prompts_jsonl=resolve_path(config["evaluation"]["eval_prompts_jsonl"], base_dir=config_dir),
         output_dir=output_dir,
         max_length=int(config["training"]["max_length"]),
         max_new_tokens=int(config["evaluation"].get("max_new_tokens", 64)),
@@ -142,7 +153,7 @@ def main() -> None:
     base_summary = evaluate_model(
         base_model=config["model"]["model"],
         adapter_dir=None,
-        eval_prompts_jsonl=config["evaluation"]["eval_prompts_jsonl"],
+        eval_prompts_jsonl=resolve_path(config["evaluation"]["eval_prompts_jsonl"], base_dir=config_dir),
         output_dir=output_dir,
         max_length=int(config["training"]["max_length"]),
         max_new_tokens=int(config["evaluation"].get("max_new_tokens", 64)),

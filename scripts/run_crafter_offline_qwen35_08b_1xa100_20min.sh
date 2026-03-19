@@ -32,6 +32,9 @@ echo "  baseline: vLLM 27B teacher -> heuristic filter -> TRL SFT on 0.8B -> eva
 if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
   export NANOHORIZON_TEACHER_BASE_URL="$TEACHER_BASE_URL_DEFAULT"
   export NANOHORIZON_TEACHER_API_KEY="${NANOHORIZON_TEACHER_API_KEY:-dummy-local-key}"
+  echo "  starting teacher: $TEACHER_MODEL"
+  echo "  teacher base url: $NANOHORIZON_TEACHER_BASE_URL"
+  echo "  teacher log: $TEACHER_LOG"
   vllm serve "$TEACHER_MODEL" \
     --host 127.0.0.1 \
     --port 8000 \
@@ -39,13 +42,22 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
     --max-model-len 2048 \
     --gpu-memory-utilization 0.92 >"$TEACHER_LOG" 2>&1 &
   TEACHER_PID=$!
-  for _ in $(seq 1 120); do
+  for attempt in $(seq 1 120); do
     if curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" http://127.0.0.1:8000/v1/models >/dev/null 2>&1; then
+      echo "  teacher ready after $(( attempt * 2 )) seconds"
       break
+    fi
+    if (( attempt % 10 == 0 )); then
+      echo "  waiting for teacher startup... attempt=$attempt"
+      tail -n 20 "$TEACHER_LOG" 2>/dev/null || true
     fi
     sleep 2
   done
-  curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" http://127.0.0.1:8000/v1/models >/dev/null
+  if ! curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" http://127.0.0.1:8000/v1/models >/dev/null; then
+    echo "  teacher failed to become ready"
+    tail -n 80 "$TEACHER_LOG" 2>/dev/null || true
+    exit 1
+  fi
 fi
 
 python3 -m nanohorizon.baselines.offline_sft --config "$CONFIG_PATH" --output-dir "$OUTPUT_ROOT" "$@"
