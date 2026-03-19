@@ -6,7 +6,8 @@ CONFIG_PATH="${NANOHORIZON_OFFLINE_CONFIG:-$ROOT/configs/crafter_offline_qwen35_
 OUTPUT_ROOT="${NANOHORIZON_OFFLINE_OUTPUT_ROOT:-$ROOT/artifacts/offline_sft_baseline}"
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 TEACHER_MODEL="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-27B}"
-TEACHER_BASE_URL_DEFAULT="${NANOHORIZON_TEACHER_BASE_URL:-http://127.0.0.1:8000/v1}"
+TEACHER_PORT="${NANOHORIZON_TEACHER_PORT:-8001}"
+TEACHER_BASE_URL_DEFAULT="${NANOHORIZON_TEACHER_BASE_URL:-http://127.0.0.1:${TEACHER_PORT}/v1}"
 START_LOCAL_TEACHER="${NANOHORIZON_START_LOCAL_TEACHER:-0}"
 TEACHER_LOG="$OUTPUT_ROOT/vllm_teacher.log"
 
@@ -37,13 +38,13 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
   echo "  teacher log: $TEACHER_LOG"
   vllm serve "$TEACHER_MODEL" \
     --host 127.0.0.1 \
-    --port 8000 \
+    --port "$TEACHER_PORT" \
     --api-key "$NANOHORIZON_TEACHER_API_KEY" \
     --max-model-len 2048 \
     --gpu-memory-utilization 0.92 >"$TEACHER_LOG" 2>&1 &
   TEACHER_PID=$!
   for attempt in $(seq 1 120); do
-    if curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" http://127.0.0.1:8000/v1/models >/dev/null 2>&1; then
+    if curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" "http://127.0.0.1:${TEACHER_PORT}/v1/models" >/dev/null 2>&1; then
       echo "  teacher ready after $(( attempt * 2 )) seconds"
       break
     fi
@@ -53,7 +54,7 @@ if [[ "$START_LOCAL_TEACHER" == "1" ]]; then
     fi
     sleep 2
   done
-  if ! curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" http://127.0.0.1:8000/v1/models >/dev/null; then
+  if ! curl -sf -H "Authorization: Bearer $NANOHORIZON_TEACHER_API_KEY" "http://127.0.0.1:${TEACHER_PORT}/v1/models" >/dev/null; then
     echo "  teacher failed to become ready"
     tail -n 80 "$TEACHER_LOG" 2>/dev/null || true
     exit 1
