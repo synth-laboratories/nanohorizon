@@ -25,6 +25,14 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 - shared Modal training image with Qwen3.5-capable Transformers
 - default example GPU: `A10G` via `NANOHORIZON_MODAL_GPU_RLVR`
 
+Planned next reference baseline:
+
+- Modal-hosted Crafter service plus learner in the same Modal app
+- live online Crafter rollouts during the budget window
+- Synth-compatible Crafter container surface
+- implementation plan:
+  [rlvr_modal_crafter_baseline_plan.md](rlvr_modal_crafter_baseline_plan.md)
+
 ## Expected Starter Script
 
 ```bash
