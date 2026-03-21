@@ -1,0 +1,129 @@
+{
+  "cluster": {
+    "container_ips": [
+      "fdaa:3db7:7bc9:ac1e:7077:fb9b:4346:3631",
+      "fdaa:3db7:7bc9:ac1e:7035:f85:fdf6:c31d"
+    ],
+    "container_ipv4_ips": [
+      "10.100.0.1",
+      "10.100.0.2"
+    ],
+    "rank": 0,
+    "ready_payload": {
+      "cluster_rank": 1,
+      "container_ipv4": "10.100.0.2",
+      "inference_admin_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host/v1",
+      "inference_base_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host",
+      "inference_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host/v1/chat/completions",
+      "internal_inference_base_url": "http://10.100.0.2:8000",
+      "internal_inference_url": "http://10.100.0.2:8000/v1/chat/completions",
+      "pid": 24,
+      "served_model_name": "qwen35-4b-rlvr",
+      "status": "ready"
+    }
+  },
+  "container_url": "https://synth-laboratories--nanohorizon-crafter-rlvr-crafter-4011de-dev.modal.run",
+  "inference_admin_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host/v1",
+  "inference_base_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host",
+  "inference_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host/v1/chat/completions",
+  "preflight": {
+    "container_health": {
+      "service": "crafter_rs_container",
+      "status": "ok"
+    },
+    "container_roundtrip_probe": {
+      "llm_call_count": null,
+      "reward": 0.0,
+      "status": "success",
+      "summary": {
+        "active_rollout_high_watermark": 1,
+        "completed_rollouts": 1,
+        "elapsed_s": 88.980126009,
+        "max_outcome_reward": 0.0,
+        "max_request_latency_s": 88.97822434599999,
+        "mean_outcome_reward": 0.0,
+        "mean_request_latency_s": 88.97822434599999,
+        "num_errors": 0,
+        "num_structured_rollouts": 1,
+        "requested_rollouts": 1,
+        "rollout_concurrency": 1,
+        "rollout_requests_finished": 1,
+        "rollout_requests_started": 1,
+        "rollout_semaphore_limit": 1,
+        "rollouts_per_minute": 0.6743078785248205
+      },
+      "trace_correlation_id": "rlvr_preflight_roundtrip_00000_0"
+    },
+    "container_task_info": {
+      "dataset": {
+        "default_split": "train",
+        "id": "crafter_long_horizon",
+        "name": "Crafter Long Horizon",
+        "splits": [
+          "train",
+          "validation",
+          "eval"
+        ],
+        "version": "v1"
+      },
+      "inference": {
+        "model": "gpt-4.1-nano"
+      },
+      "limits": {
+        "max_turns": 2000
+      },
+      "task": {
+        "description": "Long-horizon Crafter container backed by crafter-rs with checkpoint and resume support.",
+        "id": "crafter_rs_container",
+        "name": "Crafter RS Container",
+        "version": "v0"
+      },
+      "task_metadata": {
+        "action_names": [
+          "noop",
+          "move_left",
+          "move_right",
+          "move_up",
+          "move_down",
+          "do",
+          "sleep",
+          "place_stone",
+          "place_table",
+          "place_furnace",
+          "place_plant",
+          "make_wood_pickaxe",
+          "make_stone_pickaxe",
+          "make_iron_pickaxe",
+          "make_wood_sword",
+          "make_stone_sword",
+          "make_iron_sword"
+        ],
+        "checkpoint_routes": [
+          "/rollouts/{rollout_id}/checkpoints",
+          "/rollouts/{rollout_id}/resume",
+          "/rollouts/{rollout_id}/checkpoint/dump",
+          "/rollouts/{rollout_id}/checkpoint/restore"
+        ],
+        "default_episode_max_steps": 2000,
+        "planner_modes": [
+          "direct",
+          "waypoint_planned"
+        ],
+        "supports_restart_from_seed_checkpoint": true,
+        "supports_run_from_seed_checkpoint_until": true,
+        "supports_terminate": true,
+        "supports_waypoint_planner_rollouts": true
+      }
+    },
+    "inference_chat_probe": {
+      "choices": 1,
+      "id": "chatcmpl-a939767a8d6fb0a7",
+      "model": "qwen35-4b-rlvr",
+      "status": "ok"
+    },
+    "inference_public_health": {
+      "status": "ok"
+    }
+  },
+  "served_model_name": "qwen35-4b-rlvr"
+}

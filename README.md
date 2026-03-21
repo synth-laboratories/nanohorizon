@@ -19,7 +19,7 @@ Status: **bootstrap baselines** — replace `TBD` with your `metrics.json` score
 | Track | Rank | Run | Score | Summary | Record |
 | --- | ---: | --- | --- | --- | --- |
 | `offline_20min_1xa100_40gb` | 1 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
-| `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | TBD | NeMo-RL-style grouped online GRPO LoRA with a Modal-hosted Crafter service, a stable OpenAI-compatible inference proxy, and single-script training logic in `src/nanohorizon/rlvr_training.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/) |
+| `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | `0.0` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script training logic in `src/nanohorizon/rlvr_training.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
 | `prompt_opt_1usd_gpt54_family` | 1 | `bootstrap_baseline` | TBD | Prompt search ($1 optimizer budget) | [info](records/prompt_opt_1usd_gpt54_family/2026-03-19_bootstrap_baseline/) |
 
 New rows: add `records/<track>/<YYYY-MM-DD>_<name>/` and update this table in the **same PR**.
@@ -37,7 +37,7 @@ RLVR reference config and default sizes:
 - student: `Qwen/Qwen3.5-4B`
 - budget: `20` minutes on `2x A100 40GB`
 - rollout groups: `4`
-- periodic/final eval: Crafter held-out rollouts against the same Modal-hosted inference boundary
+- periodic/final eval: Crafter held-out rollouts against the same clustered learner-owned inference boundary
 
 RLVR replication command:
 
@@ -49,7 +49,7 @@ What that bash script handles for you:
 
 - builds and uploads the Crafter Rust service into Modal
 - starts a Synth-compatible Crafter HTTP service in the same Modal app
-- starts a colocated vLLM-backed OpenAI-compatible proxy
+- starts a clustered learner-plus-inference runtime and forwards a stable inference URL from the inference worker
 - runs grouped online Crafter rollouts
 - runs the GRPO-style LoRA update loop from `src/nanohorizon/rlvr_training.py`
 - reloads adapters into inference between rollout waves
@@ -141,7 +141,7 @@ src/nanohorizon/rlvr_training.py
 Default reference settings:
 
 - model: `Qwen/Qwen3.5-4B`
-- topology: one Modal app with Crafter service on CPU, one A100 learner, and one A100 inference server
+- topology: one Modal app with Crafter service on CPU plus one clustered learner-plus-inference runtime across 2 A100s
 - tool-calling-only Crafter interaction
 - `thinking_budget_tokens = 2000`
 - `max_tokens = 3072`
@@ -150,11 +150,13 @@ Default reference settings:
 - rollout semaphore limit: `4`
 - periodic eval at bootstrap and after each learner iteration
 
-Current status:
+Checked-in reference status:
 
 - implementation is in repo
 - public runner is stable
-- checked-in record bundle is a placeholder until the first scored reference run lands
+- checked-in clustered smoke record: [2026-03-21_reference_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline)
+- current checked-in score: `0.0`
+- purpose of the checked-in record: validate runtime topology, rollout transport, adapter reload, and eval completion
 
 ## Offline / SFT Records
 

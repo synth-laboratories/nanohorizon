@@ -1,0 +1,73 @@
+[
+  {
+    "adapter_dir": "/__modal/volumes/vo-9BQfgMaVXbHYG19MmLgqVB/rlvr_20min_2xa100_40gb/2026-03-21T154358+0000_reference_baseline/adapters/iter_000",
+    "adapter_name": "policy-iter-000",
+    "periodic_eval": {
+      "collection": {
+        "active_rollout_high_watermark": 1,
+        "completed_rollouts": 4,
+        "elapsed_s": 334.8174896060002,
+        "max_outcome_reward": 0.0,
+        "max_request_latency_s": 178.04242785899987,
+        "mean_outcome_reward": 0.0,
+        "mean_request_latency_s": 83.70394433249999,
+        "num_errors": 0,
+        "num_structured_rollouts": 4,
+        "requested_rollouts": 4,
+        "rollout_concurrency": 1,
+        "rollout_requests_finished": 4,
+        "rollout_requests_started": 4,
+        "rollout_semaphore_limit": 1,
+        "rollouts_per_minute": 0.7168084328044583
+      },
+      "label": "periodic_eval_step_001",
+      "max_outcome_reward": 0.0,
+      "mean_outcome_reward": 0.0,
+      "num_eval_rollouts": 4,
+      "num_rollout_errors": 0,
+      "policy_version": "iter_000",
+      "seed_count": 4
+    },
+    "policy_version": "iter_000",
+    "reload": {
+      "attempt": 1,
+      "bundle_file_count": 6,
+      "raw_body": "Success: LoRA adapter 'policy-iter-000' added successfully.",
+      "runtime_lora_dir": "/tmp/nanohorizon-rlvr-loras/policy-iter-000-qt8ls2yd"
+    },
+    "rollout": {
+      "active_rollout_high_watermark": 1,
+      "completed_rollouts": 2,
+      "elapsed_s": 162.71345057500002,
+      "max_outcome_reward": 0.0,
+      "max_request_latency_s": 108.10300034199997,
+      "mean_outcome_reward": 0.0,
+      "mean_request_latency_s": 81.35465534449997,
+      "num_errors": 0,
+      "num_structured_rollouts": 2,
+      "requested_rollouts": 2,
+      "rollout_concurrency": 2,
+      "rollout_requests_finished": 2,
+      "rollout_requests_started": 2,
+      "rollout_semaphore_limit": 1,
+      "rollouts_per_minute": 0.7374928106800122
+    },
+    "sample_summary": {
+      "group_count": 1,
+      "max_outcome_reward": 0.0,
+      "mean_outcome_reward": 0.0,
+      "trainable_turns": 2,
+      "valid_rollouts": 2
+    },
+    "train": {
+      "clip_fraction": 0.0,
+      "mean_loss": 0.0,
+      "mean_new_logprob": -444.0,
+      "mean_old_logprob": -443.5122756284389,
+      "mean_ratio": 1.0,
+      "num_samples": 2,
+      "optimizer_steps": 1,
+      "skipped": false
+    }
+  }
+]

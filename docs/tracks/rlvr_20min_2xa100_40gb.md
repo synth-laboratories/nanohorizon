@@ -20,10 +20,9 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 
 ## Reference Stack
 
-- one Modal app with three roles:
+- one Modal app with two runtime surfaces:
   - Crafter service on CPU
-  - vLLM-backed inference proxy on one A100 40GB
-  - learner on one A100 40GB
+  - one clustered learner-plus-inference runtime spanning 2x A100 40GB
 - single-script RLVR logic in `src/nanohorizon/rlvr_training.py`
 - thin Modal launcher in `src/nanohorizon/modal_rlvr.py`
 - public runner in `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh`
@@ -40,9 +39,10 @@ Reference algorithm shape:
 Current record status:
 
 - implementation is in repo
-- scored reference run still pending
-- placeholder record bundle:
-  [../../records/rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/](../../records/rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/)
+- checked-in clustered reference smoke run:
+  [../../records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/](../../records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/)
+- checked-in score: `0.0`
+- longer canonical scoring runs are still expected to improve on this baseline
 
 Historical design notes:
 

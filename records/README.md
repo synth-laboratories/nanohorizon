@@ -35,4 +35,4 @@ The RLVR reference path now mirrors the same structure: one user-editable Python
 
 | Run | Score | Model | Summary | Date | Info | Reproduce |
 | --- | ---: | --- | --- | --- | --- | --- |
-| `reference_baseline` | `TBD` | `Qwen/Qwen3.5-4B` | NeMo-RL-style grouped online GRPO with a Modal-hosted Crafter service, colocated inference proxy, and single-script learner in `src/nanohorizon/rlvr_training.py` | `2026-03-20` | [info](rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/) | `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh` |
+| `reference_baseline` | `0.0` | `Qwen/Qwen3.5-4B` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script learner logic in `src/nanohorizon/rlvr_training.py` | `2026-03-21` | [info](rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) | `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh` |
