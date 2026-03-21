@@ -1,6 +1,12 @@
 # RLVR Modal Crafter Baseline Plan
 
-This document scopes the next reference baseline for the `rlvr_20min_2xa100_40gb`
+This document is now historical context. The current implementation lives in:
+
+- `src/nanohorizon/rlvr_training.py`
+- `src/nanohorizon/modal_rlvr.py`
+- `scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh`
+
+This document scoped the initial reference baseline for the `rlvr_20min_2xa100_40gb`
 track.
 
 ## Goal

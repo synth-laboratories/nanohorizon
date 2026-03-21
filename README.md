@@ -19,14 +19,43 @@ Status: **bootstrap baselines** — replace `TBD` with your `metrics.json` score
 | Track | Rank | Run | Score | Summary | Record |
 | --- | ---: | --- | --- | --- | --- |
 | `offline_20min_1xa100_40gb` | 1 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
-| `rlvr_20min_2xa100_40gb` | 1 | `bootstrap_baseline` | TBD | RLVR-style LoRA from rollout JSONL | [info](records/rlvr_20min_2xa100_40gb/2026-03-19_bootstrap_baseline/) |
+| `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | TBD | NeMo-RL-style grouped online GRPO LoRA with a Modal-hosted Crafter service, a stable OpenAI-compatible inference proxy, and single-script training logic in `src/nanohorizon/rlvr_training.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/) |
 | `prompt_opt_1usd_gpt54_family` | 1 | `bootstrap_baseline` | TBD | Prompt search ($1 optimizer budget) | [info](records/prompt_opt_1usd_gpt54_family/2026-03-19_bootstrap_baseline/) |
 
 New rows: add `records/<track>/<YYYY-MM-DD>_<name>/` and update this table in the **same PR**.
 
 ## Change And Run
 
-For the offline reference baseline, there are only two files to care about:
+For the RLVR reference baseline, there are only two files to care about:
+
+1. Change the learning logic in [rlvr_training.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/rlvr_training.py)
+2. Run the full pipeline with [run_crafter_rlvr_qwen35_4b_2xa100_20min.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh)
+
+RLVR reference config and default sizes:
+
+- config: [crafter_rlvr_qwen35_4b_2xa100_20min.yaml](/Users/joshpurtell/Documents/GitHub/nanohorizon/configs/crafter_rlvr_qwen35_4b_2xa100_20min.yaml)
+- student: `Qwen/Qwen3.5-4B`
+- budget: `20` minutes on `2x A100 40GB`
+- rollout groups: `4`
+- periodic/final eval: Crafter held-out rollouts against the same Modal-hosted inference boundary
+
+RLVR replication command:
+
+```bash
+./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+```
+
+What that bash script handles for you:
+
+- builds and uploads the Crafter Rust service into Modal
+- starts a Synth-compatible Crafter HTTP service in the same Modal app
+- starts a colocated vLLM-backed OpenAI-compatible proxy
+- runs grouped online Crafter rollouts
+- runs the GRPO-style LoRA update loop from `src/nanohorizon/rlvr_training.py`
+- reloads adapters into inference between rollout waves
+- writes periodic eval, final eval, and record-bundle outputs
+
+For the offline reference baseline, there are also only two files to care about:
 
 1. Change the learning logic in [offline_training.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/offline_training.py)
 2. Run the full pipeline with [run_offline_training.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_offline_training.sh)
@@ -95,6 +124,38 @@ Most recent proved comparison:
 - finetuned mean reward: `0.5`
 - reward delta: `+0.2`
 
+## RLVR reference baseline
+
+Canonical Crafter RLVR baseline:
+
+```bash
+./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+```
+
+Single Python file to modify:
+
+```bash
+src/nanohorizon/rlvr_training.py
+```
+
+Default reference settings:
+
+- model: `Qwen/Qwen3.5-4B`
+- topology: one Modal app with Crafter service on CPU, one A100 learner, and one A100 inference server
+- tool-calling-only Crafter interaction
+- `thinking_budget_tokens = 2000`
+- `max_tokens = 3072`
+- grouped rollout size: `4`
+- rollout concurrency: `8`
+- rollout semaphore limit: `4`
+- periodic eval at bootstrap and after each learner iteration
+
+Current status:
+
+- implementation is in repo
+- public runner is stable
+- checked-in record bundle is a placeholder until the first scored reference run lands
+
 ## Offline / SFT Records
 
 | Run | Score | Student | Teacher | Summary | Date | Info |
@@ -138,9 +199,9 @@ Reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`
    ./scripts/run_offline_training.sh   # or another track command above
    ```
 
-3. **Cheap-by-default Modal GPUs**:
+3. **Default Modal GPUs**:
    - Offline default: `A10G`
-   - RLVR default: `A10G`
+   - RLVR default: `A100-40GB`
    - Prompt-opt default: `L4`
    - Eval default: `L4`
 
@@ -148,7 +209,7 @@ Reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`
 
    ```bash
    NANOHORIZON_MODAL_GPU_OFFLINE=L4
-   NANOHORIZON_MODAL_GPU_RLVR=A10G
+   NANOHORIZON_MODAL_GPU_RLVR=A100-40GB
    NANOHORIZON_MODAL_GPU_PROMPT_OPT=T4
    NANOHORIZON_MODAL_GPU_EVAL=L4
    ```
@@ -171,4 +232,5 @@ Reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`
 - Offline/FBC SFT entrypoint: `src/nanohorizon/modal_sft.py`
 - Shared teacher / student vLLM entrypoint: `src/nanohorizon/modal_teacher.py`
 - RLVR track entrypoint: `src/nanohorizon/modal_rlvr.py`
+- RLVR single-script training logic: `src/nanohorizon/rlvr_training.py`
 - Prompt-opt track entrypoint: `src/nanohorizon/modal_prompt_opt.py`

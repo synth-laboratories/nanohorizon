@@ -20,24 +20,45 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 
 ## Reference Stack
 
-- Modal for execution
-- reward-weighted LoRA baseline in `nanohorizon.baselines.rlvr`
-- shared Modal training image with Qwen3.5-capable Transformers
-- default example GPU: `A10G` via `NANOHORIZON_MODAL_GPU_RLVR`
+- one Modal app with three roles:
+  - Crafter service on CPU
+  - vLLM-backed inference proxy on one A100 40GB
+  - learner on one A100 40GB
+- single-script RLVR logic in `src/nanohorizon/rlvr_training.py`
+- thin Modal launcher in `src/nanohorizon/modal_rlvr.py`
+- public runner in `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh`
+- default GPU: `A100-40GB` via `NANOHORIZON_MODAL_GPU_RLVR`
 
-Planned next reference baseline:
+Reference algorithm shape:
 
-- Modal-hosted Crafter service plus learner in the same Modal app
-- live online Crafter rollouts during the budget window
-- Synth-compatible Crafter container surface
-- implementation plan:
-  [rlvr_modal_crafter_baseline_plan.md](rlvr_modal_crafter_baseline_plan.md)
+- grouped on-policy rollout generation
+- environment-computed rewards
+- group-relative reward normalization
+- sequence-level clipped GRPO-style objective
+- LoRA adapter reload between rollout waves
+
+Current record status:
+
+- implementation is in repo
+- scored reference run still pending
+- placeholder record bundle:
+  [../../records/rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/](../../records/rlvr_20min_2xa100_40gb/2026-03-20_reference_baseline/)
+
+Historical design notes:
+
+- [rlvr_modal_crafter_baseline_plan.md](rlvr_modal_crafter_baseline_plan.md)
 
 ## Expected Starter Script
 
 ```bash
 ./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
 ```
+
+## Edit Surface
+
+Change only:
+
+- `src/nanohorizon/rlvr_training.py`
 
 ## Expected Record Bundle
 

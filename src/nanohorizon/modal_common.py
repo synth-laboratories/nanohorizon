@@ -39,7 +39,7 @@ def _resolve_modal_gpu(raw_value: str) -> str:
 
 
 GPU_OFFLINE = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_OFFLINE", "A10G"))
-GPU_RLVR = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_RLVR", "A10G"))
+GPU_RLVR = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_RLVR", "A100-40GB"))
 GPU_PROMPT_OPT = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_PROMPT_OPT", "L4"))
 GPU_EVAL = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_EVAL", "L4"))
 GPU_TEACHER = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_TEACHER", "A10G"))

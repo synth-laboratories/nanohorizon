@@ -9,6 +9,7 @@ description = "Crafter ML engineering golf scaffolding"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "fastapi>=0.115.0",
   "httpx>=0.28.1",
   "pyyaml>=6.0.2",
 ]
