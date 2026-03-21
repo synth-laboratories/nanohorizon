@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
-use std::time::Duration;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -23,8 +23,15 @@ use uuid::Uuid;
 const DEFAULT_MODEL: &str = "gpt-4.1-nano";
 const DEFAULT_EPISODE_MAX_STEPS: u32 = 2_000;
 const DEFAULT_VIEW_RADIUS: u32 = 4;
-const DEFAULT_POLICY_PROMPT: &str = "You control an agent in Crafter. Return strict JSON only as {\"actions\":[\"<action_name>\",\"...\"]} with 1-6 actions. Use movement to explore when nothing useful is adjacent. Use 'do' only when facing a useful nearby object or resource. Read the recent action history and avoid repeating unproductive loops.";
+const DEFAULT_POLICY_PROMPT: &str = "You control an agent in Crafter. Use the provided crafter_interact tool exactly once for the final answer. Return a short useful macro-action with 3-4 valid Crafter actions. Use movement to explore when nothing useful is adjacent. Use 'do' only when facing a useful nearby object or resource. Read the recent action history and avoid repeating unproductive loops. Do not return JSON or plain text actions.";
 const DEFAULT_OPENROUTER_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
+
+fn inference_url_is_local(url: &str) -> bool {
+    match reqwest::Url::parse(url) {
+        Ok(parsed) => matches!(parsed.host_str(), Some("127.0.0.1" | "localhost")),
+        Err(_) => false,
+    }
+}
 
 #[derive(Clone)]
 struct AppState {
@@ -345,13 +352,13 @@ async fn info() -> Json<Value> {
                 }
             }),
         );
-        if let Some(task_metadata) = obj
-            .get_mut("task_metadata")
-            .and_then(Value::as_object_mut)
-        {
+        if let Some(task_metadata) = obj.get_mut("task_metadata").and_then(Value::as_object_mut) {
             task_metadata.insert(
                 "stop_routes".to_string(),
-                json!(["/rollouts/{rollout_id}/terminate", "/env/CrafterClassic/terminate"]),
+                json!([
+                    "/rollouts/{rollout_id}/terminate",
+                    "/env/CrafterClassic/terminate"
+                ]),
             );
         }
     }
@@ -368,11 +375,17 @@ async fn task_info(Query(query): Query<TaskInfoQuery>) -> Json<Value> {
         return Json(task_info_payload(seeds.first().copied()));
     }
     Json(Value::Array(
-        seeds.into_iter().map(|seed| task_info_payload(Some(seed))).collect(),
+        seeds
+            .into_iter()
+            .map(|seed| task_info_payload(Some(seed)))
+            .collect(),
     ))
 }
 
-async fn rollout(State(state): State<AppState>, Json(request): Json<RolloutRequest>) -> AppResult<Json<Value>> {
+async fn rollout(
+    State(state): State<AppState>,
+    Json(request): Json<RolloutRequest>,
+) -> AppResult<Json<Value>> {
     if request.trace_correlation_id.trim().is_empty() {
         return Err(AppError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -428,35 +441,56 @@ async fn rollout(State(state): State<AppState>, Json(request): Json<RolloutReque
     run_rollout_segment(&mut record, segment_steps).await;
 
     let response = rollout_response(&record);
-    let mut store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
+    let mut store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
     store.rollouts.insert(record.rollout_id.clone(), record);
     Ok(Json(response))
 }
 
-async fn get_rollout(State(state): State<AppState>, Path(rollout_id): Path<String>) -> AppResult<Json<Value>> {
-    let store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-    let record = store
-        .rollouts
-        .get(&rollout_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+async fn get_rollout(
+    State(state): State<AppState>,
+    Path(rollout_id): Path<String>,
+) -> AppResult<Json<Value>> {
+    let store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
+    let record = store.rollouts.get(&rollout_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_rollout",
+            format!("rollout not found: {}", rollout_id),
+        )
+    })?;
     Ok(Json(rollout_resource(record)))
 }
 
-async fn list_checkpoints(State(state): State<AppState>, Path(rollout_id): Path<String>) -> AppResult<Json<Value>> {
-    let store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-    let record = store
-        .rollouts
-        .get(&rollout_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+async fn list_checkpoints(
+    State(state): State<AppState>,
+    Path(rollout_id): Path<String>,
+) -> AppResult<Json<Value>> {
+    let store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
+    let record = store.rollouts.get(&rollout_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_rollout",
+            format!("rollout not found: {}", rollout_id),
+        )
+    })?;
     Ok(Json(json!({
         "rollout_id": rollout_id,
         "checkpoints": record.checkpoints.values().map(checkpoint_descriptor).collect::<Vec<_>>(),
@@ -468,14 +502,20 @@ async fn create_checkpoint(
     Path(rollout_id): Path<String>,
     Json(body): Json<Option<CheckpointBody>>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
-    let mut store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-    let record = store
-        .rollouts
-        .get_mut(&rollout_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+    let mut store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
+    let record = store.rollouts.get_mut(&rollout_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_rollout",
+            format!("rollout not found: {}", rollout_id),
+        )
+    })?;
     let payload = body.unwrap_or(CheckpointBody {
         checkpoint_id: None,
         label: None,
@@ -485,25 +525,37 @@ async fn create_checkpoint(
         rollout_id: None,
     });
     let checkpoint = make_checkpoint(record, payload);
-    Ok((StatusCode::CREATED, Json(checkpoint_descriptor(&checkpoint))))
+    Ok((
+        StatusCode::CREATED,
+        Json(checkpoint_descriptor(&checkpoint)),
+    ))
 }
 
 async fn get_checkpoint(
     State(state): State<AppState>,
     Path((rollout_id, checkpoint_id)): Path<(String, String)>,
 ) -> AppResult<Json<Value>> {
-    let store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-    let record = store
-        .rollouts
-        .get(&rollout_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
-    let checkpoint = record
-        .checkpoints
-        .get(&checkpoint_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_checkpoint", format!("checkpoint not found: {}", checkpoint_id)))?;
+    let store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
+    let record = store.rollouts.get(&rollout_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_rollout",
+            format!("rollout not found: {}", rollout_id),
+        )
+    })?;
+    let checkpoint = record.checkpoints.get(&checkpoint_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_checkpoint",
+            format!("checkpoint not found: {}", checkpoint_id),
+        )
+    })?;
     Ok(Json(checkpoint_descriptor(checkpoint)))
 }
 
@@ -518,9 +570,13 @@ async fn resume_rollout(
         .as_ref()
         .filter(|value| !value.trim().is_empty())
     {
-        BASE64_STANDARD
-            .decode(encoded)
-            .map_err(|_| AppError::new(StatusCode::BAD_REQUEST, "invalid_checkpoint_data", "checkpoint_data_base64 could not be decoded"))?
+        BASE64_STANDARD.decode(encoded).map_err(|_| {
+            AppError::new(
+                StatusCode::BAD_REQUEST,
+                "invalid_checkpoint_data",
+                "checkpoint_data_base64 could not be decoded",
+            )
+        })?
     } else {
         Vec::new()
     };
@@ -541,24 +597,42 @@ async fn resume_rollout(
 
     if mode == "in_place" {
         let mut target = {
-            let mut store = state
-                .inner
-                .lock()
-                .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-            let mut target = store
-                .rollouts
-                .remove(&rollout_id)
-                .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+            let mut store = state.inner.lock().map_err(|_| {
+                AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "lock_failed",
+                    "store lock poisoned",
+                )
+            })?;
+            let mut target = store.rollouts.remove(&rollout_id).ok_or_else(|| {
+                AppError::new(
+                    StatusCode::NOT_FOUND,
+                    "unknown_rollout",
+                    format!("rollout not found: {}", rollout_id),
+                )
+            })?;
             let checkpoint_bytes = if inline_checkpoint_bytes.is_empty() {
                 let checkpoint_id = payload
                     .checkpoint_id
                     .clone()
                     .or_else(|| target.checkpoints.keys().last().cloned())
-                    .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "no_checkpoints_for_rollout", format!("no checkpoints for rollout: {}", rollout_id)))?;
+                    .ok_or_else(|| {
+                        AppError::new(
+                            StatusCode::NOT_FOUND,
+                            "no_checkpoints_for_rollout",
+                            format!("no checkpoints for rollout: {}", rollout_id),
+                        )
+                    })?;
                 target
                     .checkpoints
                     .get(&checkpoint_id)
-                    .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_checkpoint", format!("checkpoint not found: {}", checkpoint_id)))?
+                    .ok_or_else(|| {
+                        AppError::new(
+                            StatusCode::NOT_FOUND,
+                            "unknown_checkpoint",
+                            format!("checkpoint not found: {}", checkpoint_id),
+                        )
+                    })?
                     .checkpoint_bytes
                     .clone()
             } else {
@@ -588,10 +662,13 @@ async fn resume_rollout(
         };
         run_rollout_segment(&mut target, segment_steps).await;
         let response = rollout_response(&target);
-        let mut store = state
-            .inner
-            .lock()
-            .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
+        let mut store = state.inner.lock().map_err(|_| {
+            AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "lock_failed",
+                "store lock poisoned",
+            )
+        })?;
         store.rollouts.insert(rollout_id, target);
         return Ok((StatusCode::ACCEPTED, Json(response)));
     }
@@ -614,24 +691,42 @@ async fn resume_rollout(
         source_inference_error_count,
         source_last_inference_error,
     ) = {
-        let store = state
-            .inner
-            .lock()
-            .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-        let source = store
-            .rollouts
-            .get(&rollout_id)
-            .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+        let store = state.inner.lock().map_err(|_| {
+            AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "lock_failed",
+                "store lock poisoned",
+            )
+        })?;
+        let source = store.rollouts.get(&rollout_id).ok_or_else(|| {
+            AppError::new(
+                StatusCode::NOT_FOUND,
+                "unknown_rollout",
+                format!("rollout not found: {}", rollout_id),
+            )
+        })?;
         let checkpoint_bytes = if inline_checkpoint_bytes.is_empty() {
             let checkpoint_id = payload
                 .checkpoint_id
                 .clone()
                 .or_else(|| source.checkpoints.keys().last().cloned())
-                .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "no_checkpoints_for_rollout", format!("no checkpoints for rollout: {}", rollout_id)))?;
+                .ok_or_else(|| {
+                    AppError::new(
+                        StatusCode::NOT_FOUND,
+                        "no_checkpoints_for_rollout",
+                        format!("no checkpoints for rollout: {}", rollout_id),
+                    )
+                })?;
             source
                 .checkpoints
                 .get(&checkpoint_id)
-                .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_checkpoint", format!("checkpoint not found: {}", checkpoint_id)))?
+                .ok_or_else(|| {
+                    AppError::new(
+                        StatusCode::NOT_FOUND,
+                        "unknown_checkpoint",
+                        format!("checkpoint not found: {}", checkpoint_id),
+                    )
+                })?
                 .checkpoint_bytes
                 .clone()
         } else {
@@ -702,7 +797,9 @@ async fn resume_rollout(
             .collect(),
         completed_waypoints: source_completed_waypoints
             .into_iter()
-            .filter(|value| value.get("step").and_then(Value::as_u64).unwrap_or(0) <= checkpoint_step)
+            .filter(|value| {
+                value.get("step").and_then(Value::as_u64).unwrap_or(0) <= checkpoint_step
+            })
             .collect(),
         current_waypoint_index: 0,
         planner_failure_code: None,
@@ -723,10 +820,13 @@ async fn resume_rollout(
     update_waypoint_progress(&mut target);
     run_rollout_segment(&mut target, segment_steps).await;
     let response = rollout_response(&target);
-    let mut store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
+    let mut store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
     store.rollouts.insert(target_rollout_id, target);
     Ok((StatusCode::ACCEPTED, Json(response)))
 }
@@ -735,10 +835,13 @@ async fn checkpoint_save(
     State(state): State<AppState>,
     Json(body): Json<CheckpointBody>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
-    let rollout_id = body
-        .rollout_id
-        .clone()
-        .ok_or_else(|| AppError::new(StatusCode::UNPROCESSABLE_ENTITY, "missing_rollout_id", "rollout_id is required"))?;
+    let rollout_id = body.rollout_id.clone().ok_or_else(|| {
+        AppError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "missing_rollout_id",
+            "rollout_id is required",
+        )
+    })?;
     create_checkpoint(State(state), Path(rollout_id), Json(Some(body))).await
 }
 
@@ -746,10 +849,13 @@ async fn checkpoint_list(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<Value>> {
-    let rollout_id = params
-        .get("rollout_id")
-        .cloned()
-        .ok_or_else(|| AppError::new(StatusCode::UNPROCESSABLE_ENTITY, "missing_rollout_id", "rollout_id query param is required"))?;
+    let rollout_id = params.get("rollout_id").cloned().ok_or_else(|| {
+        AppError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "missing_rollout_id",
+            "rollout_id query param is required",
+        )
+    })?;
     list_checkpoints(State(state), Path(rollout_id)).await
 }
 
@@ -783,19 +889,34 @@ async fn checkpoint_dump_alias(
     let checkpoint_id = checkpoint
         .get("checkpoint_id")
         .and_then(Value::as_str)
-        .ok_or_else(|| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "missing_checkpoint_id", "checkpoint creation returned no checkpoint_id"))?;
-    let store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-    let record = store
-        .rollouts
-        .get(&rollout_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
-    let checkpoint_record = record
-        .checkpoints
-        .get(checkpoint_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_checkpoint", format!("checkpoint not found: {}", checkpoint_id)))?;
+        .ok_or_else(|| {
+            AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "missing_checkpoint_id",
+                "checkpoint creation returned no checkpoint_id",
+            )
+        })?;
+    let store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
+    let record = store.rollouts.get(&rollout_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_rollout",
+            format!("rollout not found: {}", rollout_id),
+        )
+    })?;
+    let checkpoint_record = record.checkpoints.get(checkpoint_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_checkpoint",
+            format!("checkpoint not found: {}", checkpoint_id),
+        )
+    })?;
     Ok(Json(json!({
         "ok": true,
         "rollout_id": rollout_id,
@@ -816,17 +937,34 @@ async fn checkpoint_restore_alias(
         .as_ref()
         .is_some_and(|value| !value.trim().is_empty())
     {
-        let mut store = state
-            .inner
-            .lock()
-            .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-        let record = store
-            .rollouts
-            .get_mut(&rollout_id)
-            .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+        let mut store = state.inner.lock().map_err(|_| {
+            AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "lock_failed",
+                "store lock poisoned",
+            )
+        })?;
+        let record = store.rollouts.get_mut(&rollout_id).ok_or_else(|| {
+            AppError::new(
+                StatusCode::NOT_FOUND,
+                "unknown_rollout",
+                format!("rollout not found: {}", rollout_id),
+            )
+        })?;
         let bytes = BASE64_STANDARD
-            .decode(payload.checkpoint_data_base64.as_deref().unwrap_or_default())
-            .map_err(|_| AppError::new(StatusCode::BAD_REQUEST, "invalid_checkpoint_data", "checkpoint_data_base64 could not be decoded"))?;
+            .decode(
+                payload
+                    .checkpoint_data_base64
+                    .as_deref()
+                    .unwrap_or_default(),
+            )
+            .map_err(|_| {
+                AppError::new(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_checkpoint_data",
+                    "checkpoint_data_base64 could not be decoded",
+                )
+            })?;
         let save_data: SaveData = serde_json::from_slice(&bytes).map_err(|_| {
             AppError::new(
                 StatusCode::BAD_REQUEST,
@@ -845,7 +983,8 @@ async fn checkpoint_restore_alias(
         })));
     }
 
-    let (status, Json(resource)) = resume_rollout(State(state), Path(rollout_id.clone()), Json(Some(payload))).await?;
+    let (status, Json(resource)) =
+        resume_rollout(State(state), Path(rollout_id.clone()), Json(Some(payload))).await?;
     Ok(Json(json!({
         "ok": status == StatusCode::ACCEPTED,
         "rollout_id": resource.get("rollout_id").cloned().unwrap_or(Value::String(rollout_id)),
@@ -859,14 +998,20 @@ async fn terminate_rollout(
     Path(rollout_id): Path<String>,
     Json(body): Json<Option<TerminateBody>>,
 ) -> AppResult<Json<Value>> {
-    let mut store = state
-        .inner
-        .lock()
-        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed", "store lock poisoned"))?;
-    let record = store
-        .rollouts
-        .get_mut(&rollout_id)
-        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "unknown_rollout", format!("rollout not found: {}", rollout_id)))?;
+    let mut store = state.inner.lock().map_err(|_| {
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "lock_failed",
+            "store lock poisoned",
+        )
+    })?;
+    let record = store.rollouts.get_mut(&rollout_id).ok_or_else(|| {
+        AppError::new(
+            StatusCode::NOT_FOUND,
+            "unknown_rollout",
+            format!("rollout not found: {}", rollout_id),
+        )
+    })?;
     record.terminated = true;
     record.status = "terminated".to_string();
     record.completed_at = Some(now_iso());
@@ -884,10 +1029,13 @@ async fn legacy_terminate(
     State(state): State<AppState>,
     Json(body): Json<TerminateBody>,
 ) -> AppResult<Json<Value>> {
-    let env_id = body
-        .env_id
-        .clone()
-        .ok_or_else(|| AppError::new(StatusCode::UNPROCESSABLE_ENTITY, "missing_env_id", "env_id is required"))?;
+    let env_id = body.env_id.clone().ok_or_else(|| {
+        AppError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "missing_env_id",
+            "env_id is required",
+        )
+    })?;
     terminate_rollout(State(state), Path(env_id), Json(Some(body))).await
 }
 
@@ -945,7 +1093,9 @@ fn session_config_from_env(seed: u64, env_config: &Map<String, Value>) -> Sessio
     };
     config.seed = Some(seed);
     config.max_steps = Some(as_u32(
-        env_config.get("episode_max_steps").or_else(|| env_config.get("max_steps")),
+        env_config
+            .get("episode_max_steps")
+            .or_else(|| env_config.get("max_steps")),
         DEFAULT_EPISODE_MAX_STEPS,
     ));
     config.view_radius = as_u32(env_config.get("view_radius"), DEFAULT_VIEW_RADIUS).max(1);
@@ -1053,6 +1203,7 @@ fn classic_actions() -> Vec<Action> {
 struct InferenceResponseData {
     content: String,
     reasoning_text: Option<String>,
+    tool_calls: Vec<Value>,
     request_id: Option<String>,
     sequence_logprob: Option<f64>,
     usage: Value,
@@ -1076,7 +1227,10 @@ async fn next_action_batch(record: &mut RolloutRecord) -> Result<ActionBatchDeci
     if let Some(Value::Array(items)) = policy_config.get("actions") {
         let actions: Vec<Action> = items.iter().filter_map(action_from_value).collect();
         if !actions.is_empty() {
-            let action_names = actions.iter().map(|action| action_name(*action).to_string()).collect::<Vec<_>>();
+            let action_names = actions
+                .iter()
+                .map(|action| action_name(*action).to_string())
+                .collect::<Vec<_>>();
             return Ok(ActionBatchDecision {
                 actions,
                 prompt_messages: Vec::new(),
@@ -1111,9 +1265,13 @@ async fn next_action_batch(record: &mut RolloutRecord) -> Result<ActionBatchDeci
         match infer_actions(record).await {
             Ok(batch) if !batch.actions.is_empty() => {
                 record.llm_call_count += 1;
-                record
-                    .llm_action_batches
-                    .push(batch.actions.iter().map(|action| action_name(*action).to_string()).collect());
+                record.llm_action_batches.push(
+                    batch
+                        .actions
+                        .iter()
+                        .map(|action| action_name(*action).to_string())
+                        .collect(),
+                );
                 if batch.invalid_parse {
                     record.inference_error_count += 1;
                     record.last_inference_error = Some("model output required repair".to_string());
@@ -1160,6 +1318,13 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
         .map(str::to_string)
         .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
         .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        .or_else(|| {
+            if inference_url_is_local(&inference_url) {
+                Some("dummy-local-key".to_string())
+            } else {
+                None
+            }
+        })
         .ok_or_else(|| "missing OPENROUTER_API_KEY/OPENAI_API_KEY for inference".to_string())?;
     let system_prompt = record
         .policy_config
@@ -1174,15 +1339,16 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
     let max_tokens = as_u64(record.policy_config.get("max_tokens"), 180).max(32);
     let temperature = as_f64(record.policy_config.get("temperature"), 0.0);
     let enable_thinking = as_bool(record.policy_config.get("enable_thinking"), false);
-    let target_batch_size = as_u64(record.policy_config.get("target_action_batch_size"), 4)
-        .clamp(2, 6) as usize;
+    let thinking_budget_tokens = as_u64(record.policy_config.get("thinking_budget_tokens"), 0);
+    let target_batch_size =
+        as_u64(record.policy_config.get("target_action_batch_size"), 4).clamp(2, 6) as usize;
     let min_batch_size = as_u64(record.policy_config.get("min_action_batch_size"), 3)
         .clamp(2, target_batch_size as u64) as usize;
     let available_actions = available_actions_for_state(&record.session.config);
     let observation_text = build_observation_text(record);
 
     let user_prompt = format!(
-        "Current Crafter long-horizon observation:\n{}\n\nPlan a short useful macro-action. Return exactly {} actions unless the environment is already done. Avoid one-action plans. Use only these actions: {}.\nReturn strict JSON only, for example {{\"actions\":[\"move_right\",\"move_right\",\"move_down\",\"do\"]}}.",
+        "Current Crafter long-horizon observation:\n{}\n\nPlan a short useful macro-action. Use the crafter_interact tool exactly once. Return exactly {} actions unless the environment is already done. Avoid one-action plans. Use only these actions: {}.\nDo not return JSON or plain text actions.",
         observation_text,
         target_batch_size,
         available_actions.join(", ")
@@ -1205,6 +1371,7 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
         max_tokens,
         initial_messages.clone(),
         Some(enable_thinking),
+        Some(thinking_budget_tokens),
     )
     .await?;
 
@@ -1216,21 +1383,21 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
     let mut final_sequence_logprob = first_response.sequence_logprob;
     let mut final_usage = first_response.usage.clone();
     let mut invalid_parse = false;
-    let mut actions = parse_actions_from_text(&first_response.content);
+    let mut actions = parse_actions_from_tool_calls(&first_response.tool_calls);
     if actions.len() < min_batch_size {
         let repair_prompt = format!(
-            "Your previous response was invalid because it contained {} action(s), but I need at least {} and preferably exactly {}.\nPrevious response:\n{}\n\nRewrite it as strict JSON with exactly {} valid actions chosen from: {}.\nDo not explain anything.",
+            "Your previous response was invalid because it contained {} action(s), but I need at least {} and preferably exactly {}.\nUse the crafter_interact tool exactly once and return exactly {} valid actions chosen from: {}.\nDo not answer in plain text.",
             actions.len(),
             min_batch_size,
             target_batch_size,
-            first_response.content,
             target_batch_size,
             available_actions.join(", ")
         );
+        let repair_assistant_message = assistant_message_from_response(&first_response);
         let repaired_messages = vec![
             json!({"role": "system", "content": system_prompt}),
             json!({"role": "user", "content": user_prompt}),
-            json!({"role": "assistant", "content": first_response.content}),
+            repair_assistant_message,
             json!({"role": "user", "content": repair_prompt}),
         ];
         let repaired_response = send_inference_request(
@@ -1242,6 +1409,7 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
             max_tokens,
             repaired_messages.clone(),
             Some(enable_thinking),
+            Some(thinking_budget_tokens),
         )
         .await?;
         final_messages = repaired_messages;
@@ -1250,7 +1418,7 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
         final_request_id = repaired_response.request_id.clone();
         final_sequence_logprob = repaired_response.sequence_logprob;
         final_usage = repaired_response.usage.clone();
-        actions = parse_actions_from_text(&repaired_response.content);
+        actions = parse_actions_from_tool_calls(&repaired_response.tool_calls);
         invalid_parse = true;
     }
 
@@ -1282,6 +1450,7 @@ async fn infer_actions(record: &mut RolloutRecord) -> Result<ActionBatchDecision
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn send_inference_request(
     client: &Client,
     inference_url: &str,
@@ -1291,6 +1460,7 @@ async fn send_inference_request(
     max_tokens: u64,
     messages: Vec<Value>,
     enable_thinking: Option<bool>,
+    thinking_budget_tokens: Option<u64>,
 ) -> Result<InferenceResponseData, String> {
     let mut request_variants = Vec::new();
     match enable_thinking {
@@ -1311,7 +1481,30 @@ async fn send_inference_request(
             "messages": messages.clone(),
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "response_format": { "type": "json_object" }
+            "tools": [{
+                "type": "function",
+                "function": {
+                    "name": "crafter_interact",
+                    "description": "Choose the next short Crafter macro-action sequence.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "actions_list": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": available_action_names_json()
+                                },
+                                "minItems": 1,
+                                "maxItems": 6
+                            }
+                        },
+                        "required": ["actions_list"],
+                        "additionalProperties": false
+                    }
+                }
+            }],
+            "tool_choice": "auto"
         });
         if request_logprobs {
             request_body["logprobs"] = Value::Bool(true);
@@ -1320,6 +1513,17 @@ async fn send_inference_request(
             request_body["chat_template_kwargs"] = json!({
                 "enable_thinking": flag
             });
+        }
+        if let Some(budget) = thinking_budget_tokens {
+            if budget > 0 {
+                request_body["chat_template_kwargs"] = json!({
+                    "enable_thinking": true
+                });
+                request_body["vllm_xargs"] = json!({
+                    "think_budget": budget,
+                    "think_starts_open": true
+                });
+            }
         }
         let response = client
             .post(inference_url)
@@ -1343,16 +1547,23 @@ async fn send_inference_request(
             .await
             .map_err(|error| format!("failed to parse inference response json: {}", error))?;
         if !status.is_success() {
-            let retry_without_logprobs = request_logprobs && matches!(status.as_u16(), 400 | 403 | 404 | 422 | 501);
+            let retry_without_logprobs =
+                request_logprobs && matches!(status.as_u16(), 400 | 403 | 404 | 422 | 501);
             if retry_without_logprobs {
                 continue;
             }
-            return Err(format!("inference status {} body {}", status, truncate_json(&body)));
+            return Err(format!(
+                "inference status {} body {}",
+                status,
+                truncate_json(&body)
+            ));
         }
         return Ok(InferenceResponseData {
             content: extract_model_content(&body),
             reasoning_text: extract_model_reasoning(&body),
-            request_id: request_id.or_else(|| body.get("id").and_then(Value::as_str).map(str::to_string)),
+            tool_calls: extract_model_tool_calls(&body),
+            request_id: request_id
+                .or_else(|| body.get("id").and_then(Value::as_str).map(str::to_string)),
             sequence_logprob: extract_model_sequence_logprob(&body),
             usage: body.get("usage").cloned().unwrap_or_else(|| json!({})),
         });
@@ -1378,8 +1589,12 @@ fn extract_model_sequence_logprob(body: &Value) -> Option<f64> {
     }
 
     let array_candidates = [
-        choice.get("logprobs").and_then(|value| value.get("content")),
-        choice.get("logprobs").and_then(|value| value.get("token_logprobs")),
+        choice
+            .get("logprobs")
+            .and_then(|value| value.get("content")),
+        choice
+            .get("logprobs")
+            .and_then(|value| value.get("token_logprobs")),
         choice
             .get("message")
             .and_then(|value| value.get("logprobs"))
@@ -1437,10 +1652,22 @@ fn build_observation_text(record: &RolloutRecord) -> String {
         format!("player_facing={:?}", state.player_facing),
         format!("sleeping={}", state.player_sleeping),
         format!("inventory={}", inventory),
-        format!("achievements={}", serde_json::to_string(&achievements).unwrap_or_else(|_| "[]".to_string())),
-        format!("available_actions={}", serde_json::to_string(&available_actions).unwrap_or_else(|_| "[]".to_string())),
-        format!("hints={}", serde_json::to_string(&hints).unwrap_or_else(|_| "[]".to_string())),
-        format!("map_legend={}", serde_json::to_string(&map_legend).unwrap_or_else(|_| "{}".to_string())),
+        format!(
+            "achievements={}",
+            serde_json::to_string(&achievements).unwrap_or_else(|_| "[]".to_string())
+        ),
+        format!(
+            "available_actions={}",
+            serde_json::to_string(&available_actions).unwrap_or_else(|_| "[]".to_string())
+        ),
+        format!(
+            "hints={}",
+            serde_json::to_string(&hints).unwrap_or_else(|_| "[]".to_string())
+        ),
+        format!(
+            "map_legend={}",
+            serde_json::to_string(&map_legend).unwrap_or_else(|_| "{}".to_string())
+        ),
     ];
     if !ascii_view.trim().is_empty() {
         lines.push("ascii_view:".to_string());
@@ -1451,7 +1678,10 @@ fn build_observation_text(record: &RolloutRecord) -> String {
         lines.extend(recent_actions);
     }
     if record.planner_mode.as_deref() == Some("waypoint_planned") {
-        lines.push(format!("completed_waypoints={}", record.completed_waypoints.len()));
+        lines.push(format!(
+            "completed_waypoints={}",
+            record.completed_waypoints.len()
+        ));
         if let Some(waypoint) = waypoint {
             lines.push(format!("current_waypoint={}", waypoint.description));
             if let Some(achievement) = waypoint.achievement.as_ref() {
@@ -1460,7 +1690,8 @@ fn build_observation_text(record: &RolloutRecord) -> String {
             if !waypoint.inventory_requirements.is_empty() {
                 lines.push(format!(
                     "current_waypoint_inventory={}",
-                    serde_json::to_string(&waypoint.inventory_requirements).unwrap_or_else(|_| "{}".to_string())
+                    serde_json::to_string(&waypoint.inventory_requirements)
+                        .unwrap_or_else(|_| "{}".to_string())
                 ));
             }
             if let Some(position) = waypoint.player_position {
@@ -1522,10 +1753,13 @@ fn hints_for_state(state: &crafter_core::GameState) -> Vec<String> {
         hints.push("Collect wood by moving next to a tree and using 'do'.".to_string());
     }
     if inv.wood >= 2 && ach.place_table == 0 {
-        hints.push("Place a crafting table with 'place_table' after gathering enough wood.".to_string());
+        hints.push(
+            "Place a crafting table with 'place_table' after gathering enough wood.".to_string(),
+        );
     }
     if inv.wood >= 1 && inv.wood_pickaxe == 0 && ach.place_table > 0 {
-        hints.push("Make a wood pickaxe with 'make_wood_pickaxe' while near the table.".to_string());
+        hints
+            .push("Make a wood pickaxe with 'make_wood_pickaxe' while near the table.".to_string());
     }
     if inv.wood >= 1 && inv.wood_sword == 0 && ach.place_table > 0 {
         hints.push("Make a wood sword with 'make_wood_sword' while near the table.".to_string());
@@ -1587,15 +1821,19 @@ fn recent_action_history(record: &RolloutRecord, n: usize) -> Vec<String> {
         .map(|item| {
             format!(
                 "step={} actions={:?} reward={} total_reward={} pos={:?} achievements={:?}",
-                item.step_idx, item.actions, item.reward, item.total_reward, item.player_pos, item.achievements
+                item.step_idx,
+                item.actions,
+                item.reward,
+                item.total_reward,
+                item.player_pos,
+                item.achievements
             )
         })
         .collect()
 }
 
 fn inventory_json(inventory: &crafter_core::Inventory) -> String {
-    serde_json::to_string(&inventory_payload(inventory))
-        .unwrap_or_else(|_| "{}".to_string())
+    serde_json::to_string(&inventory_payload(inventory)).unwrap_or_else(|_| "{}".to_string())
 }
 
 fn inventory_payload(inventory: &crafter_core::Inventory) -> Value {
@@ -1679,6 +1917,19 @@ fn extract_model_reasoning(body: &Value) -> Option<String> {
     }
 }
 
+fn extract_model_tool_calls(body: &Value) -> Vec<Value> {
+    if let Some(tool_calls) = extract_message_field(body, "tool_calls")
+        .and_then(Value::as_array)
+        .cloned()
+        .filter(|items| !items.is_empty())
+    {
+        return tool_calls;
+    }
+    extract_message_field(body, "content")
+        .and_then(extract_tool_calls_from_content_value)
+        .unwrap_or_default()
+}
+
 fn extract_message_field<'a>(body: &'a Value, field_name: &str) -> Option<&'a Value> {
     body.get("choices")
         .and_then(Value::as_array)
@@ -1687,40 +1938,102 @@ fn extract_message_field<'a>(body: &'a Value, field_name: &str) -> Option<&'a Va
         .and_then(|message| message.get(field_name))
 }
 
-fn parse_actions_from_text(content: &str) -> Vec<Action> {
-    if content.trim().is_empty() {
-        return Vec::new();
-    }
-    if let Ok(parsed) = serde_json::from_str::<Value>(content) {
+fn parse_actions_from_tool_calls(tool_calls: &[Value]) -> Vec<Action> {
+    for tool_call in tool_calls {
+        let Some(function) = tool_call.get("function") else {
+            continue;
+        };
+        if function.get("name").and_then(Value::as_str) != Some("crafter_interact") {
+            continue;
+        }
+        let arguments = function.get("arguments").cloned().unwrap_or_else(|| json!({}));
+        let parsed = match arguments {
+            Value::String(text) => serde_json::from_str::<Value>(&text).unwrap_or_else(|_| json!({})),
+            other => other,
+        };
         let actions = parse_actions_from_value(&parsed);
         if !actions.is_empty() {
             return actions;
         }
     }
-    if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}')) {
-        if start < end {
-            if let Ok(parsed) = serde_json::from_str::<Value>(&content[start..=end]) {
-                let actions = parse_actions_from_value(&parsed);
-                if !actions.is_empty() {
-                    return actions;
-                }
-            }
-        }
+    Vec::new()
+}
+
+fn extract_tool_calls_from_content_value(content: &Value) -> Option<Vec<Value>> {
+    let text = match content {
+        Value::String(text) => text.clone(),
+        Value::Array(parts) => parts
+            .iter()
+            .filter_map(|part| part.get("text").and_then(Value::as_str))
+            .collect::<Vec<_>>()
+            .join("\n"),
+        _ => String::new(),
+    };
+    if text.trim().is_empty() {
+        return None;
     }
-    let lowered = content.to_lowercase();
-    classic_actions()
-        .into_iter()
-        .filter(|action| lowered.contains(action_name(*action)))
-        .take(6)
-        .collect()
+    let mut recovered = Vec::new();
+    let mut cursor = text.as_str();
+    let open_tag = "<tool_call>";
+    let close_tag = "</tool_call>";
+    while let Some(start) = cursor.find(open_tag) {
+        let after_open = &cursor[start + open_tag.len()..];
+        let Some(end) = after_open.find(close_tag) else {
+            break;
+        };
+        let raw_block = after_open[..end].trim();
+        cursor = &after_open[end + close_tag.len()..];
+        if raw_block.is_empty() {
+            continue;
+        }
+        let Ok(parsed) = serde_json::from_str::<Value>(raw_block) else {
+            continue;
+        };
+        let Some(name) = parsed.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        let arguments = parsed.get("arguments").cloned().unwrap_or_else(|| json!({}));
+        recovered.push(json!({
+            "type": "function",
+            "function": {
+                "name": name,
+                "arguments": arguments,
+            }
+        }));
+    }
+    if recovered.is_empty() {
+        None
+    } else {
+        Some(recovered)
+    }
 }
 
 fn parse_actions_from_value(value: &Value) -> Vec<Action> {
     value
-        .get("actions")
+        .get("actions_list")
+        .or_else(|| value.get("actions"))
         .and_then(Value::as_array)
         .map(|items| items.iter().filter_map(action_from_value).take(6).collect())
         .unwrap_or_default()
+}
+
+fn available_action_names_json() -> Vec<Value> {
+    classic_action_names()
+        .into_iter()
+        .filter(|name| *name != "noop")
+        .map(|name| Value::String(name.to_string()))
+        .collect()
+}
+
+fn assistant_message_from_response(response: &InferenceResponseData) -> Value {
+    let mut message = json!({
+        "role": "assistant",
+        "content": response.content,
+    });
+    if !response.tool_calls.is_empty() {
+        message["tool_calls"] = Value::Array(response.tool_calls.clone());
+    }
+    message
 }
 
 fn truncate_json(body: &Value) -> String {
@@ -1784,10 +2097,7 @@ fn parse_waypoints(raw_request: Option<&Value>) -> Vec<Waypoint> {
                         if values.len() < 2 {
                             return None;
                         }
-                        Some((
-                            as_i32(values.first(), 0),
-                            as_i32(values.get(1), 0),
-                        ))
+                        Some((as_i32(values.first(), 0), as_i32(values.get(1), 0)))
                     });
                 Some(Waypoint {
                     description,
@@ -1851,7 +2161,8 @@ fn unlocked_achievements(record: &RolloutRecord) -> Vec<String> {
     ];
     pairs
         .into_iter()
-        .filter_map(|(name, count)| (count > 0).then(|| name.to_string()))
+        .filter(|&(_, count)| count > 0)
+        .map(|(name, _)| name.to_string())
         .collect()
 }
 
@@ -1876,9 +2187,10 @@ fn update_waypoint_progress(record: &mut RolloutRecord) {
         let state = record.session.get_state();
         let unlocked = unlocked_achievements(record);
         let inventory = state.inventory;
-        let inventory_completed = waypoint.inventory_requirements.iter().all(|(key, expected)| {
-            inventory_value(&inventory, key) >= *expected
-        });
+        let inventory_completed = waypoint
+            .inventory_requirements
+            .iter()
+            .all(|(key, expected)| inventory_value(&inventory, key) >= *expected);
         let position_completed = waypoint
             .player_position
             .map(|target| target == state.player_pos)
@@ -2109,9 +2421,15 @@ fn make_checkpoint(record: &mut RolloutRecord, body: CheckpointBody) -> Checkpoi
     let state = record.session.get_state();
     metadata.insert("step".to_string(), json!(state.step));
     metadata.insert("total_reward".to_string(), json!(record.total_reward));
-    metadata.insert("env_total_reward".to_string(), json!(record.env_total_reward));
+    metadata.insert(
+        "env_total_reward".to_string(),
+        json!(record.env_total_reward),
+    );
     metadata.insert("player_pos".to_string(), json!(state.player_pos));
-    metadata.insert("achievements".to_string(), json!(unlocked_achievements(record)));
+    metadata.insert(
+        "achievements".to_string(),
+        json!(unlocked_achievements(record)),
+    );
     metadata.insert("inventory".to_string(), inventory_payload(&state.inventory));
 
     let checkpoint = CheckpointRecord {
@@ -2252,7 +2570,11 @@ fn rollout_response(record: &RolloutRecord) -> Value {
         .get("metadata")
         .cloned()
         .unwrap_or_else(|| json!({}));
-    let success_status = if record.status == "failed" { "failed" } else { "success" };
+    let success_status = if record.status == "failed" {
+        "failed"
+    } else {
+        "success"
+    };
     json!({
         "rollout_id": record.rollout_id,
         "trial_id": record.trial_id,

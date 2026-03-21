@@ -6,7 +6,7 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 
 ## Contract
 
-- base model: `Qwen/Qwen3.5-0.8B`
+- base model: `Qwen/Qwen3.5-4B`
 - environment: Crafter
 - hardware: 2x A100 40GB
 - wall-clock budget: 20 minutes
@@ -18,10 +18,17 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 - online reward computation
 - RLVR or RL-style adapter updates
 
+## Reference Stack
+
+- Modal for execution
+- reward-weighted LoRA baseline in `nanohorizon.baselines.rlvr`
+- shared Modal training image with Qwen3.5-capable Transformers
+- default example GPU: `A10G` via `NANOHORIZON_MODAL_GPU_RLVR`
+
 ## Expected Starter Script
 
 ```bash
-./scripts/run_crafter_rlvr_qwen35_08b_2xa100_20min.sh
+./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
 ## Expected Record Bundle

@@ -4,7 +4,6 @@ import json
 import sys
 from pathlib import Path
 
-
 REQUIRED_FILES = (
     "metadata.json",
     "metrics.json",
@@ -17,7 +16,7 @@ REQUIRED_FILES = (
 def main() -> int:
     if len(sys.argv) != 2:
         print(
-            "usage: PYTHONPATH=src python3 -m nanohorizon.validate_record <record_dir>",
+            "usage: uv run python -m nanohorizon.validate_record <record_dir>",
             file=sys.stderr,
         )
         return 2
@@ -29,7 +28,9 @@ def main() -> int:
 
     missing = [name for name in REQUIRED_FILES if not (record_dir / name).exists()]
     if missing:
-        print(json.dumps({"ok": False, "missing": missing, "record_dir": str(record_dir)}, indent=2))
+        print(
+            json.dumps({"ok": False, "missing": missing, "record_dir": str(record_dir)}, indent=2)
+        )
         return 1
 
     print(json.dumps({"ok": True, "record_dir": str(record_dir)}, indent=2))

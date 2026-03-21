@@ -2,7 +2,7 @@ task:
   name: crafter
 
 policy:
-  model: Qwen/Qwen3.5-0.8B
+  model: Qwen/Qwen3.5-4B
 
 optimizer:
   budget_usd: 1.0
@@ -21,7 +21,7 @@ prompt:
   seed_prompt: You are a Crafter student policy. Return strict JSON only as {"actions":[...]} and prioritize valid progression actions.
 
 data:
-  task_jsonl: /Users/joshpurtell/Documents/GitHub/nanohorizon/data/crafter/prompt_opt_tasks.sample.jsonl
+  task_jsonl: ../data/crafter/prompt_opt_tasks.sample.jsonl
 
 output:
-  root_dir: /Users/joshpurtell/Documents/GitHub/nanohorizon/artifacts/prompt_opt_baseline
+  root_dir: ../artifacts/prompt_opt_baseline

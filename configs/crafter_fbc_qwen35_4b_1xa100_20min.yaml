@@ -1,0 +1,61 @@
+task:
+  name: crafter
+  track: offline_20min_1xa100_40gb
+
+model:
+  model: Qwen/Qwen3.5-4B
+
+budget:
+  wall_clock_minutes: 20
+  gpus: 1
+  gpu_type: A100-40GB
+
+data:
+  dataset_jsonl: ../data/crafter/crafter_ft_starter.jsonl
+  dataset_name: crafter_ft_starter
+
+teacher_generation:
+  enabled: true
+  teacher_model: Qwen/Qwen3.5-4B
+  container_url: http://127.0.0.1:8903
+  teacher_base_url: http://127.0.0.1:8001/v1
+  seed_prompts_jsonl: ../data/crafter/crafter_ft_seed_prompts.jsonl
+  samples_per_seed: 2
+  rollout_concurrency: 8
+  rollout_semaphore_limit: 8
+  max_steps: 48
+  reward_quantile: 0.75
+  enable_thinking: true
+  thinking_budget_tokens: 2000
+  request_timeout_seconds: 60
+  max_tokens: 180
+  temperature: 0.2
+  target_action_batch_size: 4
+  min_action_batch_size: 3
+
+filtering:
+  enabled: true
+  keep_top_fraction: 0.5
+
+training:
+  method: trl_sft
+  epochs: 1
+  max_steps: 6
+  max_length: 512
+  learning_rate: 1.0e-5
+  lora_rank: 16
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+
+output:
+  root_dir: ../artifacts/fbc_baseline
+
+evaluation:
+  container_url: http://127.0.0.1:8903
+  seed_start: 10000
+  num_rollouts: 4
+  max_steps: 48
+  max_concurrent_rollouts: 4
+  max_new_tokens: 64
+  enable_thinking: false
+  thinking_budget_tokens: 0

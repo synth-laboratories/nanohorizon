@@ -1,1 +1,1 @@
-./scripts/run_crafter_rlvr_qwen35_08b_2xa100_20min.sh
+./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh

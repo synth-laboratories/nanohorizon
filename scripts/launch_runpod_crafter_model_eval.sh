@@ -3,9 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/scripts/lib_runpod_webhook.sh"
+source "$ROOT/scripts/lib_runpod_gpu.sh"
 GIT_REPO="${NANOHORIZON_GIT_REPO:-https://github.com/synth-laboratories/nanohorizon.git}"
 GIT_REF="${NANOHORIZON_GIT_REF:-main}"
-BASE_MODEL="${NANOHORIZON_EVAL_BASE_MODEL:-Qwen/Qwen3.5-0.8B}"
+BASE_MODEL="${NANOHORIZON_EVAL_BASE_MODEL:-Qwen/Qwen3.5-4B}"
 WAIT_TIMEOUT_SECONDS="${NANOHORIZON_WAIT_TIMEOUT_SECONDS:-1800}"
 COMPLETION_WEBHOOK_URL="$(resolve_runpod_completion_webhook)"
 IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-eval:latest}"
@@ -29,10 +30,11 @@ for item in "${TRAIN_ENV[@]}"; do
   TRAIN_PREFIX+="$item "
 done
 
+nanoh_runpod_gpu_load
 PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_training_launcher launch \
   --image-name "$IMAGE_NAME" \
   --name "nanohorizon-eval-$(date -u +%Y%m%d-%H%M%S)" \
-  --gpu-type-id "${NANOHORIZON_RUNPOD_GPU_TYPE:-NVIDIA A100 80GB PCIe}" \
+  "${NANOH_RUNPOD_GPU_ARGS[@]}" \
   --gpu-count "${NANOHORIZON_RUNPOD_GPU_COUNT:-1}" \
   --container-disk-gb "${NANOHORIZON_RUNPOD_CONTAINER_DISK_GB:-80}" \
   --volume-gb "${NANOHORIZON_RUNPOD_VOLUME_GB:-120}" \
@@ -47,5 +49,5 @@ PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_
   --wait-timeout-seconds "$WAIT_TIMEOUT_SECONDS" \
   --completion-webhook-url "$COMPLETION_WEBHOOK_URL" \
   --auto-stop \
-  "${FORWARDED_ENV[@]}" \
+  ${FORWARDED_ENV[@]+"${FORWARDED_ENV[@]}"} \
   "$@"

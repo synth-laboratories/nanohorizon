@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/scripts/lib_runpod_gpu.sh"
 GIT_REPO="${NANOHORIZON_GIT_REPO:-}"
 GIT_REF="${NANOHORIZON_GIT_REF:-main}"
 IMAGE_NAME="${NANOHORIZON_RUNPOD_IMAGE:-ghcr.io/synth-laboratories/nanohorizon-offline:latest}"
@@ -11,10 +12,11 @@ if [[ -z "$GIT_REPO" ]]; then
   exit 1
 fi
 
+nanoh_runpod_gpu_load
 PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_training_launcher launch \
   --image-name "$IMAGE_NAME" \
   --name "nanohorizon-offline-$(date -u +%Y%m%d-%H%M%S)" \
-  --gpu-type-id "NVIDIA A100 80GB PCIe" \
+  "${NANOH_RUNPOD_GPU_ARGS[@]}" \
   --gpu-count 1 \
   --container-disk-gb 80 \
   --volume-gb 160 \
@@ -23,6 +25,6 @@ PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m nanohorizon.runpod_
   --git-ref "$GIT_REF" \
   --repo-dir nanohorizon \
   --setup-cmd "cd /workspace/nanohorizon && python3 -V && echo using prebuilt offline runtime image" \
-  --train-cmd "cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=0 NANOHORIZON_START_LOCAL_TEACHER=1 bash scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh" \
+  --train-cmd "cd /workspace/nanohorizon && NANOHORIZON_AUTO_INSTALL=0 NANOHORIZON_START_LOCAL_TEACHER=1 bash scripts/run_crafter_fbc_qwen35_4b_1xa100_20min.sh" \
   --auto-stop \
   "$@"

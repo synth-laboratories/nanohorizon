@@ -1,0 +1,23 @@
+track: offline_20min_1xa100_40gb
+task: crafter
+student_model: Qwen/Qwen3.5-4B
+teacher_model: Qwen/Qwen3.5-9B
+reference_script: ./scripts/run_offline_training.sh
+reference_config: ./configs/crafter_offline_reference.yaml
+offline_training_module: python -m nanohorizon.offline_training
+thinking_budget_tokens: 2000
+max_new_tokens: 2200
+max_model_len: 8192
+eval:
+  num_rollouts: 20
+  max_concurrency: 10
+  max_steps: 8
+  seed_start: 10000
+training:
+  method: trl_sft
+  max_steps: 16
+  lora_rank: 16
+teacher_generation:
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 4
+  max_steps: 8

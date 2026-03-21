@@ -24,9 +24,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
-
 
 DEFAULT_API_BASE = "https://rest.runpod.io/v1"
 DEFAULT_IMAGE = "runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04"
@@ -57,7 +55,7 @@ def _build_ssl_context() -> ssl.SSLContext:
     if env_cafile:
         candidates.append(env_cafile)
     try:
-        import certifi  # type: ignore
+        import certifi
 
         certifi_where = str(certifi.where() or "").strip()
         if certifi_where:
@@ -92,6 +90,7 @@ def _build_ssl_context() -> ssl.SSLContext:
     finally:
         os.environ.update(removed_env)
 
+
 # Cheap-ish defaults guided by current RunPod docs:
 # - A4000/A4500/RTX 4000 are the most cost-effective 16 GB options
 # - L4/A5000/3090 are cost-effective 24 GB options
@@ -101,6 +100,10 @@ GPU_PROFILES: dict[str, list[str]] = {
         "NVIDIA RTX A4000",
         "NVIDIA RTX A4500",
         "NVIDIA RTX 4000 Ada Generation",
+    ],
+    # Single-type profile: cost-effective 24GB inference card for small LMs (e.g. Qwen3.5-4B).
+    "l4": [
+        "NVIDIA L4",
     ],
     "mid24": [
         "NVIDIA L4",
@@ -181,7 +184,9 @@ class RunpodClient:
         decoded = json.loads(raw)
         if isinstance(decoded, (dict, list)):
             return decoded
-        raise RuntimeError(f"expected JSON object or list from RunPod API, got: {type(decoded).__name__}")
+        raise RuntimeError(
+            f"expected JSON object or list from RunPod API, got: {type(decoded).__name__}"
+        )
 
     def create_pod(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._request("POST", "/pods", payload=payload)
@@ -332,35 +337,35 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
         "    return 0",
         "  fi",
         f"  CALLBACK_URL={_quote(completion_webhook_url)}",
-        "  CURL_ARGS=(-fsS --retry 5 --retry-delay 2 --retry-all-errors --connect-timeout 20 --max-time 300 -X POST \"$CALLBACK_URL\"",
-        "    -F \"state=${SMR_RUNPOD_STATE:-unknown}\"",
-        "    -F \"completed=${SMR_RUNPOD_COMPLETED:-0}\"",
-        "    -F \"status=${SMR_RUNPOD_EXIT_CODE:-1}\"",
-        "    -F \"pod_id=${RUNPOD_POD_ID:-}\"",
-        "    -F \"job_status=@${SMR_RUNPOD_MANIFEST_PATH};type=application/json\")",
-        "  if [ -f \"$SMR_RUNPOD_LOG_PATH\" ]; then",
-        "    CURL_ARGS+=(-F \"training_log=@${SMR_RUNPOD_LOG_PATH};type=text/plain\")",
+        '  CURL_ARGS=(-fsS --retry 5 --retry-delay 2 --retry-all-errors --connect-timeout 20 --max-time 300 -X POST "$CALLBACK_URL"',
+        '    -F "state=${SMR_RUNPOD_STATE:-unknown}"',
+        '    -F "completed=${SMR_RUNPOD_COMPLETED:-0}"',
+        '    -F "status=${SMR_RUNPOD_EXIT_CODE:-1}"',
+        '    -F "pod_id=${RUNPOD_POD_ID:-}"',
+        '    -F "job_status=@${SMR_RUNPOD_MANIFEST_PATH};type=application/json")',
+        '  if [ -f "$SMR_RUNPOD_LOG_PATH" ]; then',
+        '    CURL_ARGS+=(-F "training_log=@${SMR_RUNPOD_LOG_PATH};type=text/plain")',
         "  fi",
-        "  if [ -f \"$SMR_RUNPOD_HTTP_LOG_PATH\" ]; then",
-        "    CURL_ARGS+=(-F \"http_log=@${SMR_RUNPOD_HTTP_LOG_PATH};type=text/plain\")",
+        '  if [ -f "$SMR_RUNPOD_HTTP_LOG_PATH" ]; then',
+        '    CURL_ARGS+=(-F "http_log=@${SMR_RUNPOD_HTTP_LOG_PATH};type=text/plain")',
         "  fi",
         "  if [ -f final_model.pt ]; then",
-        "    CURL_ARGS+=(-F \"final_model=@final_model.pt;type=application/octet-stream\")",
+        '    CURL_ARGS+=(-F "final_model=@final_model.pt;type=application/octet-stream")',
         "  fi",
         "  if [ -f final_model.int8.ptz ]; then",
-        "    CURL_ARGS+=(-F \"final_model_int8=@final_model.int8.ptz;type=application/octet-stream\")",
+        '    CURL_ARGS+=(-F "final_model_int8=@final_model.int8.ptz;type=application/octet-stream")',
         "  fi",
         "  if [ -f train_gpt.py ]; then",
-        "    CURL_ARGS+=(-F \"trainer_snapshot=@train_gpt.py;type=text/x-python\")",
+        '    CURL_ARGS+=(-F "trainer_snapshot=@train_gpt.py;type=text/x-python")',
         "  fi",
-        "  curl \"${CURL_ARGS[@]}\" >/dev/null || true",
+        '  curl "${CURL_ARGS[@]}" >/dev/null || true',
         "}",
         "cleanup_on_exit() {",
         "  EXIT_CODE=$?",
-        "  if [ \"$FINALIZED\" != \"1\" ]; then",
+        '  if [ "$FINALIZED" != "1" ]; then',
         "    PREV_STATE=${SMR_RUNPOD_STATE:-unknown}",
         "    PREV_EXIT_CODE=${SMR_RUNPOD_EXIT_CODE:-$EXIT_CODE}",
-        "    if [ \"$PREV_EXIT_CODE\" = \"0\" ] || [ \"$PREV_STATE\" = \"succeeded\" ]; then",
+        '    if [ "$PREV_EXIT_CODE" = "0" ] || [ "$PREV_STATE" = "succeeded" ]; then',
         "      export SMR_RUNPOD_STATE=succeeded",
         "    else",
         "      export SMR_RUNPOD_STATE=failed",
@@ -387,7 +392,7 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
         "if ! command -v git >/dev/null 2>&1; then NEED_APT=1; fi",
         "if ! command -v curl >/dev/null 2>&1; then NEED_APT=1; fi",
         "if [ ! -f /etc/ssl/certs/ca-certificates.crt ]; then NEED_APT=1; fi",
-        "if [ \"$NEED_APT\" = \"1\" ] && command -v apt-get >/dev/null 2>&1; then",
+        'if [ "$NEED_APT" = "1" ] && command -v apt-get >/dev/null 2>&1; then',
         "  apt-get update",
         "  apt-get install -y git ca-certificates curl",
         "  update-ca-certificates || true",
@@ -401,12 +406,12 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
                 "if ! command -v git >/dev/null 2>&1; then echo 'git missing from image' >&2; exit 2; fi",
                 f"cd {_quote(workspace_dir)}",
                 f"CLONE_URL={_quote(git_repo)}",
-                "if [ -n \"${GITHUB_TOKEN:-}\" ]; then",
-                "  case \"$CLONE_URL\" in",
-                "    https://github.com/*) CLONE_URL=\"https://x-access-token:${GITHUB_TOKEN}@${CLONE_URL#https://}\" ;;",
+                'if [ -n "${GITHUB_TOKEN:-}" ]; then',
+                '  case "$CLONE_URL" in',
+                '    https://github.com/*) CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@${CLONE_URL#https://}" ;;',
                 "  esac",
                 "fi",
-                f"if [ ! -d {_quote(repo_dir)} ]; then git clone \"$CLONE_URL\" {_quote(repo_dir)}; fi",
+                f'if [ ! -d {_quote(repo_dir)} ]; then git clone "$CLONE_URL" {_quote(repo_dir)}; fi',
                 f"cd {_quote(repo_dir)}",
             ]
         )
@@ -421,7 +426,7 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
     if git_repo and git_ref:
         lines.extend(
             [
-                f"git fetch --all --tags --prune || true",
+                "git fetch --all --tags --prune || true",
                 f"git checkout {_quote(git_ref)}",
             ]
         )
@@ -450,12 +455,10 @@ def build_bootstrap_script(args: argparse.Namespace) -> str:
             "trap - EXIT",
             "if [ ${STATUS} -eq 0 ] && [ "
             + auto_stop
-            + " = 1 ] && command -v runpodctl >/dev/null 2>&1 && [ -n \"${RUNPOD_POD_ID:-}\" ]; then",
-            "  (sleep 20; runpodctl stop pod \"$RUNPOD_POD_ID\" || true) >/dev/null 2>&1 &",
+            + ' = 1 ] && command -v runpodctl >/dev/null 2>&1 && [ -n "${RUNPOD_POD_ID:-}" ]; then',
+            '  (sleep 20; runpodctl stop pod "$RUNPOD_POD_ID" || true) >/dev/null 2>&1 &',
             "fi",
-            "if [ "
-            + keepalive
-            + " = 1 ]; then",
+            "if [ " + keepalive + " = 1 ]; then",
             "  echo 'training finished; keepalive requested' | tee -a \"$SMR_RUNPOD_LOG_PATH\"",
             "  tail -f /dev/null",
             "fi",
@@ -542,6 +545,32 @@ def _redact_raw_pod(payload: dict[str, Any]) -> dict[str, Any]:
     return sanitized
 
 
+def _redact_pod_create_payload_print(payload: dict[str, Any]) -> dict[str, Any]:
+    """Strip secrets from pod create payload before printing to stdout."""
+    sanitized = dict(payload)
+    env_payload = sanitized.get("env")
+    if isinstance(env_payload, dict):
+        sanitized["env"] = {key: "<redacted>" for key in env_payload}
+    return sanitized
+
+
+def _artifact_url_bundle(*, pod_id: str, serve_port: int) -> dict[str, str]:
+    if not pod_id.strip() or serve_port <= 0:
+        return {}
+    return {
+        "training_log": _proxy_artifact_url(
+            pod_id=pod_id, port=serve_port, relative_path="training.log"
+        ),
+        "job_status": _proxy_artifact_url(
+            pod_id=pod_id, port=serve_port, relative_path="job_status.json"
+        ),
+        "http_server_log": _proxy_artifact_url(
+            pod_id=pod_id, port=serve_port, relative_path="http_server.log"
+        ),
+        "runpod_console_pods": "https://www.runpod.io/console/pods",
+    }
+
+
 def _wait_for_desired_status(
     client: RunpodClient,
     *,
@@ -591,7 +620,7 @@ def _urlopen_read_bytes(
                 exc.headers,
                 None,
             ) from exc
-        except urllib.error.URLError as exc:
+        except urllib.error.URLError:
             if attempt < DEFAULT_HTTP_MAX_ATTEMPTS:
                 _sleep_for_retry(attempt)
                 continue
@@ -694,7 +723,9 @@ def _webhook_request_pod_id(payload: dict[str, Any]) -> str:
     return str(request_payload.get("pod_id") or "").strip()
 
 
-def _select_webhook_request(requests: list[dict[str, Any]], *, pod_id: str) -> dict[str, Any] | None:
+def _select_webhook_request(
+    requests: list[dict[str, Any]], *, pod_id: str
+) -> dict[str, Any] | None:
     for payload in requests:
         files = payload.get("files") or {}
         if not isinstance(files, dict) or "job_status" not in files:
@@ -834,7 +865,9 @@ def _build_training_result_summary(
     trainer_meta = files_map.get("trainer_snapshot") or {}
     final_model_meta = files_map.get("final_model_int8") or files_map.get("final_model") or {}
     bytes_code = trainer_meta.get("size") if isinstance(trainer_meta, dict) else None
-    compressed_model_bytes = final_model_meta.get("size") if isinstance(final_model_meta, dict) else None
+    compressed_model_bytes = (
+        final_model_meta.get("size") if isinstance(final_model_meta, dict) else None
+    )
     bytes_total = None
     if isinstance(bytes_code, int) and isinstance(compressed_model_bytes, int):
         bytes_total = int(bytes_code) + int(compressed_model_bytes)
@@ -886,7 +919,9 @@ def _wait_for_remote_completion(
     timeout_seconds: float,
     poll_seconds: float,
 ) -> dict[str, Any]:
-    manifest_url = _proxy_artifact_url(pod_id=pod_id, port=serve_port, relative_path="job_status.json")
+    manifest_url = _proxy_artifact_url(
+        pod_id=pod_id, port=serve_port, relative_path="job_status.json"
+    )
     log_url = _proxy_artifact_url(pod_id=pod_id, port=serve_port, relative_path="training.log")
     deadline = time.time() + timeout_seconds
     last_manifest: dict[str, Any] | None = None
@@ -918,7 +953,9 @@ def _wait_for_remote_completion(
                 f"last_manifest={last_manifest}"
             )
         time.sleep(max(1.0, poll_seconds))
-    raise TimeoutError(f"timed out waiting for remote completion on pod {pod_id}; last_manifest={last_manifest}")
+    raise TimeoutError(
+        f"timed out waiting for remote completion on pod {pod_id}; last_manifest={last_manifest}"
+    )
 
 
 def _wait_for_webhook_completion(
@@ -963,7 +1000,9 @@ def _wait_for_webhook_completion(
                 }
                 if name == "job_status":
                     manifest = _decode_json_bytes(
-                        _download_webhook_file(token_id=token_id, request_id=request_id, file_id=file_id)
+                        _download_webhook_file(
+                            token_id=token_id, request_id=request_id, file_id=file_id
+                        )
                     )
                 elif name == "training_log":
                     log_text = _download_webhook_file(
@@ -1000,7 +1039,9 @@ def _wait_for_webhook_completion(
                 f"last={last_payload}"
             )
         time.sleep(max(1.0, poll_seconds))
-    raise TimeoutError(f"timed out waiting for webhook completion for token {token_id}; last={last_payload}")
+    raise TimeoutError(
+        f"timed out waiting for webhook completion for token {token_id}; last={last_payload}"
+    )
 
 
 def _cleanup_pod(client: RunpodClient, *, pod_id: str, action: str) -> dict[str, Any] | None:
@@ -1018,7 +1059,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
     print(
         json.dumps(
             {
-                "payload": plan.payload,
+                "payload": _redact_pod_create_payload_print(plan.payload),
                 "bootstrap_script": plan.bootstrap_script,
             },
             indent=2,
@@ -1035,7 +1076,7 @@ def cmd_launch(args: argparse.Namespace) -> int:
             json.dumps(
                 {
                     "dry_run": True,
-                    "payload": plan.payload,
+                    "payload": _redact_pod_create_payload_print(plan.payload),
                     "bootstrap_script": plan.bootstrap_script,
                 },
                 indent=2,
@@ -1083,11 +1124,29 @@ def cmd_launch(args: argparse.Namespace) -> int:
             except Exception:
                 cleanup_result = {"cleanup_error": True, "pod_id": pod_id}
         raise
+    serve_port = int(args.serve_output_port or 0)
+    artifact_urls = _artifact_url_bundle(pod_id=pod_id, serve_port=serve_port)
+    if artifact_urls:
+        print(
+            "\nRunPod log URLs (HTTP 200 after the pod has a public IP and bootstrap started):",
+            file=sys.stderr,
+        )
+        for key in sorted(artifact_urls):
+            if key == "runpod_console_pods":
+                continue
+            print(f"  {key}: {artifact_urls[key]}", file=sys.stderr)
+        print(
+            f"  dashboard: {artifact_urls.get('runpod_console_pods', '')} (find pod by id {pod_id})",
+            file=sys.stderr,
+        )
+        print(file=sys.stderr)
+
     print(
         json.dumps(
             {
+                "artifact_urls": artifact_urls,
                 "pod": _pod_summary(final_payload),
-                "payload": plan.payload,
+                "payload": _redact_pod_create_payload_print(plan.payload),
                 "completion": completion_result,
                 "cleanup": cleanup_result,
             },
@@ -1101,7 +1160,13 @@ def cmd_launch(args: argparse.Namespace) -> int:
 def cmd_status(args: argparse.Namespace) -> int:
     client = RunpodClient(api_key=_resolve_api_key(args), api_base=args.api_base)
     payload = client.get_pod(args.pod_id)
-    print(json.dumps({"pod": _pod_summary(payload), "raw": _redact_raw_pod(payload)}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {"pod": _pod_summary(payload), "raw": _redact_raw_pod(payload)},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
@@ -1137,7 +1202,9 @@ def _resolve_api_key(args: argparse.Namespace) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Launch remote training on RunPod for SMR workflows.")
+    parser = argparse.ArgumentParser(
+        description="Launch remote training on RunPod for SMR workflows."
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     def add_common_launch_args(target: argparse.ArgumentParser) -> None:
@@ -1155,7 +1222,9 @@ def build_parser() -> argparse.ArgumentParser:
         target.add_argument("--volume-mount-path", default=DEFAULT_VOLUME_MOUNT)
         target.add_argument("--network-volume-id", default="")
         target.add_argument("--interruptible", action=argparse.BooleanOptionalAction, default=True)
-        target.add_argument("--support-public-ip", action=argparse.BooleanOptionalAction, default=True)
+        target.add_argument(
+            "--support-public-ip", action=argparse.BooleanOptionalAction, default=True
+        )
         target.add_argument("--min-vcpu-per-gpu", type=int, default=4)
         target.add_argument("--min-ram-per-gpu", type=int, default=16)
         target.add_argument("--data-center-id", action="append", default=[])
@@ -1174,17 +1243,27 @@ def build_parser() -> argparse.ArgumentParser:
         target.add_argument("--serve-output-port", type=int, default=DEFAULT_OUTPUT_SERVE_PORT)
         target.add_argument("--completion-webhook-url", default="")
 
-    plan_parser = subparsers.add_parser("plan", help="Render the RunPod payload and bootstrap script.")
+    plan_parser = subparsers.add_parser(
+        "plan", help="Render the RunPod payload and bootstrap script."
+    )
     add_common_launch_args(plan_parser)
     plan_parser.set_defaults(func=cmd_plan)
 
-    launch_parser = subparsers.add_parser("launch", help="Create a RunPod pod and start the training bootstrap.")
+    launch_parser = subparsers.add_parser(
+        "launch", help="Create a RunPod pod and start the training bootstrap."
+    )
     add_common_launch_args(launch_parser)
     launch_parser.add_argument("--wait-until-running", action="store_true")
     launch_parser.add_argument("--wait-for-completion", action="store_true")
-    launch_parser.add_argument("--wait-timeout-seconds", type=float, default=DEFAULT_WAIT_TIMEOUT_SECONDS)
-    launch_parser.add_argument("--status-poll-seconds", type=float, default=DEFAULT_STATUS_POLL_SECONDS)
-    launch_parser.add_argument("--cleanup-action", choices=("none", "stop", "terminate"), default="stop")
+    launch_parser.add_argument(
+        "--wait-timeout-seconds", type=float, default=DEFAULT_WAIT_TIMEOUT_SECONDS
+    )
+    launch_parser.add_argument(
+        "--status-poll-seconds", type=float, default=DEFAULT_STATUS_POLL_SECONDS
+    )
+    launch_parser.add_argument(
+        "--cleanup-action", choices=("none", "stop", "terminate"), default="stop"
+    )
     launch_parser.add_argument("--dry-run", action="store_true")
     launch_parser.set_defaults(func=cmd_launch)
 

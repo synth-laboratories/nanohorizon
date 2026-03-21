@@ -2,7 +2,16 @@
 
 Prototype long-horizon Crafter container for `go_explore` testing.
 
-This wraps the in-repo `crafter-rs` runtime and aims to match the current Crafter long-horizon container surface closely enough for checkpointed rollout testing.
+This wraps the in-repo Crafter container service and aims to match the current Crafter long-horizon container surface closely enough for checkpointed rollout testing.
+
+Prerequisite checkout layout:
+
+```text
+~/Documents/GitHub/nanohorizon
+~/Documents/GitHub/crafter-rs
+```
+
+`Cargo.toml` depends on the sibling `crafter-rs` repo for `crafter-core`.
 
 Current scope:
 - `GET /`
@@ -24,7 +33,7 @@ Current scope:
 Run locally:
 
 ```bash
-cd runtime/crafter_rs
+cd containers/crafter_rs
 cargo run
 ```
 

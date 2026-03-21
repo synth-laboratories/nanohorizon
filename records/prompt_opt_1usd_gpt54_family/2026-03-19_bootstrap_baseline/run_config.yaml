@@ -1,6 +1,6 @@
 track: prompt_opt_1usd_gpt54_family
 task: crafter
-base_model: Qwen/Qwen3.5-0.8B
+base_model: Qwen/Qwen3.5-4B
 optimizer_budget_usd: 1.0
 optimizer_models:
   - gpt-5.4

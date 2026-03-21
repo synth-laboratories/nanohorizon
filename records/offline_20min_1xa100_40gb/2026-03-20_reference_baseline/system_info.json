@@ -1,0 +1,11 @@
+{
+  "platform": "Modal",
+  "hardware_contract": "1x A100 40GB",
+  "environment_runtime": "Crafter via local containers/crafter_rs service exposed through the Synth tunnel helper",
+  "training_backend": "TRL SFTTrainer with LoRA",
+  "inference_backend": "Modal vLLM OpenAI-compatible endpoints",
+  "student_model": "Qwen/Qwen3.5-4B",
+  "teacher_model": "Qwen/Qwen3.5-9B",
+  "thinking_budget_tokens": 2000,
+  "reproducibility": "Reference baseline is reproducible from the checked-in script and config in this repository."
+}

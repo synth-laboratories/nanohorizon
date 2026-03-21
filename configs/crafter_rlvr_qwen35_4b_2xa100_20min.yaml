@@ -1,0 +1,27 @@
+task:
+  name: crafter
+  track: rlvr_20min_2xa100_40gb
+
+model:
+  model: Qwen/Qwen3.5-4B
+
+budget:
+  wall_clock_minutes: 20
+  gpus: 2
+  gpu_type: A100-40GB
+
+data:
+  rollout_jsonl: ../data/crafter/rlvr_rollouts.sample.jsonl
+  seed_manifest_json: ../data/crafter/crafter_rlvr_starter_seeds.json
+  seed_manifest_name: crafter_rlvr_starter_seeds
+
+training:
+  method: reward_weighted_lora
+  epochs: 1
+  max_steps: 16
+  max_length: 512
+  learning_rate: 1.0e-5
+  lora_rank: 16
+
+output:
+  root_dir: ../artifacts/rlvr_baseline

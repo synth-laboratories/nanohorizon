@@ -18,9 +18,16 @@ packages = ["src/nanohorizon"]
 
 [dependency-groups]
 dev = [
+  "pre-commit>=4.0.0",
   "pytest>=8.4.2",
   "ruff>=0.9.0",
   "ty>=0.0.20",
+]
+modal = [
+  "modal>=1.0.0",
+]
+cloud = [
+  "synth-ai @ file:///Users/joshpurtell/Documents/GitHub/synth-ai",
 ]
 training = [
   "accelerate>=1.10.0",
@@ -32,10 +39,18 @@ training = [
   "vllm>=0.10.0",
 ]
 
+[tool.uv]
+default-groups = ["dev"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100
 src = ["src"]
+extend-exclude = [
+  "artifacts",
+  ".out",
+  "containers/crafter_rs/target",
+]
 
 [tool.ruff.lint]
 select = [

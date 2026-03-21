@@ -1,12 +1,12 @@
 # Offline 20min 1xA100 40GB
 
-This is the fixed-data benchmark track for NanoHorizon.
+This is the filtered behavior cloning benchmark track for NanoHorizon.
 
 **Track ID:** `offline_20min_1xa100_40gb` (used in `records/<track_id>/…`)
 
 ## Contract
 
-- base model: `Qwen/Qwen3.5-0.8B`
+- base model: `Qwen/Qwen3.5-4B`
 - environment: Crafter
 - hardware: 1x A100 40GB
 - wall-clock budget: 20 minutes
@@ -17,38 +17,41 @@ This is the fixed-data benchmark track for NanoHorizon.
 - offline RL on fixed data
 - reward-weighted filtering
 - deterministic preprocessing of precomputed data
-- generating fresh SFT rows with `Qwen/Qwen3.5-27B`, as long as that generation happens inside the same 20-minute budget window and the final trained policy remains `Qwen/Qwen3.5-0.8B`
+- generating fresh rollout traces and converting the high-reward traces into SFT rows during the same 20-minute budget window, as long as the final trained policy remains `Qwen/Qwen3.5-4B`
 
 ## Reference Stack
 
-- RunPod for execution
-- `vllm serve Qwen/Qwen3.5-27B` for teacher inference
-- TRL `SFTTrainer` for `Qwen/Qwen3.5-0.8B`
-- prebuilt image: `ghcr.io/synth-laboratories/nanohorizon-offline:latest`
+- local Crafter rollout collection and filtering
+- Modal teacher inference with `Qwen/Qwen3.5-9B`
+- Modal SFT for `Qwen/Qwen3.5-4B`
+- async parallel rollout collection with explicit concurrency and permit caps
+- reward-based filtering before training
+- TRL `SFTTrainer` for `Qwen/Qwen3.5-4B`
+- local held-out evaluation against the local Crafter container using remote Modal inference
+- held-out base-vs-finetuned compare defaults to `20` rollouts at concurrency `10`
+- default example GPU: `A100-40GB` via `NANOHORIZON_MODAL_GPU_OFFLINE`
 
 ## Not Allowed During The Budget Window
 
-- new environment interaction
-- new rollout generation
-- calling arbitrary live teachers to label fresh data outside the declared `Qwen/Qwen3.5-27B` allowance above
+- calling arbitrary live teachers to label fresh data outside the declared teacher allowance above
 
 ## Expected Starter Script
 
 ```bash
-./scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh
+./scripts/run_offline_training.sh
 ```
 
 ## Main Reference Run
 
-If you want the full intended end-to-end user flow, edit and run:
+If you want the full intended end-to-end user flow, run:
 
 ```bash
-./scripts/run_crafter_offline_reference.sh
+./scripts/run_offline_training.sh
 ```
 
-That file is the main surface a competitor should tweak for the reference baseline.
+Edit [src/nanohorizon/offline_training.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/offline_training.py) to change the learning logic. Run [run_offline_training.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_offline_training.sh) to handle the full end-to-end flow: local Crafter service, local rollout collection, Modal inference and SFT, final evals, and base-vs-finetuned comparison.
 
-The reference script filters the generated SFT rows by heuristic reward and keeps the top 50% before fine-tuning.
+The reference script runs async parallel Crafter rollouts, filters to high-reward tool-calling traces, fine-tunes the student, and compares base versus fine-tuned evaluation on held-out seeds with `thinking_budget_tokens = 2000`.
 
 ## Expected Record Bundle
 

@@ -1,0 +1,20 @@
+{
+  "status": "verified_reference",
+  "primary_metric": "finetuned_mean_outcome_reward",
+  "primary_score": 0.5,
+  "base_mean_outcome_reward": 0.3,
+  "finetuned_mean_outcome_reward": 0.5,
+  "reward_delta": 0.2,
+  "num_eval_rollouts": 20,
+  "eval_max_concurrency": 10,
+  "eval_max_steps": 8,
+  "num_rollout_errors": 0,
+  "thinking_budget_tokens": 2000,
+  "optimizer_steps": 16,
+  "training_elapsed_minutes": 7.538355477650961,
+  "examples_seen": 8,
+  "mean_loss": 0.3265677997842431,
+  "wall_clock_minutes_budget": 20,
+  "gpu_count": 1,
+  "gpu_type": "A100-40GB"
+}

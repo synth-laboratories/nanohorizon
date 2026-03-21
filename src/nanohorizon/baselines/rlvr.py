@@ -3,7 +3,15 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from nanohorizon.common import Timer, ensure_dir, load_config, read_jsonl, system_info, write_json, write_text
+from nanohorizon.common import (
+    Timer,
+    ensure_dir,
+    load_config,
+    read_jsonl,
+    system_info,
+    write_json,
+    write_text,
+)
 from nanohorizon.crafter_data import build_rlvr_examples
 from nanohorizon.train_lora import train_weighted_lora
 
@@ -43,7 +51,10 @@ def main() -> None:
     }
     write_json(output_dir / "metrics.json", metrics)
     write_json(output_dir / "system_info.json", system_info())
-    write_text(output_dir / "command.txt", f"python -m nanohorizon.baselines.rlvr --config {Path(args.config).resolve()}\n")
+    write_text(
+        output_dir / "command.txt",
+        f"python -m nanohorizon.baselines.rlvr --config {Path(args.config).resolve()}\n",
+    )
 
 
 if __name__ == "__main__":

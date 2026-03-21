@@ -1,1 +1,1 @@
-./scripts/run_crafter_offline_qwen35_08b_1xa100_20min.sh
+./scripts/run_crafter_offline_qwen35_4b_1xa100_20min.sh

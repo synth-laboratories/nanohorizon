@@ -22,12 +22,13 @@ Task definition: [docs/task-crafter.md](task-crafter.md)
 
 ## Prompt optimization track — summary
 
-- Intent: improve Crafter performance via prompts and prompt search, not weight updates; $1 optimizer budget on GPT-5.4 family models; deployed policy stays `Qwen/Qwen3.5-0.8B`.
+- Intent: improve Crafter performance via prompts and prompt search, not weight updates; $1 optimizer budget on GPT-5.4 family models; deployed policy stays `Qwen/Qwen3.5-4B`.
 - Budget: $1 total optimizer spend across `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`.
 
 ## Shared principles
 
 - Same task family: Crafter ([task doc](task-crafter.md)).
-- Same base model family: `Qwen/Qwen3.5-0.8B` (except optimizer APIs on the prompt track).
+- Shared Qwen family baseline; the offline reference runner currently uses `Qwen/Qwen3.5-4B` with a `Qwen/Qwen3.5-9B` teacher.
 - Same public record bundle shape under `records/<track_id>/…`.
 - Evaluation should be reproducible from pinned code and config.
+- Public example runners are Modal-first and share the same Modal substrate under `src/nanohorizon/modal_*.py`.

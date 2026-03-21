@@ -1,12 +1,24 @@
 from __future__ import annotations
 
 import argparse
-import json
+import os
 import random
 from pathlib import Path
 from typing import Any
 
-from nanohorizon.common import Timer, ensure_dir, load_config, read_jsonl, system_info, write_json, write_text
+import yaml
+
+from nanohorizon.common import (
+    Timer,
+    ensure_dir,
+    load_config,
+    now_utc_iso,
+    read_jsonl,
+    resolve_path,
+    system_info,
+    write_json,
+    write_text,
+)
 from nanohorizon.openai_compat import chat_completion
 
 
@@ -52,7 +64,7 @@ def _propose_candidate(seed_prompt: str, proposer_model: str) -> str:
                 },
                 {
                     "role": "user",
-                    "content": f"Improve this Crafter system prompt for a Qwen/Qwen3.5-0.8B policy:\n\n{seed_prompt}",
+                    "content": f"Improve this Crafter system prompt for a Qwen/Qwen3.5-4B policy:\n\n{seed_prompt}",
                 },
             ],
             max_tokens=300,
@@ -64,18 +76,24 @@ def _propose_candidate(seed_prompt: str, proposer_model: str) -> str:
 
 def main() -> None:
     args = parse_args()
-    config = load_config(args.config)
-    output_dir = ensure_dir(args.output_dir or config["output"]["root_dir"])
+    config_path = Path(args.config).expanduser().resolve()
+    config = load_config(config_path)
+    base_dir = config_path.parent
+    output_dir = ensure_dir(
+        args.output_dir or resolve_path(config["output"]["root_dir"], base_dir=base_dir)
+    )
     timer = Timer()
 
-    tasks = read_jsonl(config["data"]["task_jsonl"])
+    tasks = read_jsonl(resolve_path(config["data"]["task_jsonl"], base_dir=base_dir))
     seed_prompt = str(config["prompt"]["seed_prompt"])
     proposer_model = str(config["optimizer"]["proposer_model"])
     num_candidates = int(config["search"]["num_candidates"])
 
     best_prompt = seed_prompt
     best_score = _score_prompt(seed_prompt, tasks)
-    evaluated: list[dict[str, Any]] = [{"prompt": seed_prompt, "score": best_score, "source": "seed"}]
+    evaluated: list[dict[str, Any]] = [
+        {"prompt": seed_prompt, "score": best_score, "source": "seed"}
+    ]
 
     for _ in range(max(1, num_candidates)):
         candidate = _propose_candidate(best_prompt, proposer_model)
@@ -85,11 +103,34 @@ def main() -> None:
             best_prompt = candidate
             best_score = candidate_score
 
-    write_json(output_dir / "prompt_bundle.json", {"system_prompt": best_prompt, "evaluated": evaluated})
+    write_json(
+        output_dir / "prompt_bundle.json", {"system_prompt": best_prompt, "evaluated": evaluated}
+    )
+    track_id = "prompt_opt_1usd_gpt54_family"
+    run_config: dict[str, Any] = {
+        "track": track_id,
+        "task": str(config["task"]["name"]),
+        "base_model": str(config["policy"]["model"]),
+        "optimizer_budget_usd": float(config["optimizer"]["budget_usd"]),
+        "optimizer_models": list(config["optimizer"]["allowed_models"]),
+    }
+    write_text(output_dir / "run_config.yaml", yaml.safe_dump(run_config, sort_keys=True))
+    write_json(
+        output_dir / "metadata.json",
+        {
+            "name": os.environ.get("NANOHORIZON_RECORD_NAME", "prompt_opt_run"),
+            "track": track_id,
+            "task": str(config["task"]["name"]),
+            "base_model": str(config["policy"]["model"]),
+            "optimizer_budget_usd": float(config["optimizer"]["budget_usd"]),
+            "optimizer_models": list(config["optimizer"]["allowed_models"]),
+            "created_at": now_utc_iso()[:10],
+        },
+    )
     write_json(
         output_dir / "metrics.json",
         {
-            "track": "prompt_opt_1usd_gpt54_family",
+            "track": track_id,
             "baseline": "gepa_style_prompt_search",
             "best_score": best_score,
             "num_candidates": len(evaluated),
@@ -98,7 +139,10 @@ def main() -> None:
         },
     )
     write_json(output_dir / "system_info.json", system_info())
-    write_text(output_dir / "command.txt", f"python -m nanohorizon.baselines.prompt_opt --config {Path(args.config).resolve()}\n")
+    write_text(
+        output_dir / "command.txt",
+        f"python -m nanohorizon.baselines.prompt_opt --config {config_path}\n",
+    )
 
 
 if __name__ == "__main__":
