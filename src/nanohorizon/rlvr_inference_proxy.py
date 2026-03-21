@@ -77,9 +77,10 @@ def _require_auth(request: Request) -> None:
 async def _upstream_health() -> tuple[bool, str]:
     if not UPSTREAM_BASE_URL:
         return False, "missing upstream base url"
+    health_base_url = UPSTREAM_BASE_URL.removesuffix("/v1")
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{UPSTREAM_BASE_URL}/health")
+            response = await client.get(f"{health_base_url}/health")
         if response.status_code == 200:
             return True, "ok"
         return False, f"upstream /health returned HTTP {response.status_code}"

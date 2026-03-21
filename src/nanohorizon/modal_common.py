@@ -10,11 +10,18 @@ import modal
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REMOTE_ROOT = "/root/nanohorizon"
 HF_CACHE_DIR = "/root/.cache/huggingface"
+VLLM_CACHE_DIR = "/root/.cache/vllm"
+VLLM_COMPILE_CACHE_DIR = f"{VLLM_CACHE_DIR}/torch_compile_cache"
+TRITON_CACHE_DIR = "/root/.triton"
 ARTIFACT_DIR = "/vol/artifacts"
 RECORDS_DIR = "/vol/records"
 OFFLINE_VENV_ROOT = "/opt/nanohorizon-offline-venvs"
+VLLM_BASE_IMAGE = "vllm/vllm-openai:latest"
+VLLM_IMAGE_PYTHON_VERSION = "3.12"
 
 HF_CACHE_VOLUME = modal.Volume.from_name("nanohorizon-hf-cache", create_if_missing=True)
+VLLM_CACHE_VOLUME = modal.Volume.from_name("nanohorizon-vllm-cache", create_if_missing=True)
+TRITON_CACHE_VOLUME = modal.Volume.from_name("nanohorizon-triton-cache", create_if_missing=True)
 ARTIFACT_VOLUME = modal.Volume.from_name("nanohorizon-artifacts", create_if_missing=True)
 RECORDS_VOLUME = modal.Volume.from_name("nanohorizon-records", create_if_missing=True)
 
@@ -81,8 +88,20 @@ def _attach_repo(image: modal.Image) -> modal.Image:
         .add_local_dir((PROJECT_ROOT / "configs").as_posix(), remote_path=f"{REMOTE_ROOT}/configs")
         .add_local_dir((PROJECT_ROOT / "data").as_posix(), remote_path=f"{REMOTE_ROOT}/data")
         .add_local_dir(
-            (PROJECT_ROOT / "containers").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/containers",
+            (PROJECT_ROOT / "containers" / "crafter_rs" / "src").as_posix(),
+            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/src",
+        )
+        .add_local_file(
+            (PROJECT_ROOT / "containers" / "crafter_rs" / "Cargo.toml").as_posix(),
+            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/Cargo.toml",
+        )
+        .add_local_file(
+            (PROJECT_ROOT / "containers" / "crafter_rs" / "Cargo.lock").as_posix(),
+            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/Cargo.lock",
+        )
+        .add_local_file(
+            (PROJECT_ROOT / "containers" / "crafter_rs" / "README.md").as_posix(),
+            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/README.md",
         )
         .add_local_file((PROJECT_ROOT / "pyproject.toml").as_posix(), remote_path=f"{REMOTE_ROOT}/pyproject.toml")
         .add_local_file((PROJECT_ROOT / "README.md").as_posix(), remote_path=f"{REMOTE_ROOT}/README.md")
@@ -138,9 +157,30 @@ def offline_image() -> modal.Image:
     return _attach_repo(image)
 
 
+def rlvr_vllm_image(*extra_packages: str) -> modal.Image:
+    packages = _dedupe(
+        [
+            *COMMON_PACKAGES,
+            "numpy>=2.0.0",
+            "openai>=1.109.1",
+            "transformers==4.57.6",
+            *extra_packages,
+        ]
+    )
+    image = (
+        modal.Image.from_registry(VLLM_BASE_IMAGE, add_python=VLLM_IMAGE_PYTHON_VERSION)
+        .entrypoint([])
+        .apt_install("curl")
+        .pip_install(*packages)
+    )
+    return _attach_repo(image)
+
+
 def volume_mounts(extra: VolumeMounts | None = None) -> VolumeMounts:
     mounts: VolumeMounts = {
         HF_CACHE_DIR: HF_CACHE_VOLUME,
+        VLLM_CACHE_DIR: VLLM_CACHE_VOLUME,
+        TRITON_CACHE_DIR: TRITON_CACHE_VOLUME,
         ARTIFACT_DIR: ARTIFACT_VOLUME,
         RECORDS_DIR: RECORDS_VOLUME,
     }

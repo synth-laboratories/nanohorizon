@@ -346,7 +346,32 @@ async def collect_rollouts_concurrently_with_summary(
             timeout_s=max(1, math.ceil(request_timeout_seconds)),
         )
         try:
-            response = await client.post(f"{container_base}/rollout", headers=headers, json=request_body)
+            response = await client.post(
+                f"{container_base}/rollout",
+                headers=headers,
+                json=request_body,
+                follow_redirects=False,
+            )
+            deadline = time.perf_counter() + float(request_timeout_seconds)
+            while True:
+                if response.status_code == 303:
+                    location = response.headers.get("location", "").strip()
+                    if not location:
+                        raise RuntimeError("rollout redirect missing Location header")
+                    result_url = str(response.request.url.join(location))
+                    response = await client.get(result_url, headers=headers, follow_redirects=False)
+                    continue
+                if response.status_code == 408 and "__modal_function_call_id=" in str(response.request.url):
+                    if time.perf_counter() >= deadline:
+                        raise RuntimeError(f"modal result url timed out: {response.request.url}")
+                    await asyncio.sleep(1.0)
+                    response = await client.get(
+                        str(response.request.url),
+                        headers=headers,
+                        follow_redirects=False,
+                    )
+                    continue
+                break
             response.raise_for_status()
             payload = response.json()
             if isinstance(payload, dict):

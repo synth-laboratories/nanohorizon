@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::env;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
@@ -315,7 +316,17 @@ async fn main() {
         .route("/env/CrafterClassic/terminate", post(legacy_terminate))
         .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8903));
+    let bind_host = env::var("NANOHORIZON_CRAFTER_BIND_HOST")
+        .ok()
+        .filter(|item| !item.trim().is_empty())
+        .unwrap_or_else(|| "127.0.0.1".to_string());
+    let bind_port = env::var("NANOHORIZON_CRAFTER_BIND_PORT")
+        .ok()
+        .and_then(|item| item.parse::<u16>().ok())
+        .unwrap_or(8903);
+    let addr: SocketAddr = format!("{bind_host}:{bind_port}")
+        .parse()
+        .expect("parse bind address");
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("bind listener");

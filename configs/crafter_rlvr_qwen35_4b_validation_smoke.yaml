@@ -7,7 +7,7 @@ model:
   served_model_name: qwen35-4b-rlvr
 
 budget:
-  wall_clock_minutes: 20
+  wall_clock_minutes: 8
   gpus: 2
   gpu_type: A100-40GB
 
@@ -19,12 +19,12 @@ inference:
   api_key: nanohorizon-rlvr-key
 
 rollout:
-  num_iterations: 4
-  groups_per_iteration: 2
-  group_size: 4
-  max_steps: 48
-  rollout_concurrency: 8
-  rollout_semaphore_limit: 4
+  num_iterations: 1
+  groups_per_iteration: 1
+  group_size: 2
+  max_steps: 2
+  rollout_concurrency: 2
+  rollout_semaphore_limit: 1
   request_timeout_seconds: 300
   temperature: 0.8
   max_tokens: 3072
@@ -39,15 +39,15 @@ training:
   learning_rate: 1.0e-5
   lora_rank: 16
   max_length: 4096
-  max_steps_per_iteration: 8
+  max_steps_per_iteration: 1
   clip_epsilon: 0.2
 
 evaluation:
   enabled: true
-  max_steps: 48
-  max_concurrent_rollouts: 4
+  max_steps: 2
+  max_concurrent_rollouts: 1
   rollouts_per_seed: 1
   max_tokens: 3072
 
 output:
-  root_dir: ../records/rlvr_20min_2xa100_40gb/manual_reference_baseline
+  root_dir: ../records/rlvr_20min_2xa100_40gb/validation_smoke

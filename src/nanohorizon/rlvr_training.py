@@ -6,6 +6,7 @@ import math
 import os
 import random
 import shutil
+import time
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +31,8 @@ from nanohorizon.crafter_data import (
     rollout_outcome_reward,
     rollout_turns,
 )
+from nanohorizon.lora_bundle import build_lora_bundle
+from nanohorizon.modal_common import ARTIFACT_DIR, ARTIFACT_VOLUME, RECORDS_DIR, RECORDS_VOLUME
 from nanohorizon.train_lora import (
     DEFAULT_TARGET_MODULES,
     _load_text_only_causal_lm,
@@ -91,9 +94,9 @@ def _normalize_admin_url(raw_url: str) -> str:
     value = str(raw_url or "").strip().rstrip("/")
     if not value:
         return ""
-    if value.endswith("/admin"):
+    if value.endswith("/v1"):
         return value
-    return f"{value}/admin"
+    return f"{value}/v1"
 
 
 def _normalize_tool_calls(tool_calls: Any) -> list[dict[str, Any]]:
@@ -427,7 +430,23 @@ def _reload_adapter(
     adapter_dir: str,
     adapter_name: str,
     policy_version: str,
+    external_inference_server: Any | None = None,
 ) -> dict[str, Any]:
+    if external_inference_server is not None:
+        bundle_bytes, bundle_files = build_lora_bundle(Path(adapter_dir))
+        response = external_inference_server.load_lora_bundle.remote(
+            lora_name=adapter_name,
+            policy_version=policy_version,
+            bundle_bytes=bundle_bytes,
+        )
+        payload: dict[str, Any]
+        if isinstance(response, dict):
+            payload = dict(cast(dict[str, Any], response))
+        else:
+            payload = {"status": "ok"}
+        payload["bundle_file_count"] = len(bundle_files)
+        payload["attempt"] = 1
+        return payload
     headers = {"Content-Type": "application/json"}
     if inference_api_key:
         headers["Authorization"] = f"Bearer {inference_api_key}"
@@ -435,11 +454,50 @@ def _reload_adapter(
         "lora_name": adapter_name,
         "lora_path": adapter_dir,
         "policy_version": policy_version,
+        "load_inplace": True,
     }
+    deadline = time.time() + 120.0
+    last_error: str = ""
+    attempt = 0
     with httpx.Client(timeout=120.0) as client:
-        response = client.post(f"{inference_admin_url.rstrip('/')}/load_adapter", json=payload, headers=headers)
-        response.raise_for_status()
-        return response.json()
+        while time.time() < deadline:
+            attempt += 1
+            response = client.post(
+                f"{inference_admin_url.rstrip('/')}/load_lora_adapter",
+                json=payload,
+                headers=headers,
+            )
+            if response.status_code < 400:
+                if response.content:
+                    body = response.json()
+                    if isinstance(body, dict):
+                        body["attempt"] = attempt
+                        return body
+                    return {"attempt": attempt, "body": body}
+                return {"status": "ok", "attempt": attempt, "empty_body": True}
+            response_text = (response.text or "").strip()
+            last_error = f"HTTP {response.status_code}: {response_text[:1000]}"
+            retryable = response.status_code in {404, 409, 425, 429, 500, 502, 503, 504}
+            adapter_missing = "No adapter found" in response_text or "adapter_config.json" in response_text
+            if retryable or adapter_missing:
+                time.sleep(2.0)
+                continue
+            response.raise_for_status()
+    raise RuntimeError(
+        f"timed out loading adapter {adapter_name!r} for policy {policy_version!r} after {attempt} attempts: "
+        f"{last_error}"
+    )
+
+
+def _commit_output_volume(path: Path) -> None:
+    normalized = str(path)
+    try:
+        if normalized == RECORDS_DIR or normalized.startswith(f"{RECORDS_DIR}/"):
+            RECORDS_VOLUME.commit()
+        elif normalized == ARTIFACT_DIR or normalized.startswith(f"{ARTIFACT_DIR}/"):
+            ARTIFACT_VOLUME.commit()
+    except Exception as exc:
+        raise RuntimeError(f"failed to commit output volume for {path}: {type(exc).__name__}: {exc}") from exc
 
 
 def _reset_to_base(
@@ -447,17 +505,13 @@ def _reset_to_base(
     inference_admin_url: str,
     inference_api_key: str,
 ) -> dict[str, Any]:
-    headers = {"Content-Type": "application/json"}
-    if inference_api_key:
-        headers["Authorization"] = f"Bearer {inference_api_key}"
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(
-            f"{inference_admin_url.rstrip('/')}/reset",
-            json={"policy_version": "bootstrap"},
-            headers=headers,
-        )
-        response.raise_for_status()
-        return response.json()
+    return {
+        "status": "ok",
+        "policy_version": "bootstrap",
+        "skipped": True,
+        "detail": "fresh vLLM instance starts on the base model",
+        "inference_admin_url": inference_admin_url,
+    }
 
 
 def _initialize_model_and_optimizer(*, base_model: str, lora_rank: int, learning_rate: float) -> tuple[Any, Any, Any]:
@@ -575,6 +629,7 @@ def _save_adapter(*, model: Any, tokenizer: Any, destination: Path) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(destination)
     tokenizer.save_pretrained(destination)
+    _commit_output_volume(destination)
 
 
 def _copy_config_bundle(*, config_path: Path, output_dir: Path) -> None:
@@ -603,6 +658,8 @@ def run_training(
     inference_admin_url: str,
     inference_api_key: str,
     request_model: str,
+    external_inference_server: Any | None = None,
+    bootstrap_info: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config_path = Path(config_path).expanduser().resolve()
     config = load_config(config_path)
@@ -614,6 +671,8 @@ def run_training(
     _copy_config_bundle(config_path=config_path, output_dir=out_dir)
     metadata = _build_metadata(config=config, config_path=config_path, output_dir=out_dir)
     write_json(out_dir / "metadata.json", metadata)
+    write_json(out_dir / "bootstrap_info.json", bootstrap_info or {})
+    _commit_output_volume(out_dir)
 
     seed_manifest_path = resolve_path(config["data"]["seed_manifest_json"], base_dir=config_dir)
     train_seeds, eval_seeds = _load_seed_manifest(seed_manifest_path)
@@ -729,13 +788,29 @@ def run_training(
         policy_version = f"iter_{iteration_index:03d}"
         adapter_dir = adapters_root / f"iter_{iteration_index:03d}"
         _save_adapter(model=model, tokenizer=tokenizer, destination=adapter_dir)
-        reload_payload = _reload_adapter(
-            inference_admin_url=_normalize_admin_url(inference_admin_url),
-            inference_api_key=inference_api_key,
-            adapter_dir=str(adapter_dir),
-            adapter_name=adapter_name,
-            policy_version=policy_version,
-        )
+        reload_payload: dict[str, Any]
+        try:
+            reload_payload = _reload_adapter(
+                inference_admin_url=_normalize_admin_url(inference_admin_url),
+                inference_api_key=inference_api_key,
+                adapter_dir=str(adapter_dir),
+                adapter_name=adapter_name,
+                policy_version=policy_version,
+                external_inference_server=external_inference_server,
+            )
+        except Exception as exc:
+            failure_payload = {
+                "rollout": rollout_summary,
+                "sample_summary": sample_summary,
+                "train": train_summary,
+                "adapter_name": adapter_name,
+                "adapter_dir": str(adapter_dir),
+                "policy_version": policy_version,
+                "reload_error": f"{type(exc).__name__}: {exc}",
+            }
+            write_json(Path(iteration_dir) / "summary.json", failure_payload)
+            _commit_output_volume(Path(iteration_dir))
+            raise
         summary_payload = {
             "rollout": rollout_summary,
             "sample_summary": sample_summary,
@@ -746,6 +821,7 @@ def run_training(
             "reload": reload_payload,
         }
         write_json(Path(iteration_dir) / "summary.json", summary_payload)
+        _commit_output_volume(Path(iteration_dir))
         policy_history.append(
             {
                 "iteration_index": iteration_index,
@@ -852,6 +928,7 @@ def main() -> None:
         inference_admin_url=str(args.inference_admin_url),
         inference_api_key=str(args.inference_api_key),
         request_model=str(args.request_model or config.get("model", {}).get("served_model_name") or config["model"]["model"]),
+        bootstrap_info={},
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 
