@@ -4,7 +4,7 @@
   <img src="https://raw.githubusercontent.com/MichaelTMatthews/Craftax/main/images/dungeon_crawling.gif" width="200" alt="Top-down survival / crafting gameplay in the same long-horizon spirit as Crafter" />
 </p>
 
-**Fast, cheap iteration for post-training on long-horizon agents.** Train Crafter agents under fixed time, hardware, and budget caps; publish a verifiable record and climb the leaderboard.
+**Fast, cheap iteration for post-training on long-horizon agents.** Improve `Qwen/Qwen3.5-4B` on Crafter under hard time, hardware, and budget caps with reproducible runs, pinned metrics, and public records anyone can verify.
 
 *GIF: [JoshuaPurtell/craftaxlm](https://github.com/JoshuaPurtell/craftaxlm); asset [Craftax](https://github.com/MichaelTMatthews/Craftax) (`images/dungeon_crawling.gif`).*
 
