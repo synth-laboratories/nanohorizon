@@ -45,6 +45,13 @@ RLVR replication command:
 ./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
+RLVR config override pattern:
+
+```bash
+NANOHORIZON_RLVR_CONFIG=configs/crafter_rlvr_qwen35_4b_validation_smoke.yaml \
+./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+```
+
 What that bash script handles for you:
 
 - builds and uploads the Crafter Rust service into Modal
@@ -157,6 +164,21 @@ Checked-in reference status:
 - checked-in clustered smoke record: [2026-03-21_reference_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline)
 - current checked-in score: `0.0`
 - purpose of the checked-in record: validate runtime topology, rollout transport, adapter reload, and eval completion
+
+How to interpret RLVR results:
+
+- primary score: `metrics.json -> final_mean_outcome_reward`
+- bootstrap baseline: `periodic_eval/step_000/summary.json -> mean_outcome_reward`
+- post-update checkpoints: `periodic_eval/step_001`, `step_002`, ... compare these against `step_000`
+- per-iteration training data: `iteration_summaries.json` and `iterations/iter_XXX/rollouts.jsonl`
+- hillclimbing means later periodic eval steps trend above bootstrap on the same held-out seeds; training rollout rewards alone are not enough
+- a run is only a clean reference record when it writes `metrics.json` and `final_eval_summary.json`
+
+Recent longer-run probe status:
+
+- separate 10-step / multi-checkpoint probe reached non-zero eval reward
+- observed periodic eval means: `0.0 -> 0.5 -> 0.5 -> 0.0`
+- that run is informative, but not yet the checked-in reference record because it did not finish with a full finalized bundle
 
 ## Offline / SFT Records
 

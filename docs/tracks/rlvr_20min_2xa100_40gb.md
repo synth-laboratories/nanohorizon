@@ -54,6 +54,13 @@ Historical design notes:
 ./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
+Config override pattern:
+
+```bash
+NANOHORIZON_RLVR_CONFIG=configs/crafter_rlvr_qwen35_4b_validation_smoke.yaml \
+./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+```
+
 ## Edit Surface
 
 Change only:
@@ -68,3 +75,23 @@ Change only:
 - `system_info.json`
 - `command.txt`
 - optional large artifacts referenced by manifest
+
+## How To Read A Run
+
+- final benchmark score: `metrics.json -> final_mean_outcome_reward`
+- bootstrap eval: `periodic_eval/step_000/summary.json`
+- post-update evals: `periodic_eval/step_001/summary.json`, `step_002`, ...
+- training-wave detail: `iteration_summaries.json`
+- raw rollout traces: `iterations/iter_XXX/rollouts.jsonl` when included
+
+Interpretation rule:
+
+- use periodic eval summaries to judge improvement
+- do not infer hillclimbing from training rollout rewards alone
+- a good RLVR run should keep later periodic eval means above `step_000` on the same held-out seeds
+
+Current reference interpretation:
+
+- the checked-in clustered smoke record proves the runtime and transport path
+- it does not prove reward lift
+- a later 10-step exploratory run reached non-zero periodic eval reward (`0.5`) before falling back to `0.0`

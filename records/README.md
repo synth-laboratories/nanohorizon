@@ -33,6 +33,12 @@ This mirrors the same pattern as a lightweight benchmark board: each row links t
 
 The RLVR reference path now mirrors the same structure: one user-editable Python file and one stable shell runner.
 
+Interpret RLVR rows as follows:
+
+- `Score` is the completed run's `metrics.json -> final_mean_outcome_reward`
+- bootstrap and post-update movement live in `periodic_eval/step_XXX/summary.json`
+- a partial exploratory run can be useful for debugging, but should not replace the checked-in reference row unless it finishes with a clean final bundle
+
 | Run | Score | Model | Summary | Date | Info | Reproduce |
 | --- | ---: | --- | --- | --- | --- | --- |
 | `reference_baseline` | `0.0` | `Qwen/Qwen3.5-4B` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script learner logic in `src/nanohorizon/rlvr_training.py` | `2026-03-21` | [info](rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) | `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh` |
