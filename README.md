@@ -10,6 +10,8 @@
 
 ---
 
+Base model target: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
+
 ## Leaderboard
 
 Status: **bootstrap baselines** — replace `TBD` with your `metrics.json` score and open a PR.

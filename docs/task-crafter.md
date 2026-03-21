@@ -25,6 +25,7 @@ The in-repo Crafter runtime lives at [containers/crafter_rs](../containers/craft
 
 ## Official Model
 
+- Base model target: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 - Reference offline baseline: `Qwen/Qwen3.5-4B`
 
 ## Starter Assets

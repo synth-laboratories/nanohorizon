@@ -28,6 +28,7 @@ Task definition: [docs/task-crafter.md](task-crafter.md)
 ## Shared principles
 
 - Same task family: Crafter ([task doc](task-crafter.md)).
+- Base model target is `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 - Shared Qwen family baseline; the offline reference runner currently uses `Qwen/Qwen3.5-4B` with a `Qwen/Qwen3.5-9B` teacher.
 - Same public record bundle shape under `records/<track_id>/…`.
 - Evaluation should be reproducible from pinned code and config.
