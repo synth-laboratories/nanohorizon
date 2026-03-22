@@ -1,12 +1,12 @@
 # NanoHorizon
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/MichaelTMatthews/Craftax/main/images/dungeon_crawling.gif" width="200" alt="Top-down survival / crafting gameplay in the same long-horizon spirit as Crafter" />
+  <img src="assets/crafter_gpt54nano.gif" width="200" alt="Real NanoHorizon Crafter RS rollout captured after each in-game action using gpt-5.4-nano via the OpenAI API" />
 </p>
 
 **Fast, cheap iteration for post-training on long-horizon agents.** Improve `Qwen/Qwen3.5-4B` on Crafter under hard time, hardware, and budget caps with reproducible runs, pinned metrics, and public records anyone can verify.
 
-*GIF: [JoshuaPurtell/craftaxlm](https://github.com/JoshuaPurtell/craftaxlm); asset [Craftax](https://github.com/MichaelTMatthews/Craftax) (`images/dungeon_crawling.gif`).*
+*GIF: real NanoHorizon Crafter RS rollout captured after each in-game action with `gpt-5.4-nano` via the OpenAI API.*
 
 ---
 

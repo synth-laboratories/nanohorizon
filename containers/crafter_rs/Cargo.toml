@@ -10,7 +10,7 @@ publish = false
 axum = { version = "0.7", features = ["macros"] }
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-crafter-core = { path = "../../../crafter-rs", package = "crafter-core" }
+crafter-core = { path = "../../../crafter-rs", package = "crafter-core", features = ["png"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

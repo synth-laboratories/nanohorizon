@@ -1,7 +1,10 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
+use std::fs;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -13,6 +16,7 @@ use axum::{Json, Router};
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use chrono::Utc;
+use crafter_core::image_renderer::{ImageRenderer, ImageRendererConfig};
 use crafter_core::renderer::{Renderer, TextRenderer};
 use crafter_core::{Action, SaveData, Session, SessionConfig, StepResult};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
@@ -31,6 +35,180 @@ fn inference_url_is_local(url: &str) -> bool {
     match reqwest::Url::parse(url) {
         Ok(parsed) => matches!(parsed.host_str(), Some("127.0.0.1" | "localhost")),
         Err(_) => false,
+    }
+}
+
+fn use_openai_max_completion_tokens(inference_url: &str, model: &str) -> bool {
+    let hostname = reqwest::Url::parse(inference_url)
+        .ok()
+        .and_then(|parsed| parsed.host_str().map(str::to_string))
+        .unwrap_or_default();
+    hostname == "api.openai.com" && model.starts_with("gpt-5")
+}
+
+fn is_real_openai_endpoint(inference_url: &str) -> bool {
+    reqwest::Url::parse(inference_url)
+        .ok()
+        .and_then(|parsed| parsed.host_str().map(str::to_string))
+        .unwrap_or_default()
+        == "api.openai.com"
+}
+
+fn rollout_media_root() -> PathBuf {
+    PathBuf::from(
+        env::var("NANOHORIZON_ROLLOUT_MEDIA_ROOT")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "/tmp/nanohorizon_rollout_media".to_string()),
+    )
+}
+
+fn safe_path_component(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+            out.push(ch);
+        } else {
+            out.push('_');
+        }
+    }
+    let trimmed = out.trim_matches('_');
+    if trimmed.is_empty() {
+        "rollout".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn image_dimensions_from_state(state: &crafter_core::session::GameState, tile_size: u32, show_status_bars: bool) -> Option<(u32, u32)> {
+    let view = state.view.as_ref()?;
+    let view_size = view.size() as u32;
+    let status_bar_height = if show_status_bars { tile_size * 2 } else { 0 };
+    Some((view_size * tile_size, view_size * tile_size + status_bar_height))
+}
+
+fn media_artifact_payload(media: &RolloutMediaRecord) -> Value {
+    json!({
+        "capture_video": media.capture_video,
+        "output_dir": media.output_dir.to_string_lossy(),
+        "frame_dir": media.frame_dir.to_string_lossy(),
+        "video_path": media.video_path.to_string_lossy(),
+        "fps": media.fps,
+        "tile_size": media.tile_size,
+        "show_status_bars": media.show_status_bars,
+        "frame_count": media.frame_count,
+        "video_ready": media.video_ready,
+        "width": media.width,
+        "height": media.height,
+        "encoder": media.encoder,
+        "error": media.error,
+    })
+}
+
+fn rollout_media_from_spec(trace_correlation_id: &str, spec: Option<&RolloutMediaSpec>) -> Option<RolloutMediaRecord> {
+    let spec = spec?;
+    if !spec.capture_video {
+        return None;
+    }
+    let rollout_name = safe_path_component(trace_correlation_id);
+    let base_dir = spec
+        .output_dir
+        .as_ref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| rollout_media_root().join(rollout_name));
+    let frame_dir = base_dir.join("frames");
+    let video_path = base_dir.join("rollout.mp4");
+    Some(RolloutMediaRecord {
+        capture_video: true,
+        output_dir: base_dir,
+        frame_dir,
+        video_path,
+        fps: spec.fps.unwrap_or(6).max(1),
+        tile_size: spec.tile_size.unwrap_or(16).max(1),
+        show_status_bars: spec.show_status_bars.unwrap_or(true),
+        frame_count: 0,
+        video_ready: false,
+        width: None,
+        height: None,
+        encoder: None,
+        error: None,
+    })
+}
+
+fn capture_rollout_frame(record: &mut RolloutRecord) {
+    let Some(media) = record.media.as_mut() else {
+        return;
+    };
+    let state = record.session.get_state();
+    let config = ImageRendererConfig {
+        tile_size: media.tile_size,
+        show_status_bars: media.show_status_bars,
+        apply_lighting: true,
+    };
+    if let Some((width, height)) = image_dimensions_from_state(&state, media.tile_size, media.show_status_bars) {
+        media.width = Some(width);
+        media.height = Some(height);
+    }
+    if let Err(err) = fs::create_dir_all(&media.frame_dir) {
+        media.error = Some(format!("failed_to_create_frame_dir: {err}"));
+        return;
+    }
+    let renderer = ImageRenderer::new(config);
+    let frame_path = media.frame_dir.join(format!("frame_{:06}.png", media.frame_count));
+    match renderer.save_png(&state, frame_path.to_string_lossy().as_ref()) {
+        Ok(()) => {
+            media.frame_count += 1;
+        }
+        Err(err) => {
+            media.error = Some(format!("failed_to_render_frame: {err}"));
+        }
+    }
+}
+
+fn finalize_rollout_media(record: &mut RolloutRecord) {
+    let Some(media) = record.media.as_mut() else {
+        return;
+    };
+    if media.frame_count == 0 {
+        media.error = Some("no_frames_captured".to_string());
+        return;
+    }
+    if let Err(err) = fs::create_dir_all(&media.output_dir) {
+        media.error = Some(format!("failed_to_create_output_dir: {err}"));
+        return;
+    }
+    let ffmpeg_bin = env::var("NANOHORIZON_FFMPEG_BIN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "ffmpeg".to_string());
+    let input_pattern = media.frame_dir.join("frame_%06d.png");
+    let output_path = media.video_path.clone();
+    let status = Command::new(&ffmpeg_bin)
+        .args([
+            "-y",
+            "-framerate",
+            &media.fps.to_string(),
+            "-i",
+            input_pattern.to_string_lossy().as_ref(),
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            output_path.to_string_lossy().as_ref(),
+        ])
+        .status();
+    match status {
+        Ok(status) if status.success() => {
+            media.video_ready = true;
+            media.encoder = Some("ffmpeg".to_string());
+            media.error = None;
+        }
+        Ok(status) => {
+            media.error = Some(format!("ffmpeg_failed_with_status: {status}"));
+        }
+        Err(err) => {
+            media.error = Some(format!("failed_to_spawn_ffmpeg: {err}"));
+        }
     }
 }
 
@@ -118,6 +296,7 @@ struct RolloutRecord {
     last_inference_error: Option<String>,
     llm_call_count: u32,
     llm_action_batches: Vec<Vec<String>>,
+    media: Option<RolloutMediaRecord>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -158,6 +337,37 @@ struct RolloutPolicySpec {
     config: Map<String, Value>,
 }
 
+#[derive(Debug, Default, Deserialize, Clone)]
+struct RolloutMediaSpec {
+    #[serde(default)]
+    capture_video: bool,
+    #[serde(default)]
+    output_dir: Option<String>,
+    #[serde(default)]
+    fps: Option<u32>,
+    #[serde(default)]
+    tile_size: Option<u32>,
+    #[serde(default)]
+    show_status_bars: Option<bool>,
+}
+
+#[derive(Debug, Clone)]
+struct RolloutMediaRecord {
+    capture_video: bool,
+    output_dir: PathBuf,
+    frame_dir: PathBuf,
+    video_path: PathBuf,
+    fps: u32,
+    tile_size: u32,
+    show_status_bars: bool,
+    frame_count: u32,
+    video_ready: bool,
+    width: Option<u32>,
+    height: Option<u32>,
+    encoder: Option<String>,
+    error: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 struct RolloutRequest {
     trace_correlation_id: String,
@@ -171,6 +381,8 @@ struct RolloutRequest {
     planner_mode: Option<String>,
     #[serde(default)]
     waypoint_plan_request: Option<Value>,
+    #[serde(default)]
+    media: Option<RolloutMediaSpec>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -447,6 +659,7 @@ async fn rollout(
         last_inference_error: None,
         llm_call_count: 0,
         llm_action_batches: Vec::new(),
+        media: rollout_media_from_spec(&request.trace_correlation_id, request.media.as_ref()),
     };
     update_waypoint_progress(&mut record);
     run_rollout_segment(&mut record, segment_steps).await;
@@ -826,6 +1039,7 @@ async fn resume_rollout(
         last_inference_error: source_last_inference_error,
         llm_call_count: 0,
         llm_action_batches: Vec::new(),
+        media: None,
     };
     target.current_waypoint_index = target.completed_waypoints.len();
     update_waypoint_progress(&mut target);
@@ -1487,11 +1701,11 @@ async fn send_inference_request(
         }
     }
     for (request_logprobs, request_enable_thinking) in request_variants {
+        let is_openai = is_real_openai_endpoint(inference_url);
         let mut request_body = json!({
             "model": model,
             "messages": messages.clone(),
             "temperature": temperature,
-            "max_tokens": max_tokens,
             "tools": [{
                 "type": "function",
                 "function": {
@@ -1517,23 +1731,30 @@ async fn send_inference_request(
             }],
             "tool_choice": "auto"
         });
+        if use_openai_max_completion_tokens(inference_url, model) {
+            request_body["max_completion_tokens"] = json!(max_tokens);
+        } else {
+            request_body["max_tokens"] = json!(max_tokens);
+        }
         if request_logprobs {
             request_body["logprobs"] = Value::Bool(true);
         }
-        if let Some(flag) = request_enable_thinking {
-            request_body["chat_template_kwargs"] = json!({
-                "enable_thinking": flag
-            });
-        }
-        if let Some(budget) = thinking_budget_tokens {
-            if budget > 0 {
+        if !is_openai {
+            if let Some(flag) = request_enable_thinking {
                 request_body["chat_template_kwargs"] = json!({
-                    "enable_thinking": true
+                    "enable_thinking": flag
                 });
-                request_body["vllm_xargs"] = json!({
-                    "think_budget": budget,
-                    "think_starts_open": true
-                });
+            }
+            if let Some(budget) = thinking_budget_tokens {
+                if budget > 0 {
+                    request_body["chat_template_kwargs"] = json!({
+                        "enable_thinking": true
+                    });
+                    request_body["vllm_xargs"] = json!({
+                        "think_budget": budget,
+                        "think_starts_open": true
+                    });
+                }
             }
         }
         let response = client
@@ -2330,12 +2551,14 @@ async fn run_rollout_segment(record: &mut RolloutRecord, segment_steps: u32) {
     }
 
     if record.terminated {
+        finalize_rollout_media(record);
         record.status = "terminated".to_string();
         record.last_status_detail = Some("terminated_by_request".to_string());
         record.completed_at = Some(now_iso());
         return;
     }
     if record.status == "failed" {
+        finalize_rollout_media(record);
         if record.completed_at.is_none() {
             record.completed_at = Some(now_iso());
         }
@@ -2366,6 +2589,7 @@ async fn run_rollout_segment(record: &mut RolloutRecord, segment_steps: u32) {
     } else {
         record.planner_failure_code = None;
     }
+    finalize_rollout_media(record);
 }
 
 fn apply_step_result(record: &mut RolloutRecord, action: Action, result: &StepResult) {
@@ -2391,6 +2615,7 @@ fn apply_step_result(record: &mut RolloutRecord, action: Action, result: &StepRe
         inventory: inventory_payload(&result.state.inventory),
         current_waypoint_index: record.current_waypoint_index,
     });
+    capture_rollout_frame(record);
 }
 
 fn done_reason_name(reason: &crafter_core::session::DoneReason) -> String {
@@ -2496,6 +2721,7 @@ fn rollout_resource(record: &RolloutRecord) -> Value {
             "achievements": unlocked_achievements(record),
             "inventory": inventory_payload(&state.inventory),
             "checkpoints_available": record.checkpoints.keys().cloned().collect::<Vec<_>>(),
+            "media": record.media.as_ref().map(media_artifact_payload),
         }
     })
 }
@@ -2606,6 +2832,7 @@ fn rollout_response(record: &RolloutRecord) -> Value {
         },
         "artifact": [episode_artifact(record)],
         "trace": rollout_trace(record),
+        "media": record.media.as_ref().map(media_artifact_payload),
         "inference_url": record.inference_url,
         "success_status": success_status,
         "status_detail": record.last_status_detail,
@@ -2711,6 +2938,7 @@ fn episode_artifact(record: &RolloutRecord) -> Value {
         "invalid_action_count": record.inference_error_count,
         "turns": decision_turns_json(record),
         "trace": rollout_trace(record),
+        "media": record.media.as_ref().map(media_artifact_payload),
     })
 }
 
