@@ -68,6 +68,8 @@ TRAIN_PACKAGES = [
 
 PROMPT_PACKAGES = [
     *COMMON_PACKAGES,
+    "gepa>=0.1.1",
+    "litellm>=1.79.0",
 ]
 
 
@@ -139,6 +141,19 @@ def training_image(*extra_packages: str) -> modal.Image:
 def prompt_image(*extra_packages: str) -> modal.Image:
     packages = _dedupe([*PROMPT_PACKAGES, *extra_packages])
     image = modal.Image.debian_slim(python_version="3.11").pip_install(*packages)
+    return _attach_repo(image)
+
+
+def crafter_runtime_image(*extra_packages: str) -> modal.Image:
+    packages = _dedupe([*COMMON_PACKAGES, *extra_packages])
+    image = (
+        _cuda_base_image()
+        .pip_install(*packages)
+        .run_commands(
+            "curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable",
+            "/root/.cargo/bin/cargo --version",
+        )
+    )
     return _attach_repo(image)
 
 

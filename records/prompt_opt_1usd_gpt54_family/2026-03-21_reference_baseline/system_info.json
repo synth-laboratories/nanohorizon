@@ -1,0 +1,8 @@
+{
+  "platform": "modal",
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "optimizer_models": ["gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano"],
+  "request_model": "qwen35-4b-prompt-opt",
+  "modal_app_id": "ap-cJR2UXNAMUfNkXjg13kX8R",
+  "reproducibility": "checked-in reference bundle from completed 20-rollout eval20 probe"
+}

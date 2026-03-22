@@ -18,7 +18,7 @@ optimizer:
 
 search:
   objective: improve_crafter_rollout_reward
-  max_metric_calls: 24
+  max_metric_calls: 8
   reflection_minibatch_size: 2
   candidate_selection_strategy: epsilon_greedy
   seed: 7
@@ -33,14 +33,14 @@ prompt:
 
 data:
   seed_file: ../data/crafter/crafter_prompt_opt_starter_seeds.json
-  num_train_seeds: 4
-  num_eval_seeds: 4
+  num_train_seeds: 2
+  num_eval_seeds: 2
 
 rollout:
-  max_steps: 10
-  max_concurrent_rollouts: 4
-  rollout_concurrency: 4
-  rollout_semaphore_limit: 2
+  max_steps: 6
+  max_concurrent_rollouts: 2
+  rollout_concurrency: 2
+  rollout_semaphore_limit: 1
   request_timeout_seconds: 900
   target_action_batch_size: 4
   min_action_batch_size: 3
@@ -50,4 +50,4 @@ rollout:
   thinking_budget_tokens: 2000
 
 output:
-  root_dir: ../records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline
+  root_dir: ../records/prompt_opt_1usd_gpt54_family/2026-03-21_smoke

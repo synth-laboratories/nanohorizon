@@ -1,0 +1,1 @@
+NANOHORIZON_PROMPT_OPT_CONFIG=configs/crafter_prompt_opt_qwen35_4b_gepa_eval20.yaml ./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh

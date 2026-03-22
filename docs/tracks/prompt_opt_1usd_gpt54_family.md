@@ -31,6 +31,20 @@ This is the prompt optimization benchmark track for NanoHorizon.
 ./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh
 ```
 
+## Reference Baseline
+
+- checked-in record:
+  [../../records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/](../../records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/)
+- checked-in score: `0.35`
+- bootstrap seed-prompt score on the same held-out eval: `0.6`
+- score delta: `-0.25`
+
+Interpretation:
+
+- the leaderboard score for this track is actual Crafter `mean_outcome_reward`
+- `GEPA` search score is tracked in `metrics.json -> best_gepa_val_score`, but it is not the track score
+- this checked-in baseline is a completed honest-accounting reference run, even though it regressed from the seed prompt
+
 ## Reference Stack
 
 - Modal for execution

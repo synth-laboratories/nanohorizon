@@ -1,0 +1,19 @@
+{
+  "status": "success",
+  "primary_score": 0.35,
+  "baseline": "gepa_crafter_prompt_optimization",
+  "bootstrap_score": 0.6,
+  "score_delta": -0.25,
+  "best_gepa_val_score": 0.47875000000000006,
+  "gepa_score_delta": 0.0,
+  "optimizer_budget_usd": 1.0,
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "request_model": "qwen35-4b-prompt-opt",
+  "reflection_backend": "policy_inference",
+  "reflection_model": "gpt-5.4-mini",
+  "num_candidates": 1,
+  "best_candidate_idx": 0,
+  "total_metric_calls": 20,
+  "elapsed_minutes": 87.31196025212606,
+  "rollout_inference_url": "https://synth-laboratories--nanohorizon-crafter-prompt-opt-p-a5e20a-dev.modal.run/v1/chat/completions"
+}

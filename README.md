@@ -14,13 +14,13 @@ Base model target: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 
 ## Leaderboard
 
-Status: **bootstrap baselines** — replace `TBD` with your `metrics.json` score and open a PR.
+Status: **three checked-in reference baselines** — offline, RLVR, and prompt-opt all have reproducible record bundles in `records/`.
 
 | Track | Rank | Run | Score | Summary | Record |
 | --- | ---: | --- | --- | --- | --- |
 | `offline_20min_1xa100_40gb` | 1 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
 | `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | `0.0` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script training logic in `src/nanohorizon/rlvr_training.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
-| `prompt_opt_1usd_gpt54_family` | 1 | `bootstrap_baseline` | TBD | Prompt search ($1 optimizer budget) | [info](records/prompt_opt_1usd_gpt54_family/2026-03-19_bootstrap_baseline/) |
+| `prompt_opt_1usd_gpt54_family` | 1 | `reference_baseline` | `0.35` | GEPA prompt search on 4B under honest Crafter reward accounting; 20-rollout held-out probe regressed `-0.25` from the seed prompt | [info](records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) |
 
 New rows: add `records/<track>/<YYYY-MM-DD>_<name>/` and update this table in the **same PR**.
 
@@ -197,6 +197,44 @@ Recent longer-run probe status:
 | `prompt_opt_1usd_gpt54_family` | **$1** optimizer spend (GPT-5.4 family) | `./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh` |
 
 Reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`** teacher. Track rules: [docs/tracks/](docs/tracks/) · task: [docs/task-crafter.md](docs/task-crafter.md).
+
+## Prompt-opt reference baseline
+
+Canonical Crafter prompt-opt baseline:
+
+```bash
+./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh
+```
+
+Single Python file to modify:
+
+```bash
+src/nanohorizon/prompt_opt_training.py
+```
+
+Default reference settings:
+
+- policy model: `Qwen/Qwen3.5-4B`
+- optimizer family: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`
+- optimizer default: `gpt-5.4-mini`
+- execution: Modal inference plus Crafter container service
+- search backend: `GEPA`
+- score reported in the leaderboard: actual Crafter `mean_outcome_reward`, not GEPA search score
+
+Checked-in reference status:
+
+- checked-in record: [2026-03-21_reference_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline)
+- current checked-in score: `0.35`
+- baseline seed-prompt eval: `0.6`
+- score delta: `-0.25`
+
+How to interpret prompt-opt results:
+
+- primary score: `metrics.json -> primary_score`
+- seed prompt baseline: `metrics.json -> bootstrap_score`
+- prompt search objective: `metrics.json -> best_gepa_val_score`
+- real hillclimbing means `primary_score > bootstrap_score`
+- GEPA search score movement alone does not count as reward improvement
 
 ---
 

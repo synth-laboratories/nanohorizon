@@ -42,3 +42,15 @@ Interpret RLVR rows as follows:
 | Run | Score | Model | Summary | Date | Info | Reproduce |
 | --- | ---: | --- | --- | --- | --- | --- |
 | `reference_baseline` | `0.0` | `Qwen/Qwen3.5-4B` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script learner logic in `src/nanohorizon/rlvr_training.py` | `2026-03-21` | [info](rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) | `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh` |
+
+## Prompt-opt Records
+
+Interpret prompt-opt rows as follows:
+
+- `Score` is the completed run's `metrics.json -> primary_score`, which is actual Crafter `mean_outcome_reward`
+- `bootstrap_score` in `metrics.json` is the seed prompt baseline on the same held-out eval set
+- `best_gepa_val_score` is GEPA's internal search objective and does not replace the real reward score
+
+| Run | Score | Model | Summary | Date | Info | Reproduce |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `reference_baseline` | `0.35` | `Qwen/Qwen3.5-4B` | GEPA prompt search baseline with honest Crafter reward accounting on a 20-rollout, 8-step held-out probe; selected prompt regressed `-0.25` versus the seed prompt | `2026-03-21` | [info](prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) | `./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh` |

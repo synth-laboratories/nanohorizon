@@ -1,0 +1,11 @@
+{
+  "task": "crafter",
+  "track": "prompt_opt_1usd_gpt54_family",
+  "description": "Curated Crafter seeds for the GEPA prompt-optimization baseline. Train seeds expose early resource-gathering behavior; eval seeds are held out for final lift reporting.",
+  "train_seeds": [10007, 10008, 10011, 10014, 10018, 10003],
+  "eval_seeds": [10001, 10010, 10017, 10019],
+  "notes": [
+    "These seeds were chosen from prior Crafter evaluation runs where the 4B policy showed reachable short-horizon reward events.",
+    "Use train_seeds for GEPA reflection/candidate evaluation and eval_seeds for held-out reporting."
+  ]
+}
