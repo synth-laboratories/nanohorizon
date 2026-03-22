@@ -14,12 +14,13 @@ Base model target: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 
 ## Leaderboard
 
-Status: **three checked-in reference baselines** — offline, RLVR, and prompt-opt all have reproducible record bundles in `records/`.
+Status: **three checked-in training reference baselines** plus a checked-in pure 4B Modal eval baseline — all reproducible from `records/`.
 
 | Track | Rank | Run | Score | Summary | Record |
 | --- | ---: | --- | --- | --- | --- |
-| `offline_20min_1xa100_40gb` | 1 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
-| `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | `0.0` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script training logic in `src/nanohorizon/rlvr_training.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
+| `offline_20min_1xa100_40gb` | 1 | `modal_4b_nochange_baseline` | `0.7` | Pure no-change 4B baseline via Modal inference on the 20 held-out seeds; includes raw rewards and 22-achievement frequencies | [info](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/) |
+| `offline_20min_1xa100_40gb` | 2 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
+| `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | `0.0` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script training logic in `src/nanohorizon/baselines/rlvr.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
 | `prompt_opt_1usd_gpt54_family` | 1 | `reference_baseline` | `0.35` | GEPA prompt search on 4B under honest Crafter reward accounting; 20-rollout held-out probe regressed `-0.25` from the seed prompt | [info](records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) |
 
 New rows: add `records/<track>/<YYYY-MM-DD>_<name>/` and update this table in the **same PR**.
@@ -28,7 +29,7 @@ New rows: add `records/<track>/<YYYY-MM-DD>_<name>/` and update this table in th
 
 For the RLVR reference baseline, there are only two files to care about:
 
-1. Change the learning logic in [rlvr_training.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/rlvr_training.py)
+1. Change the learning logic in [rlvr.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/rlvr.py)
 2. Run the full pipeline with [run_crafter_rlvr_qwen35_4b_2xa100_20min.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh)
 
 RLVR reference config and default sizes:
@@ -58,13 +59,13 @@ What that bash script handles for you:
 - starts a Synth-compatible Crafter HTTP service in the same Modal app
 - starts a clustered learner-plus-inference runtime and forwards a stable inference URL from the inference worker
 - runs grouped online Crafter rollouts
-- runs the GRPO-style LoRA update loop from `src/nanohorizon/rlvr_training.py`
+- runs the GRPO-style LoRA update loop from `src/nanohorizon/baselines/rlvr.py`
 - reloads adapters into inference between rollout waves
 - writes periodic eval, final eval, and record-bundle outputs
 
 For the offline reference baseline, there are also only two files to care about:
 
-1. Change the learning logic in [offline_training.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/offline_training.py)
+1. Change the learning logic in [offline_sft.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/offline_sft.py)
 2. Run the full pipeline with [run_offline_training.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_offline_training.sh)
 
 Reference config and default sizes:
@@ -102,6 +103,12 @@ Reference record to compare against:
 - score: `0.5`
 - reward delta over base: `+0.2`
 
+Pure no-change 4B Modal baseline:
+
+- [2026-03-22_modal_4b_nochange_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline)
+- mean reward over 20 held-out seeds: `0.7`
+- checked-in fields include raw rewards and 22-achievement frequencies
+
 ## Reference baseline
 
 Canonical Crafter SFT baseline:
@@ -113,7 +120,7 @@ Canonical Crafter SFT baseline:
 Single Python file to modify:
 
 ```bash
-src/nanohorizon/offline_training.py
+src/nanohorizon/baselines/offline_sft.py
 ```
 
 Default reference settings:
@@ -142,7 +149,7 @@ Canonical Crafter RLVR baseline:
 Single Python file to modify:
 
 ```bash
-src/nanohorizon/rlvr_training.py
+src/nanohorizon/baselines/rlvr.py
 ```
 
 Default reference settings:
@@ -185,6 +192,7 @@ Recent longer-run probe status:
 | Run | Score | Student | Teacher | Summary | Date | Info |
 | --- | ---: | --- | --- | --- | --- | --- |
 | `reference_baseline` | `0.5` | `Qwen/Qwen3.5-4B` | `Qwen/Qwen3.5-9B` | Crafter FBC with tool-calling traces, 2k thinking budget, and held-out compare (`+0.2` delta over base) | `2026-03-20` | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
+| `modal_4b_nochange_baseline` | `0.7` | `Qwen/Qwen3.5-4B` | `-` | Pure no-change 4B baseline via Modal inference on the 20 held-out seeds; raw rewards and 22-achievement frequencies are checked in | `2026-03-22` | [info](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/) |
 
 ---
 
@@ -209,7 +217,7 @@ Canonical Crafter prompt-opt baseline:
 Single Python file to modify:
 
 ```bash
-src/nanohorizon/prompt_opt_training.py
+src/nanohorizon/baselines/prompt_opt.py
 ```
 
 Default reference settings:
@@ -281,18 +289,18 @@ How to interpret prompt-opt results:
 5. **Check the bundle**:
 
    ```bash
-   uv sync && uv run python -m nanohorizon.validate_record records/<track>/<your_record_dir>
+   uv sync && uv run python -m nanohorizon.shared.validate_record records/<track>/<your_record_dir>
    ```
 
-   No `uv`: `PYTHONPATH=src python3 -m nanohorizon.validate_record records/<track>/<your_record_dir>`.
+   No `uv`: `PYTHONPATH=src python3 -m nanohorizon.shared.validate_record records/<track>/<your_record_dir>`.
 
 ## Modal layout
 
-- Shared Modal substrate: `src/nanohorizon/modal_common.py`
-- Shared Crafter eval entrypoint: `src/nanohorizon/modal_eval.py`
-- Offline/FBC core logic: `src/nanohorizon/offline_training.py`
-- Offline/FBC SFT entrypoint: `src/nanohorizon/modal_sft.py`
-- Shared teacher / student vLLM entrypoint: `src/nanohorizon/modal_teacher.py`
-- RLVR track entrypoint: `src/nanohorizon/modal_rlvr.py`
-- RLVR single-script training logic: `src/nanohorizon/rlvr_training.py`
-- Prompt-opt track entrypoint: `src/nanohorizon/modal_prompt_opt.py`
+- Shared Modal substrate: `src/nanohorizon/shared/modal_common.py`
+- Shared Crafter eval entrypoint: `src/nanohorizon/shared/modal_eval.py`
+- Offline/FBC core logic: `src/nanohorizon/baselines/offline_sft.py`
+- Offline/FBC Modal SFT entrypoint: `src/nanohorizon/baselines/offline_sft.py`
+- Shared teacher / student vLLM entrypoint: `src/nanohorizon/shared/modal_teacher.py`
+- RLVR track entrypoint: `src/nanohorizon/baselines/rlvr.py`
+- RLVR single-script training logic: `src/nanohorizon/baselines/rlvr.py`
+- Prompt-opt track entrypoint: `src/nanohorizon/baselines/prompt_opt.py`

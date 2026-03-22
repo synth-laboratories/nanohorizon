@@ -19,7 +19,13 @@ Optional files:
 - `eval_rollouts.jsonl`
 - `train.log`
 
-The validator (`uv run python -m nanohorizon.validate_record`, or `PYTHONPATH=src python3 -m …` without uv) checks only the minimum bundle shape for now.
+The validator (`uv run python -m nanohorizon.shared.validate_record`, or `PYTHONPATH=src python3 -m …` without uv) checks only the minimum bundle shape for now.
+
+New submissions should also expose held-out achievement coverage in `metrics.json`:
+
+- `submission_mean_outcome_reward` for the held-out eval set
+- `submission_achievement_frequencies` for the canonical 22 achievements over the held-out 20 seeds
+- each achievement entry should include both `count` and `frequency`
 
 ## Offline / SFT Records
 
@@ -28,6 +34,7 @@ This mirrors the same pattern as a lightweight benchmark board: each row links t
 | Run | Score | Student | Teacher | Summary | Date | Info | Reproduce |
 | --- | ---: | --- | --- | --- | --- | --- | --- |
 | `reference_baseline` | `0.5` | `Qwen/Qwen3.5-4B` | `Qwen/Qwen3.5-9B` | Crafter FBC with tool-calling traces, 2k thinking budget, and held-out compare (`+0.2` delta over base) | `2026-03-20` | [info](offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) | `./scripts/run_offline_training.sh` |
+| `modal_4b_nochange_baseline` | `0.7` | `Qwen/Qwen3.5-4B` | `-` | Pure no-change 4B baseline through Modal inference on the 20 held-out seeds with a 10-step rollout cap; raw rewards and 22-achievement frequencies are checked in | `2026-03-22` | [info](offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/) | `./scripts/run_crafter_model_eval.sh` |
 
 ## RLVR Records
 
