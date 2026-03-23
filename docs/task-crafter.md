@@ -57,6 +57,11 @@ Prompt optimization track:
 - prompt search and prompt refinement may use up to $1 total spend across `gpt-5.4`, `gpt-5.4-mini`, and `gpt-5.4-nano`
 - the budget applies to prompt optimization only, not final Crafter evaluation runs
 
+Separate classic track:
+- not part of this Crafter task contract
+- uses Craftax-Classic via the upstream JAX `craftax` package instead
+- has its own task doc at [task-craftax-classic.md](task-craftax-classic.md)
+
 ## Open Questions To Lock Before OSS Launch
 
 - exact held-out seed set

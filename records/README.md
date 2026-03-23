@@ -61,3 +61,13 @@ Interpret prompt-opt rows as follows:
 | Run | Score | Model | Summary | Date | Info | Reproduce |
 | --- | ---: | --- | --- | --- | --- | --- |
 | `reference_baseline` | `0.35` | `Qwen/Qwen3.5-4B` | GEPA prompt search baseline with honest Crafter reward accounting on a 20-rollout, 8-step held-out probe; selected prompt regressed `-0.25` versus the seed prompt | `2026-03-21` | [info](prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) | `./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh` |
+
+## Classic Records
+
+Interpret classic rows as follows:
+
+- the environment must come from the upstream JAX `craftax` package
+- the run must target the `1M` Craftax-Classic regime
+- the tracked policy must stay under `100M` parameters and start from random init
+
+There is no checked-in classic reference record yet.

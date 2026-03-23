@@ -28,6 +28,16 @@ dev = [
 modal = [
   "modal>=1.0.0",
 ]
+classic = [
+  "chex>=0.1.90",
+  "craftax",
+  "distrax>=0.1.5",
+  "flax>=0.10.0",
+  "gymnax>=0.0.8",
+  "jax>=0.5.0",
+  "optax>=0.2.4",
+  "orbax-checkpoint==0.5.0",
+]
 cloud = [
   "synth-ai @ file:///Users/joshpurtell/Documents/GitHub/synth-ai",
 ]
