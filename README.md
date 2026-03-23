@@ -8,7 +8,18 @@
 
 *GIF: real NanoHorizon Crafter RS rollout captured after each in-game action with `gpt-5.4-nano` via the OpenAI API.*
 
+[Join the Synth Discord](https://discord.gg/cjfAMcCZef)
+
 ---
+
+### What this benchmark is about
+
+NanoHorizon is about **changing the training algorithm**, not tuning hyperparameters. Each track gives you a single Python file containing a baseline algorithm (SFT, GRPO, GEPA). Your job is to write a better one — a different loss function, a smarter data selection strategy, a new rollout scheme, a curriculum, whatever you think will work. The config exists to set resource caps, not as the edit surface.
+
+There are two ways to win:
+
+1. **Higher score** — get more reward out of the same time and hardware budget.
+2. **Higher throughput** — get the same reward in less time, or more lift per minute of training. A method that reaches the current best score 3x faster is a real contribution.
 
 Base model target: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 
@@ -20,38 +31,31 @@ Status: **three checked-in training reference baselines** plus a checked-in pure
 | --- | ---: | --- | --- | --- | --- |
 | `offline_20min_1xa100_40gb` | 1 | `modal_4b_nochange_baseline` | `0.7` | Pure no-change 4B baseline via Modal inference on the 20 held-out seeds; includes raw rewards and 22-achievement frequencies | [info](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/) |
 | `offline_20min_1xa100_40gb` | 2 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
-| `rlvr_20min_2xa100_40gb` | 1 | `reference_baseline` | `0.0` | Clustered Modal Crafter GRPO smoke run with one public Crafter service, one clustered learner-plus-inference runtime, and single-script training logic in `src/nanohorizon/baselines/rlvr.py` | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
+| `rlvr_20min_2xa100_40gb` | 1 | `throughput_baseline` | `2.5` | 3 GRPO iterations, 69 rollouts in 18.7 min, +0.25 reward lift from bootstrap (2.25 → 2.5); V1 engine + CUDA graphs + local Crafter + internal networking; 470 tok/s steady-state, 1451 tok/s peak | — |
+| `rlvr_20min_2xa100_40gb` | 2 | `reference_baseline` | `0.0` | Topology validation only (enforce-eager, 13 tok/s) | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
 | `prompt_opt_1usd_gpt54_family` | 1 | `reference_baseline` | `0.35` | GEPA prompt search on 4B under honest Crafter reward accounting; 20-rollout held-out probe regressed `-0.25` from the seed prompt | [info](records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) |
 
 New rows: add `records/<track>/<YYYY-MM-DD>_<name>/` and update this table in the **same PR**.
 
 ## Change And Run
 
-For the RLVR reference baseline, there are only two files to care about:
+Each track has **one Python file** containing the training algorithm and **one shell script** to run it. Change the algorithm, run the script, check your score.
 
-1. Change the learning logic in [rlvr.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/rlvr.py)
-2. Run the full pipeline with [run_crafter_rlvr_qwen35_4b_2xa100_20min.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh)
+### RLVR track
 
-RLVR reference config and default sizes:
+1. Change the training algorithm in [rlvr.py](src/nanohorizon/baselines/rlvr.py)
+2. Run: `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh`
 
-- config: [crafter_rlvr_qwen35_4b_2xa100_20min.yaml](/Users/joshpurtell/Documents/GitHub/nanohorizon/configs/crafter_rlvr_qwen35_4b_2xa100_20min.yaml)
-- student: `Qwen/Qwen3.5-4B`
-- budget: `20` minutes on `2x A100 40GB`
-- rollout groups: `4`
-- periodic/final eval: Crafter held-out rollouts against the same clustered learner-owned inference boundary
+Budget: `20` minutes on `2x A100 40GB` · Model: `Qwen/Qwen3.5-4B`
 
-RLVR replication command:
-
-```bash
-./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
-```
-
-RLVR config override pattern:
+<details>
+<summary>Config override (for smoke tests, not the main edit surface)</summary>
 
 ```bash
 NANOHORIZON_RLVR_CONFIG=configs/crafter_rlvr_qwen35_4b_validation_smoke.yaml \
 ./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
 ```
+</details>
 
 What that bash script handles for you:
 
@@ -63,23 +67,12 @@ What that bash script handles for you:
 - reloads adapters into inference between rollout waves
 - writes periodic eval, final eval, and record-bundle outputs
 
-For the offline reference baseline, there are also only two files to care about:
+### Offline (SFT) track
 
-1. Change the learning logic in [offline_sft.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/offline_sft.py)
-2. Run the full pipeline with [run_offline_training.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_offline_training.sh)
+1. Change the training algorithm in [offline_sft.py](src/nanohorizon/baselines/offline_sft.py)
+2. Run: `./scripts/run_offline_training.sh`
 
-Reference config and default sizes:
-
-- config: [crafter_offline_reference.yaml](/Users/joshpurtell/Documents/GitHub/nanohorizon/configs/crafter_offline_reference.yaml)
-- student: `Qwen/Qwen3.5-4B`
-- teacher: `Qwen/Qwen3.5-9B`
-- eval: `20` held-out rollouts at concurrency `10`
-
-Replication command:
-
-```bash
-./scripts/run_offline_training.sh
-```
+Budget: `20` minutes on `1x A100 40GB` · Student: `Qwen/Qwen3.5-4B` · Teacher: `Qwen/Qwen3.5-9B`
 
 What that bash script handles for you:
 
@@ -99,15 +92,22 @@ Default offline path:
 
 Reference record to compare against:
 
-- [2026-03-20_reference_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline)
+- [2026-03-20_reference_baseline](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline)
 - score: `0.5`
 - reward delta over base: `+0.2`
 
 Pure no-change 4B Modal baseline:
 
-- [2026-03-22_modal_4b_nochange_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline)
+- [2026-03-22_modal_4b_nochange_baseline](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline)
 - mean reward over 20 held-out seeds: `0.7`
 - checked-in fields include raw rewards and 22-achievement frequencies
+
+### Prompt-opt track
+
+1. Change the search/optimization algorithm in [prompt_opt.py](src/nanohorizon/baselines/prompt_opt.py)
+2. Run: `./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh`
+
+Budget: `$1` optimizer spend (GPT-5.4 family) · Model: `Qwen/Qwen3.5-4B`
 
 ## Reference baseline
 
@@ -155,37 +155,46 @@ src/nanohorizon/baselines/rlvr.py
 Default reference settings:
 
 - model: `Qwen/Qwen3.5-4B`
-- topology: one Modal app with Crafter service on CPU plus one clustered learner-plus-inference runtime across 2 A100s
+- topology: Crafter runs locally on controller (rank 0), vLLM on rank 1, connected via cluster-internal networking
 - tool-calling-only Crafter interaction
 - `thinking_budget_tokens = 2000`
 - `max_tokens = 3072`
 - grouped rollout size: `4`
-- rollout concurrency: `8`
-- rollout semaphore limit: `4`
+- rollout concurrency: `32`, semaphore limit: `16`
+- vLLM V1 engine with torch.compile and CUDA graphs (LoRA bounds-check patch applied automatically)
+- LoRA targets: all attention + MLP + GDN layers (12 modules)
 - periodic eval at bootstrap and after each learner iteration
 
-Checked-in reference status:
+Checked-in baseline results (3 iterations, 48-step rollouts, 2x A100-40GB):
 
-- implementation is in repo
-- public runner is stable
-- checked-in clustered smoke record: [2026-03-21_reference_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline)
-- current checked-in score: `0.0`
-- purpose of the checked-in record: validate runtime topology, rollout transport, adapter reload, and eval completion
+| Metric | Value |
+| --- | --- |
+| **Score** (`final_mean_outcome_reward`) | `2.5` |
+| **Bootstrap score** | `2.25` |
+| **Reward lift** | `+0.25` |
+| **Total rollouts** | `69` |
+| **Iterations completed** | `3` |
+| **Wall time** | `18.7 min` |
+| **Rollouts/min** | `3.7` |
+| **Peak generation throughput** | `1,451 tok/s` |
+| **Steady-state generation throughput** | `~470 tok/s` |
+| **vLLM concurrent requests** | `4–16` |
+
+Key throughput optimizations over the initial topology-validation baseline:
+
+1. vLLM V1 engine + torch.compile + CUDA graphs (was `--enforce-eager`)
+2. In-place vLLM LoRA patch for Qwen3.5 hybrid Mamba-attention CUDA graph profiling (`src/nanohorizon/custom_vllm/lora_patch.py`)
+3. Local Crafter on controller + cluster-internal inference networking (was Modal web proxy + tunnel, which serialized all LLM requests to concurrency 1)
+4. Full-layer LoRA: added GDN projections (`in_proj_qkv`, `in_proj_z`, `in_proj_b`, `in_proj_a`, `out_proj`) per [Tinker LoRA recommendations](https://thinkingmachines.ai/blog/lora/)
 
 How to interpret RLVR results:
 
 - primary score: `metrics.json -> final_mean_outcome_reward`
-- bootstrap baseline: `periodic_eval/step_000/summary.json -> mean_outcome_reward`
-- post-update checkpoints: `periodic_eval/step_001`, `step_002`, ... compare these against `step_000`
+- bootstrap baseline: `metrics.json -> step0_mean_outcome_reward`
+- reward lift: `metrics.json -> reward_delta_from_bootstrap`
+- periodic eval checkpoints: `periodic_eval/step_000`, `step_001`, ... — hillclimbing means later steps trend above bootstrap
 - per-iteration training data: `iteration_summaries.json` and `iterations/iter_XXX/rollouts.jsonl`
-- hillclimbing means later periodic eval steps trend above bootstrap on the same held-out seeds; training rollout rewards alone are not enough
 - a run is only a clean reference record when it writes `metrics.json` and `final_eval_summary.json`
-
-Recent longer-run probe status:
-
-- separate 10-step / multi-checkpoint probe reached non-zero eval reward
-- observed periodic eval means: `0.0 -> 0.5 -> 0.5 -> 0.0`
-- that run is informative, but not yet the checked-in reference record because it did not finish with a full finalized bundle
 
 ## Offline / SFT Records
 
@@ -208,33 +217,12 @@ Reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`
 
 ## Prompt-opt reference baseline
 
-Canonical Crafter prompt-opt baseline:
-
-```bash
-./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh
-```
-
-Single Python file to modify:
-
-```bash
-src/nanohorizon/baselines/prompt_opt.py
-```
-
-Default reference settings:
-
-- policy model: `Qwen/Qwen3.5-4B`
-- optimizer family: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`
-- optimizer default: `gpt-5.4-mini`
-- execution: Modal inference plus Crafter container service
-- search backend: `GEPA`
-- score reported in the leaderboard: actual Crafter `mean_outcome_reward`, not GEPA search score
-
-Checked-in reference status:
-
-- checked-in record: [2026-03-21_reference_baseline](/Users/joshpurtell/Documents/GitHub/nanohorizon/records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline)
+- checked-in record: [2026-03-21_reference_baseline](records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline)
 - current checked-in score: `0.35`
 - baseline seed-prompt eval: `0.6`
-- score delta: `-0.25`
+- optimizer family: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano` (default: `gpt-5.4-mini`)
+- search backend: `GEPA`
+- score reported in the leaderboard: actual Crafter `mean_outcome_reward`, not GEPA search score
 
 How to interpret prompt-opt results:
 
