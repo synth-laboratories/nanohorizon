@@ -11,10 +11,11 @@ PACKAGE_ROOT = Path("/root/nanohorizon/src")
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
-from nanohorizon.shared.modal_common import PROJECT_ROOT, RECORDS_DIR, volume_mounts
+from nanohorizon.shared.modal_common import ARTIFACT_DIR, PROJECT_ROOT, RECORDS_DIR, volume_mounts
 
 APP_NAME = "nanohorizon-classic"
 REMOTE_ROOT = "/root/nanohorizon"
+JAX_CACHE_DIR = f"{ARTIFACT_DIR}/classic/jax_cache"
 
 
 def _resolve_modal_gpu(raw_value: str) -> str:
@@ -24,7 +25,39 @@ def _resolve_modal_gpu(raw_value: str) -> str:
     return "T4"
 
 
-GPU_CLASSIC = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_CLASSIC", "T4"))
+GPU_CLASSIC = _resolve_modal_gpu(os.getenv("NANOHORIZON_MODAL_GPU_CLASSIC", "L4"))
+
+
+def _prepare_craftax_texture_cache() -> None:
+    os.environ.pop("CRAFTAX_RELOAD_TEXTURES", None)
+
+    import craftax.craftax.constants as craftax_constants
+    import craftax.craftax_classic.constants as craftax_classic_constants
+
+    print(
+        "Craftax texture cache:",
+        craftax_constants.TEXTURE_CACHE_FILE,
+        os.path.exists(craftax_constants.TEXTURE_CACHE_FILE),
+    )
+    print(
+        "Craftax-Classic texture cache:",
+        craftax_classic_constants.TEXTURE_CACHE_FILE,
+        os.path.exists(craftax_classic_constants.TEXTURE_CACHE_FILE),
+    )
+
+
+def _classic_runtime_env() -> dict[str, str]:
+    env = {
+        "JAX_COMPILATION_CACHE_DIR": JAX_CACHE_DIR,
+        "JAX_PERSISTENT_CACHE_ENABLE_XLA_CACHES": "xla_gpu_per_fusion_autotune_cache_dir",
+        "JAX_DEFAULT_MATMUL_PRECISION": "tensorfloat32",
+        "XLA_FLAGS": "--xla_gpu_triton_gemm_any=true --xla_gpu_enable_latency_hiding_scheduler=true",
+        "TF_CPP_MIN_LOG_LEVEL": "2",
+    }
+    existing_xla_flags = os.environ.get("XLA_FLAGS", "").strip()
+    if existing_xla_flags:
+        env["XLA_FLAGS"] = f"{existing_xla_flags} {env['XLA_FLAGS']}".strip()
+    return env
 
 classic_image = (
     modal.Image.from_registry("nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04", add_python="3.11")
@@ -42,11 +75,12 @@ classic_image = (
         "orbax-checkpoint==0.5.0",
         "jax[cuda12]",
     )
-    .add_local_dir((PROJECT_ROOT / "src").as_posix(), remote_path=f"{REMOTE_ROOT}/src")
-    .add_local_dir((PROJECT_ROOT / "scripts").as_posix(), remote_path=f"{REMOTE_ROOT}/scripts")
-    .add_local_dir((PROJECT_ROOT / "configs").as_posix(), remote_path=f"{REMOTE_ROOT}/configs")
-    .add_local_file((PROJECT_ROOT / "pyproject.toml").as_posix(), remote_path=f"{REMOTE_ROOT}/pyproject.toml")
-    .add_local_file((PROJECT_ROOT / "README.md").as_posix(), remote_path=f"{REMOTE_ROOT}/README.md")
+    .add_local_dir((PROJECT_ROOT / "src").as_posix(), remote_path=f"{REMOTE_ROOT}/src", copy=True)
+    .add_local_dir((PROJECT_ROOT / "scripts").as_posix(), remote_path=f"{REMOTE_ROOT}/scripts", copy=True)
+    .add_local_dir((PROJECT_ROOT / "configs").as_posix(), remote_path=f"{REMOTE_ROOT}/configs", copy=True)
+    .add_local_file((PROJECT_ROOT / "pyproject.toml").as_posix(), remote_path=f"{REMOTE_ROOT}/pyproject.toml", copy=True)
+    .add_local_file((PROJECT_ROOT / "README.md").as_posix(), remote_path=f"{REMOTE_ROOT}/README.md", copy=True)
+    .run_function(_prepare_craftax_texture_cache, env={"JAX_PLATFORMS": "cpu"})
 )
 
 app = modal.App(APP_NAME)
@@ -68,6 +102,7 @@ def run_classic_baseline(
 
     os.chdir(REMOTE_ROOT)
     target_dir = output_dir.strip() or f"{RECORDS_DIR}/classic/manual_reference_baseline"
+    Path(JAX_CACHE_DIR).mkdir(parents=True, exist_ok=True)
     cmd = [
         sys.executable,
         "-m",
@@ -83,6 +118,8 @@ def run_classic_baseline(
     else:
         cmd.append("--train")
     env = dict(os.environ)
+    env.update(_classic_runtime_env())
+    env.pop("CRAFTAX_RELOAD_TEXTURES", None)
     env["PYTHONPATH"] = f"{PACKAGE_ROOT}:{env.get('PYTHONPATH', '')}".rstrip(":")
     process = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr, text=True, env=env)
     returncode = process.wait()

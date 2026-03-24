@@ -51,4 +51,11 @@ The official Craftax docs describe Craftax as a JAX RL environment, note that `p
 - Python entrypoint: [src/nanohorizon/baselines/classic.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/classic.py)
 - Modal entrypoint: [src/nanohorizon/baselines/classic_modal.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/classic_modal.py)
 
-The current in-repo starter now includes a first PPO-RNN baseline plus a parallel eval path. It still stays outside the repo's containerized environment abstractions.
+The current in-repo starter now includes the classic PPO-RNN baseline plus the same fast-path ideas that proved out in the Craftax reportbench reference work:
+
+- honest training timing via `jax.block_until_ready`
+- compiled chunked evaluation rather than a Python step loop
+- Modal image prewarm for the Craftax texture cache
+- persistent JAX compilation cache on the shared Modal artifact volume
+
+It still stays outside the repo's containerized environment abstractions.

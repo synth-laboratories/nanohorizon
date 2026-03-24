@@ -33,7 +33,8 @@ This is the `classic` benchmark track for NanoHorizon.
 
 - the track contract is now checked in
 - the starter runner includes a PPO-RNN `1M` baseline config
-- the baseline writes a checkpoint and runs a fast parallelized eval pass
+- the baseline writes a checkpoint and runs a compiled chunked parallel eval pass
+- the Modal path now prewarms the Craftax texture cache and reuses a persistent JAX compilation cache
 - no checked-in reference baseline record exists yet
 
 ## Expected Record Bundle
