@@ -1,0 +1,9 @@
+{
+  "track": "classic",
+  "run": "modal_reference_baseline",
+  "date": "2026-03-24",
+  "environment": "Craftax-Classic-Symbolic-v1",
+  "score_metric": "mean_episode_return",
+  "score": 0.5429999781399966,
+  "modal_app_id": "ap-a2NRbuutQzp7wXXgEJbILX"
+}
