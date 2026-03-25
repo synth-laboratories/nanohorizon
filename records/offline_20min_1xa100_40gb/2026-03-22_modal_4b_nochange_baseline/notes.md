@@ -4,7 +4,7 @@ This record captures the pure `Qwen/Qwen3.5-4B` baseline with no training or ada
 
 ## Setup
 
-- Crafter service exposed through the Synth tunnel path
+- Craftax service exposed through the Synth tunnel path
 - inference served from Modal via `src/nanohorizon/shared/modal_teacher.py`
 - held-out eval on `20` seeds starting at `10000`
 - rollout cap of `10` steps

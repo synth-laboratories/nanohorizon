@@ -342,7 +342,7 @@
   ],
   "enable_thinking": true,
   "inference_backend": "remote_openai_compat",
-  "inference_url": "https://synth-laboratories--nanohorizon-crafter-teacher-teac-4ed4be-dev.modal.run/v1/chat/completions",
+  "inference_url": "https://synth-laboratories--nanohorizon-craftax-teacher-teac-4ed4be-dev.modal.run/v1/chat/completions",
   "max_outcome_reward": 2.0,
   "mean_llm_calls_per_rollout": 0.0,
   "mean_outcome_reward": 0.7,

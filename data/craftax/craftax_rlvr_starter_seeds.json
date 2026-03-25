@@ -1,5 +1,5 @@
 {
-  "task": "crafter",
+  "task": "craftax",
   "track": "rlvr_20min_2xa100_40gb",
   "description": "Starter rollout seeds for NanoHorizon RLVR baseline collection.",
   "train_seeds": [7, 11, 17, 23, 29, 31, 37, 41, 43, 47],

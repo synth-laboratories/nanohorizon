@@ -1,12 +1,12 @@
 # NanoHorizon
 
 <p align="center">
-  <img src="assets/craftax_gpt54nano.gif" width="200" alt="Real NanoHorizon Craftax RS rollout captured after each in-game action using gpt-5.4-nano via the OpenAI API" />
+  <img src="assets/craftax_gpt54nano.gif" width="200" alt="Real NanoHorizon Craftax rollout captured after each in-game action using gpt-5.4-nano via the OpenAI API" />
 </p>
 
 **Fast, cheap iteration for long-horizon and classic RL agents.** Improve agents under hard time, hardware, and budget caps with reproducible runs, pinned metrics, and public records anyone can verify.
 
-*GIF: real NanoHorizon Craftax RS rollout captured after each in-game action with `gpt-5.4-nano` via the OpenAI API.*
+*GIF: real NanoHorizon Craftax rollout captured after each in-game action with `gpt-5.4-nano` via the OpenAI API.*
 
 [Join the Synth Discord](https://discord.gg/cjfAMcCZef)
 
@@ -64,8 +64,8 @@ NANOHORIZON_RLVR_CONFIG=configs/craftax_rlvr_qwen35_4b_validation_smoke.yaml \
 
 What that bash script handles for you:
 
-- builds and uploads the Craftax Rust service into Modal
-- starts a Synth-compatible Craftax HTTP service in the same Modal app
+- builds and uploads the Craftax Python runtime into Modal
+- starts a Synth-compatible Craftax HTTP shim in the same Modal app
 - starts a clustered learner-plus-inference runtime and forwards a stable inference URL from the inference worker
 - runs grouped online Craftax rollouts
 - runs the GRPO-style LoRA update loop from `src/nanohorizon/baselines/rlvr.py`
@@ -90,17 +90,17 @@ Budget: `20` minutes on `1x A100 40GB` · Student: `Qwen/Qwen3.5-4B` · Teacher:
 
 What that bash script handles for you:
 
-- starts the local Craftax service
+- starts the local Craftax runtime
 - runs teacher inference on Modal
 - runs SFT on Modal
-- collects rollouts locally against the local Craftax container
-- runs held-out base vs finetuned evals locally against the local Craftax container
+- collects rollouts locally against the local Craftax runtime
+- runs held-out base vs finetuned evals locally against the local Craftax runtime
 - writes the comparison summary
 
 Default offline path:
 
 - no tunnel
-- local Craftax container at `http://127.0.0.1:8903`
+- local Craftax runtime at `http://127.0.0.1:8903`
 - remote Modal inference for teacher, base student, and finetuned student
 - remote Modal SFT for the student LoRA
 
@@ -114,7 +114,7 @@ Pure no-change 4B Modal baseline:
 
 - [2026-03-22_modal_4b_nochange_baseline](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline)
 - mean reward over 20 held-out seeds: `0.7`
-- checked-in fields include raw rewards and 22-achievement frequencies
+- checked-in fields include raw rewards and full-Craftax achievement frequencies
 
 Known issue / current focus for submissions:
 
@@ -186,7 +186,7 @@ src/nanohorizon/baselines/rlvr.py
 Default reference settings:
 
 - model: `Qwen/Qwen3.5-4B`
-- topology: Craftax runs locally on controller (rank 0), vLLM on rank 1, connected via cluster-internal networking
+- topology: Craftax runs locally on controller (rank 0) via the in-repo Python runtime, vLLM on rank 1, connected via cluster-internal networking
 - tool-calling-only Craftax interaction
 - `thinking_budget_tokens = 2000`
 - `max_tokens = 3072`
@@ -275,12 +275,7 @@ How to interpret prompt-opt results:
    uv run modal setup
    ```
 
-   Craftax prerequisite for the offline reference path:
-
-   ```text
-   ~/Documents/GitHub/nanohorizon
-   ~/Documents/GitHub/craftax-core
-   ```
+   The in-repo Craftax runtime lives under `src/nanohorizon/craftax_core/`.
 
 2. **Clone and run** (from repo root):
 
@@ -318,6 +313,7 @@ How to interpret prompt-opt results:
 
 - Shared Modal substrate: `src/nanohorizon/shared/modal_common.py`
 - Shared Craftax eval entrypoint: `src/nanohorizon/shared/modal_eval.py`
+- Shared Craftax runtime + HTTP shim: `src/nanohorizon/craftax_core/`
 - Offline/FBC core logic: `src/nanohorizon/baselines/offline_sft.py`
 - Offline/FBC Modal SFT entrypoint: `src/nanohorizon/baselines/offline_sft.py`
 - Shared teacher / student vLLM entrypoint: `src/nanohorizon/shared/modal_teacher.py`

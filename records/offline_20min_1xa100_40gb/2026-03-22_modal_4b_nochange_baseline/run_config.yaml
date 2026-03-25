@@ -1,7 +1,7 @@
 track: offline_20min_1xa100_40gb
-task: crafter
+task: craftax
 base_model: Qwen/Qwen3.5-4B
-reference_script: ./scripts/run_crafter_model_eval.sh
+reference_script: ./scripts/run_craftax_model_eval.sh
 eval:
   num_rollouts: 20
   max_concurrency: 10

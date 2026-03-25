@@ -1,10 +1,10 @@
 {
   "name": "reference_baseline",
   "track": "rlvr_20min_2xa100_40gb",
-  "task": "crafter",
+  "task": "craftax",
   "base_model": "Qwen/Qwen3.5-4B",
   "created_at": "2026-03-21",
   "implementation_status": "verified_reference",
-  "summary": "Clustered Modal Crafter GRPO smoke run with one public Crafter service and one clustered learner-plus-inference runtime. User edits stay in src/nanohorizon/rlvr_training.py and the public runner remains scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh.",
+  "summary": "Clustered Modal Craftax GRPO smoke run with one public Craftax service and one clustered learner-plus-inference runtime. User edits stay in src/nanohorizon/rlvr_training.py and the public runner remains scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh.",
   "primary_metric": "final_mean_outcome_reward"
 }

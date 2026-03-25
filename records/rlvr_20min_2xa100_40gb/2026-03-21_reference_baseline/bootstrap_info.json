@@ -22,13 +22,13 @@
       "status": "ready"
     }
   },
-  "container_url": "https://synth-laboratories--nanohorizon-crafter-rlvr-crafter-4011de-dev.modal.run",
+  "container_url": "https://synth-laboratories--nanohorizon-craftax-rlvr-craftax-4011de-dev.modal.run",
   "inference_admin_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host/v1",
   "inference_base_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host",
   "inference_url": "https://ta-01km8h5303zabv6vvhkac1cvtd-8000-qvy98vegras70s14z51txqkp6.w.modal.host/v1/chat/completions",
   "preflight": {
     "container_health": {
-      "service": "crafter_rs_container",
+      "service": "craftax_core_http_shim",
       "status": "ok"
     },
     "container_roundtrip_probe": {
@@ -57,8 +57,8 @@
     "container_task_info": {
       "dataset": {
         "default_split": "train",
-        "id": "crafter_long_horizon",
-        "name": "Crafter Long Horizon",
+        "id": "craftax_full",
+        "name": "Craftax Long Horizon",
         "splits": [
           "train",
           "validation",
@@ -73,9 +73,9 @@
         "max_turns": 2000
       },
       "task": {
-        "description": "Long-horizon Crafter container backed by crafter-rs with checkpoint and resume support.",
-        "id": "crafter_rs_container",
-        "name": "Crafter RS Container",
+        "description": "Long-horizon Craftax container backed by Craftax core runtime with checkpoint and resume support.",
+        "id": "craftax_core_http_shim",
+        "name": "Craftax Core HTTP Shim",
         "version": "v0"
       },
       "task_metadata": {

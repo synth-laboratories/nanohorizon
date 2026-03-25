@@ -7,7 +7,7 @@ This bundle documents the checked-in RLVR reference implementation.
 From the repository root:
 
 ```bash
-./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
 Edit only:
@@ -18,10 +18,10 @@ src/nanohorizon/rlvr_training.py
 
 ## Architecture
 
-- Modal-hosted Crafter service built from `containers/crafter_rs`
+- Modal-hosted Craftax service built from `Craftax core runtime`
 - Modal-hosted vLLM served through a stable OpenAI-compatible proxy
 - learner loop in `src/nanohorizon/rlvr_training.py`
-- grouped on-policy Crafter rollouts with group-relative rewards
+- grouped on-policy Craftax rollouts with group-relative rewards
 - sequence-level clipped GRPO-style LoRA updates
 
 ## Status

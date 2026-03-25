@@ -1,6 +1,6 @@
 # Reference baseline
 
-This record packages the current NanoHorizon offline / SFT reference baseline for Crafter.
+This record packages the current NanoHorizon offline / SFT reference baseline for Craftax.
 
 ## Reproduce
 
@@ -14,7 +14,7 @@ That script already defaults to the proved settings:
 
 - student: `Qwen/Qwen3.5-4B`
 - teacher: `Qwen/Qwen3.5-9B`
-- tool-calling-only Crafter traces
+- tool-calling-only Craftax traces
 - `thinking_budget_tokens = 2000`
 - held-out compare: `20` eval rollouts at concurrency `10`
 
@@ -31,4 +31,4 @@ That script already defaults to the proved settings:
 
 ## Caveat
 
-The Crafter summary payload still reports `llm_call_count: 0` even on successful rewarded rollouts. That is a container-side accounting bug, not an eval failure.
+The Craftax summary payload still reports `llm_call_count: 0` even on successful rewarded rollouts. That is a container-side accounting bug, not an eval failure.

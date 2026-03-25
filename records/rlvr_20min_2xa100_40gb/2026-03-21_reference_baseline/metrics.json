@@ -7,7 +7,7 @@
   "gpu_count": 2,
   "gpu_type": "A100-40GB",
   "model": "Qwen/Qwen3.5-4B",
-  "algorithm": "clustered_modal_crafter_grpo",
+  "algorithm": "clustered_modal_craftax_grpo",
   "iterations_completed": 1,
   "periodic_eval_count": 2,
   "step0_mean_outcome_reward": 0.0,
@@ -16,5 +16,5 @@
   "final_policy_version": "iter_000",
   "started_at": "2026-03-21T15:53:47+00:00",
   "ended_at": "2026-03-21T16:13:39+00:00",
-  "notes": "This is the first completed clustered reference smoke run. It validates clustered learner-plus-inference runtime ownership, Crafter transport, LoRA reload, periodic eval, and final eval, but it does not show reward lift yet."
+  "notes": "This is the first completed clustered reference smoke run. It validates clustered learner-plus-inference runtime ownership, Craftax transport, LoRA reload, periodic eval, and final eval, but it does not show reward lift yet."
 }

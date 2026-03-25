@@ -1,7 +1,7 @@
 {
   "status": "success",
   "primary_score": 0.35,
-  "baseline": "gepa_crafter_prompt_optimization",
+  "baseline": "gepa_craftax_prompt_optimization",
   "bootstrap_score": 0.6,
   "score_delta": -0.25,
   "best_gepa_val_score": 0.47875000000000006,
@@ -15,5 +15,5 @@
   "best_candidate_idx": 0,
   "total_metric_calls": 20,
   "elapsed_minutes": 87.31196025212606,
-  "rollout_inference_url": "https://synth-laboratories--nanohorizon-crafter-prompt-opt-p-a5e20a-dev.modal.run/v1/chat/completions"
+  "rollout_inference_url": "https://synth-laboratories--nanohorizon-craftax-prompt-opt-p-a5e20a-dev.modal.run/v1/chat/completions"
 }

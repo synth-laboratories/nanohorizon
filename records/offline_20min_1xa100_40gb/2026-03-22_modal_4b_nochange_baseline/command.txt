@@ -1,6 +1,6 @@
 /opt/homebrew/bin/uv run python -m nanohorizon.shared.eval_model \
   --base-model Qwen/Qwen3.5-4B \
-  --container-url "$NANOHORIZON_CRAFTER_CONTAINER_URL" \
+  --container-url "$NANOHORIZON_CRAFTAX_CONTAINER_URL" \
   --output-dir records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline \
   --seed-start 10000 \
   --num-rollouts 20 \

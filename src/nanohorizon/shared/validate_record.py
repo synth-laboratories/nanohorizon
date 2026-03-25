@@ -71,7 +71,7 @@ def main() -> int:
     )
     if not any(isinstance(metrics_payload.get(name), dict) for name in achievement_fields):
         warnings.append(
-            "metrics.json is missing achievement frequencies; new submissions should include the 22-achievement frequency table."
+            "metrics.json is missing achievement frequencies; new submissions should include the full-Craftax achievement frequency table."
         )
 
     print(json.dumps({"ok": True, "record_dir": str(record_dir), "warnings": warnings}, indent=2))

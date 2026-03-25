@@ -1,5 +1,5 @@
 task:
-  name: crafter
+  name: craftax
 
 policy:
   model: Qwen/Qwen3.5-4B
@@ -17,7 +17,7 @@ optimizer:
   allowed_split: any
 
 search:
-  objective: improve_crafter_rollout_reward
+  objective: improve_craftax_rollout_reward
   max_metric_calls: 8
   reflection_minibatch_size: 2
   candidate_selection_strategy: epsilon_greedy
@@ -26,13 +26,13 @@ search:
 prompt:
   component_name: system_prompt
   seed_prompt: >
-    You are a Crafter policy agent. Think carefully, then use the
-    `crafter_interact` tool exactly once. Return 1 valid Crafter action unless
+    You are a Craftax policy agent. Think carefully, then use the
+    `craftax_interact` tool exactly once. Return 1 valid Craftax action unless
     the episode is already done. Use only the tool call as the final answer. Do
     not output JSON, prose, or a plain-text action list.
 
 data:
-  seed_file: ../data/crafter/crafter_prompt_opt_eval20_seeds.json
+  seed_file: ../data/craftax/craftax_prompt_opt_eval20_seeds.json
   num_train_seeds: 6
   num_eval_seeds: 20
 
