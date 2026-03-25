@@ -23,7 +23,7 @@ from nanohorizon.shared.modal_common import (
     volume_mounts,
 )
 
-app = modal.App("nanohorizon-crafter-eval")
+app = modal.App("nanohorizon-craftax-eval")
 image = offline_image()
 
 
@@ -64,9 +64,11 @@ def run_eval(
     os.chdir(REMOTE_ROOT)
     destination = ensure_dir(output_dir or _default_output_dir())
     if container_url:
-        os.environ["NANOHORIZON_CRAFTER_CONTAINER_URL"] = container_url
+        os.environ["NANOHORIZON_CRAFTAX_CONTAINER_URL"] = container_url
+        os.environ["NANOHORIZON_CRAFTAX_CONTAINER_URL"] = container_url
     if container_worker_token:
-        os.environ["NANOHORIZON_CRAFTER_CONTAINER_WORKER_TOKEN"] = container_worker_token
+        os.environ["NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN"] = container_worker_token
+        os.environ["NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN"] = container_worker_token
     summary = evaluate_model(
         base_model=base_model,
         adapter_dir=Path(adapter_dir).resolve() if adapter_dir else None,

@@ -204,6 +204,7 @@ def _upper_config(config: dict[str, Any]) -> dict[str, Any]:
         "EVAL_NUM_EPISODES": int(eval_cfg.get("num_episodes", 256)),
         "EVAL_GREEDY": bool(eval_cfg.get("greedy", True)),
         "EVAL_MAX_STEPS_PER_EPISODE": int(eval_cfg.get("max_steps_per_episode", 2000)),
+        "EVAL_CHUNK_STEPS": int(eval_cfg.get("chunk_steps", 64)),
         "EVAL_SEED": int(eval_cfg.get("seed", 123)),
         "NUM_REPEATS": int(training_cfg.get("num_repeats", 1)),
     }
@@ -636,6 +637,7 @@ if JAX_IMPORT_ERROR is None:
                     "stage": "eval_start",
                     "num_envs": upper["EVAL_NUM_ENVS"],
                     "num_episodes": upper["EVAL_NUM_EPISODES"],
+                    "chunk_steps": upper["EVAL_CHUNK_STEPS"],
                     "greedy": upper["EVAL_GREEDY"],
                 }
             ),
@@ -654,41 +656,56 @@ if JAX_IMPORT_ERROR is None:
         hstate = ScannedRNN.initialize_carry(upper["EVAL_NUM_ENVS"], upper["LAYER_SIZE"])
         done = jnp.zeros((upper["EVAL_NUM_ENVS"],), dtype=bool)
 
-        @jax.jit
-        def eval_step(env_state: Any, obs: Any, done: Any, hstate: Any, rng: Any) -> tuple[Any, Any, Any, Any, Any]:
-            rng, action_rng, env_rng = jax.random.split(rng, 3)
-            ac_in = (obs[np.newaxis, :], done[np.newaxis, :])
-            hstate, pi, _ = network.apply(train_state.params, hstate, ac_in)
-            action = pi.mode() if upper["EVAL_GREEDY"] else pi.sample(seed=action_rng)
-            action = action.squeeze(0)
-            next_obs, next_env_state, reward, next_done, info = env.step(env_rng, env_state, action, env_params)
-            return next_env_state, next_obs, next_done, hstate, rng, info
+        @partial(jax.jit, static_argnums=(5,))
+        def rollout_chunk(
+            env_state: Any,
+            obs: Any,
+            done: Any,
+            hstate: Any,
+            rng: Any,
+            num_steps: int,
+        ) -> tuple[Any, Any]:
+            def _step(carry: Any, _: Any) -> tuple[Any, Any]:
+                env_state_t, obs_t, done_t, hstate_t, rng_t = carry
+                rng_t, action_rng, env_rng = jax.random.split(rng_t, 3)
+                ac_in = (obs_t[np.newaxis, :], done_t[np.newaxis, :])
+                hstate_t, pi, _ = network.apply(train_state.params, hstate_t, ac_in)
+                action = pi.mode() if upper["EVAL_GREEDY"] else pi.sample(seed=action_rng)
+                action = action.squeeze(0)
+                next_obs, next_env_state, _reward, next_done, info = env.step(env_rng, env_state_t, action, env_params)
+                return (next_env_state, next_obs, next_done, hstate_t, rng_t), info
+
+            return jax.lax.scan(_step, (env_state, obs, done, hstate, rng), None, length=num_steps)
 
         episode_returns: list[float] = []
         episode_lengths: list[int] = []
         max_total_steps = upper["EVAL_NUM_EPISODES"] * upper["EVAL_MAX_STEPS_PER_EPISODE"]
         total_env_steps = 0
-        loop_count = 0
+        chunk_count = 0
 
         while len(episode_returns) < upper["EVAL_NUM_EPISODES"] and total_env_steps < max_total_steps:
-            env_state, obs, done, hstate, rng, info = eval_step(env_state, obs, done, hstate, rng)
-            loop_count += 1
-            returned = np.asarray(info["returned_episode"])
-            returns = np.asarray(info["returned_episode_returns"])
-            lengths = np.asarray(info["returned_episode_lengths"])
-            for idx, flag in enumerate(returned):
-                if bool(flag):
-                    episode_returns.append(float(returns[idx]))
-                    episode_lengths.append(int(lengths[idx]))
-                    if len(episode_returns) >= upper["EVAL_NUM_EPISODES"]:
-                        break
-            total_env_steps += upper["EVAL_NUM_ENVS"]
-            if loop_count == 1 or loop_count % 50 == 0:
+            (env_state, obs, done, hstate, rng), info = rollout_chunk(
+                env_state,
+                obs,
+                done,
+                hstate,
+                rng,
+                upper["EVAL_CHUNK_STEPS"],
+            )
+            chunk_count += 1
+            returned = np.asarray(info["returned_episode"]).astype(bool)
+            returns = np.asarray(info["returned_episode_returns"], dtype=float)
+            lengths = np.asarray(info["returned_episode_lengths"], dtype=float)
+            if returned.any():
+                episode_returns.extend(returns[returned].tolist())
+                episode_lengths.extend(lengths[returned].astype(int).tolist())
+            total_env_steps += upper["EVAL_NUM_ENVS"] * upper["EVAL_CHUNK_STEPS"]
+            if chunk_count == 1 or chunk_count % 10 == 0:
                 print(
                     json.dumps(
                         {
                             "stage": "eval_progress",
-                            "loop_count": loop_count,
+                            "chunk_count": chunk_count,
                             "episodes_collected": len(episode_returns),
                             "total_env_steps": total_env_steps,
                         }
@@ -730,6 +747,7 @@ if JAX_IMPORT_ERROR is None:
         rng = jax.random.PRNGKey(upper["SEED"])
         started = time.time()
         result = train_fn(rng)
+        result = jax.block_until_ready(result)
         duration = time.time() - started
         runner_state = result["runner_state"]
         train_state = runner_state[0]

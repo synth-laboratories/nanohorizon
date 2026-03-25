@@ -42,15 +42,16 @@ hardware:
   accelerator_type: single_modal_gpu
 
 evaluation:
-  num_envs: 64
-  num_episodes: 16
+  num_envs: 128
+  num_episodes: 100
+  chunk_steps: 64
   max_steps_per_episode: 2000
   greedy: true
   seed: 123
 
 modal:
-  gpu: T4
-  notes: cheapest listed Modal GPU tier; override with NANOHORIZON_MODAL_GPU_CLASSIC=L4 if needed
+  gpu: L4
+  notes: default NanoHorizon classic baseline GPU; override with NANOHORIZON_MODAL_GPU_CLASSIC if needed
 
 output:
   root_dir: ../records/classic/manual_reference_baseline

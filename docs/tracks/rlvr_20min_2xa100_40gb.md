@@ -7,7 +7,7 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 ## Contract
 
 - base model: `Qwen/Qwen3.5-4B`
-- environment: Crafter
+- environment: Craftax
 - hardware: 2x A100 40GB
 - wall-clock budget: 20 minutes
 
@@ -21,11 +21,11 @@ This is the online RLVR-style benchmark track for NanoHorizon.
 ## Reference Stack
 
 - one Modal app with two runtime surfaces:
-  - Crafter service on CPU
+  - Craftax service on CPU
   - one clustered learner-plus-inference runtime spanning 2x A100 40GB
-- single-script RLVR logic in `src/nanohorizon/rlvr_training.py`
-- thin Modal launcher in `src/nanohorizon/modal_rlvr.py`
-- public runner in `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh`
+- single-script RLVR logic in `src/nanohorizon/baselines/rlvr.py`
+- track-owned Modal runtime lives in `src/nanohorizon/baselines/rlvr.py`
+- public runner in `./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh`
 - default GPU: `A100-40GB` via `NANOHORIZON_MODAL_GPU_RLVR`
 
 Reference algorithm shape:
@@ -46,26 +46,26 @@ Current record status:
 
 Historical design notes:
 
-- [rlvr_modal_crafter_baseline_plan.md](rlvr_modal_crafter_baseline_plan.md)
+- [rlvr_modal_craftax_baseline_plan.md](rlvr_modal_craftax_baseline_plan.md)
 
 ## Expected Starter Script
 
 ```bash
-./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
 Config override pattern:
 
 ```bash
-NANOHORIZON_RLVR_CONFIG=configs/crafter_rlvr_qwen35_4b_validation_smoke.yaml \
-./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+NANOHORIZON_RLVR_CONFIG=configs/craftax_rlvr_qwen35_4b_validation_smoke.yaml \
+./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
 ## Edit Surface
 
 Change only:
 
-- `src/nanohorizon/rlvr_training.py`
+- `src/nanohorizon/baselines/rlvr.py`
 
 ## Expected Record Bundle
 

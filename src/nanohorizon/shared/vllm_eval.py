@@ -14,6 +14,7 @@ from typing import Any
 
 import httpx
 
+from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
 from nanohorizon.custom_vllm import (
     build_thinking_budget_request_overrides,
     enable_thinking_budget_support,
@@ -21,33 +22,16 @@ from nanohorizon.custom_vllm import (
 from nanohorizon.shared.openai_compat import (
     create_chat_completion,
     extract_openai_tool_calls,
-    sanitize_crafter_actions,
+    sanitize_craftax_actions,
 )
 
-CRAFTER_ACTION_ENUM = [
-    "move_left",
-    "move_right",
-    "move_up",
-    "move_down",
-    "do",
-    "sleep",
-    "place_table",
-    "place_stone",
-    "place_furnace",
-    "place_plant",
-    "make_wood_pickaxe",
-    "make_stone_pickaxe",
-    "make_iron_pickaxe",
-    "make_wood_sword",
-    "make_stone_sword",
-    "make_iron_sword",
-]
+CRAFTAX_ACTION_ENUM = list(DEFAULT_ACTION_NAMES)
 
-CRAFTER_INTERACT_TOOL = {
+CRAFTAX_INTERACT_TOOL = {
     "type": "function",
     "function": {
-        "name": "crafter_interact",
-        "description": "Choose the next short Crafter macro-action sequence.",
+        "name": PRIMARY_TOOL_NAME,
+        "description": "Choose the next short Craftax macro-action sequence.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -55,10 +39,10 @@ CRAFTER_INTERACT_TOOL = {
                     "type": "array",
                     "items": {
                         "type": "string",
-                        "enum": CRAFTER_ACTION_ENUM,
+                        "enum": CRAFTAX_ACTION_ENUM,
                     },
                     "minItems": 1,
-                    "maxItems": 4,
+                    "maxItems": 10,
                 }
             },
             "required": ["actions_list"],
@@ -143,6 +127,7 @@ def build_vllm_serve_command(config: LocalVLLMEvalConfig) -> list[str]:
         "--tool-call-parser",
         config.tool_call_parser,
         "--enable-prefix-caching",
+        "--language-model-only",
     ]
     if config.enable_thinking:
         cmd += [
@@ -283,8 +268,8 @@ def generate_with_vllm_server(
                 if isinstance(item, dict)
             ]
             system_directive = (
-                "You are a Crafter student policy.\n"
-                "Use the provided `crafter_interact` tool exactly once for the final answer.\n"
+                "You are a Craftax student policy.\n"
+                f"Use the provided `{PRIMARY_TOOL_NAME}` tool exactly once for the final answer.\n"
                 "Do not answer in plain text.\n"
                 "Do not output JSON in assistant content.\n"
                 "After reasoning, your final assistant action must be a tool call."
@@ -306,11 +291,11 @@ def generate_with_vllm_server(
                 base_url=str(server["base_url"]),
                 api_key="",
                 timeout_seconds=300.0,
-                tools=[CRAFTER_INTERACT_TOOL],
+                tools=[CRAFTAX_INTERACT_TOOL],
                 tool_choice="auto",
                 extra_body=extra_body,
             )
-            tool_calls = extract_openai_tool_calls(payload, tool_name="crafter_interact")
+            tool_calls = extract_openai_tool_calls(payload, tool_name=PRIMARY_TOOL_NAME)
             actions: list[str] = []
             for tool_call in tool_calls:
                 arguments = tool_call.get("arguments", {})
@@ -318,7 +303,7 @@ def generate_with_vllm_server(
                     continue
                 values = arguments.get("actions_list")
                 if isinstance(values, list):
-                    actions = sanitize_crafter_actions(values)
+                    actions = sanitize_craftax_actions(values)
                     if actions:
                         break
             outputs.append("\n".join(actions) if actions else "")

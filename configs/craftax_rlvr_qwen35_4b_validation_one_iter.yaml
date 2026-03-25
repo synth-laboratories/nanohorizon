@@ -1,0 +1,53 @@
+task:
+  name: craftax
+  track: rlvr_20min_2xa100_40gb
+
+model:
+  model: Qwen/Qwen3.5-4B
+  served_model_name: qwen35-4b-rlvr
+
+budget:
+  wall_clock_minutes: 12
+  gpus: 2
+  gpu_type: A100-40GB
+
+data:
+  seed_manifest_json: ../data/craftax/craftax_rlvr_starter_seeds.json
+
+inference:
+  max_model_len: 8192
+  api_key: nanohorizon-rlvr-key
+
+rollout:
+  num_iterations: 1
+  groups_per_iteration: 1
+  group_size: 4
+  max_steps: 8
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 2
+  request_timeout_seconds: 300
+  temperature: 0.8
+  max_tokens: 3072
+  enable_thinking: true
+  thinking_budget_tokens: 2000
+  target_action_batch_size: 4
+  min_action_batch_size: 3
+
+training:
+  method: grpo_sequence_lora
+  seed: 0
+  learning_rate: 1.0e-5
+  lora_rank: 16
+  max_length: 4096
+  max_steps_per_iteration: 2
+  clip_epsilon: 0.2
+
+evaluation:
+  enabled: true
+  max_steps: 8
+  max_concurrent_rollouts: 2
+  rollouts_per_seed: 1
+  max_tokens: 3072
+
+output:
+  root_dir: ../records/rlvr_20min_2xa100_40gb/validation_one_iter

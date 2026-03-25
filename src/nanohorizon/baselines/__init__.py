@@ -1,1 +1,1 @@
-"""Baseline entrypoints for NanoHorizon."""
+"""Canonical one-file-per-track baselines for NanoHorizon."""
