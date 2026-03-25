@@ -7,9 +7,10 @@ import os
 from pathlib import Path
 from typing import Any
 
+from nanohorizon.craftax_core.metadata import PRIMARY_TOOL_NAME
 from nanohorizon.shared.common import ensure_dir, write_json, write_text
-from nanohorizon.shared.crafter_data import (
-    CRAFTER_CORE_ACHIEVEMENTS,
+from nanohorizon.shared.craftax_data import (
+    CRAFTAX_CORE_ACHIEVEMENTS,
     collect_rollouts_concurrently,
     is_rollout_payload,
     rollout_achievements,
@@ -58,17 +59,21 @@ def evaluate_model(
     release_cuda_memory()
     resolved_container_url = str(
         container_url
-        or os.getenv("NANOHORIZON_CRAFTER_CONTAINER_URL")
+        or os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL")
+        or os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL")
         or os.getenv("NANOHORIZON_CONTAINER_URL")
-        or ""
+        or "direct://local"
     ).strip()
     resolved_container_worker_token = str(
-        os.getenv("NANOHORIZON_CRAFTER_CONTAINER_WORKER_TOKEN")
+        os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN")
+        or os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN")
         or ""
     ).strip()
-    if not resolved_container_url:
-        raise RuntimeError("container_url or NANOHORIZON_CRAFTER_CONTAINER_URL is required")
-
+    if not resolved_container_worker_token:
+        resolved_container_worker_token = str(
+        os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN")
+        or ""
+        ).strip()
     resolved_inference_url = str(inference_url or "").strip()
     resolved_inference_api_key = str(
         inference_api_key or os.getenv("NANOHORIZON_EVAL_API_KEY", "")
@@ -90,13 +95,13 @@ def evaluate_model(
     resolved_system_prompt = (
         system_prompt.strip()
         or (
-            "You are a Crafter policy.\n"
+            "You are a Craftax policy.\n"
             f"You may think for up to about {int(thinking_budget_tokens)} tokens before answering.\n"
-            "Return a short useful macro-action with 3-4 valid Crafter actions.\n"
+            "Return a short useful macro-action with 5-10 valid full-Craftax actions.\n"
             "Use movement to explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Use the provided `crafter_interact` tool exactly once for the final answer.\n"
+            f"Use the provided `{PRIMARY_TOOL_NAME}` tool exactly once for the final answer.\n"
             "Do not return JSON or plain text actions."
         )
     )
@@ -116,8 +121,8 @@ def evaluate_model(
                 enable_thinking=enable_thinking,
                 thinking_budget_tokens=thinking_budget_tokens,
                 policy_version="finetuned-eval" if adapter_dir is not None else "base-eval",
-                target_action_batch_size=4,
-                min_action_batch_size=3,
+                target_action_batch_size=8,
+                min_action_batch_size=5,
                 request_timeout_seconds=float(request_timeout_seconds),
                 max_concurrent_rollouts=max_concurrent_rollouts,
                 trace_prefix=summary_name.removesuffix(".json"),
@@ -159,8 +164,8 @@ def evaluate_model(
                     enable_thinking=enable_thinking,
                     thinking_budget_tokens=thinking_budget_tokens,
                     policy_version="finetuned-eval" if adapter_dir is not None else "base-eval",
-                    target_action_batch_size=4,
-                    min_action_batch_size=3,
+                    target_action_batch_size=8,
+                    min_action_batch_size=5,
                     request_timeout_seconds=float(request_timeout_seconds),
                     max_concurrent_rollouts=max_concurrent_rollouts,
                     trace_prefix=summary_name.removesuffix(".json"),
@@ -194,7 +199,7 @@ def evaluate_model(
         ) if requested_rollout_count else 0.0,
         "max_outcome_reward": max(rewards) if rewards else 0.0,
         "mean_llm_calls_per_rollout": (sum(llm_calls) / len(llm_calls)) if llm_calls else 0.0,
-        "achievement_names": list(CRAFTER_CORE_ACHIEVEMENTS),
+        "achievement_names": list(CRAFTAX_CORE_ACHIEVEMENTS),
         "achievement_frequencies": achievement_frequencies,
         "inference_backend": "remote_openai_compat" if resolved_inference_url else "vllm",
         "inference_url": resolved_inference_url,
@@ -220,10 +225,10 @@ def evaluate_model(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate a Crafter model with concurrent real rollouts.")
+    parser = argparse.ArgumentParser(description="Evaluate a Craftax model with concurrent real rollouts.")
     parser.add_argument("--base-model", required=True)
     parser.add_argument("--adapter-dir", default="")
-    parser.add_argument("--container-url", required=True)
+    parser.add_argument("--container-url", default="")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--seed-start", type=int, default=10_000)
     parser.add_argument("--num-rollouts", type=int, default=8)

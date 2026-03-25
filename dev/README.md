@@ -2,7 +2,7 @@
 
 ## RunPod GPU defaults
 
-Launch scripts under `scripts/` source [`scripts/lib_runpod_gpu.sh`](../scripts/lib_runpod_gpu.sh): unless `NANOHORIZON_RUNPOD_GPU_TYPE` is set, they pass `--gpu-profile l4` (NVIDIA L4 — see `GPU_PROFILES` in `src/nanohorizon/runpod_training_launcher.py`) for Qwen3.5-4B inference. Use `NANOHORIZON_RUNPOD_GPU_PROFILE=mid24` for a wider GPU pool; set `NANOHORIZON_RUNPOD_GPU_TYPE` for an exact RunPod GPU name (e.g. track-matched A100).
+Launch scripts under `scripts/` source [`scripts/lib_runpod_gpu.sh`](../scripts/lib_runpod_gpu.sh): unless `NANOHORIZON_RUNPOD_GPU_TYPE` is set, they pass `--gpu-profile l4` (NVIDIA L4 — see `GPU_PROFILES` in `src/nanohorizon/shared/runpod_training_launcher.py`) for Qwen3.5-4B inference. Use `NANOHORIZON_RUNPOD_GPU_PROFILE=mid24` for a wider GPU pool; set `NANOHORIZON_RUNPOD_GPU_TYPE` for an exact RunPod GPU name (e.g. track-matched A100).
 
 Prompt track: [`scripts/run_crafter_prompt_opt_reference.sh`](../scripts/run_crafter_prompt_opt_reference.sh) (image `nanohorizon-prompt-opt`; default **`--no-interruptible`** for stable public IP / log proxy — set `NANOHORIZON_RUNPOD_INTERRUPTIBLE=1` for spot). After `launch`, stderr lists **`training_log` / `job_status` proxy URLs**; JSON `payload.env` is redacted. Offline/SFT: [`scripts/run_crafter_offline_reference.sh`](../scripts/run_crafter_offline_reference.sh).
 

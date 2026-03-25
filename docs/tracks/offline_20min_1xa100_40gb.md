@@ -7,7 +7,7 @@ This is the filtered behavior cloning benchmark track for NanoHorizon.
 ## Contract
 
 - base model: `Qwen/Qwen3.5-4B`
-- environment: Crafter
+- environment: Craftax
 - hardware: 1x A100 40GB
 - wall-clock budget: 20 minutes
 
@@ -21,13 +21,13 @@ This is the filtered behavior cloning benchmark track for NanoHorizon.
 
 ## Reference Stack
 
-- local Crafter rollout collection and filtering
+- local Craftax rollout collection and filtering
 - Modal teacher inference with `Qwen/Qwen3.5-9B`
 - Modal SFT for `Qwen/Qwen3.5-4B`
 - async parallel rollout collection with explicit concurrency and permit caps
 - reward-based filtering before training
 - TRL `SFTTrainer` for `Qwen/Qwen3.5-4B`
-- local held-out evaluation against the local Crafter container using remote Modal inference
+- local held-out evaluation against the local Craftax container using remote Modal inference
 - held-out base-vs-finetuned compare defaults to `20` rollouts at concurrency `10`
 - default example GPU: `A100-40GB` via `NANOHORIZON_MODAL_GPU_OFFLINE`
 
@@ -49,9 +49,9 @@ If you want the full intended end-to-end user flow, run:
 ./scripts/run_offline_training.sh
 ```
 
-Edit [src/nanohorizon/offline_training.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/offline_training.py) to change the learning logic. Run [run_offline_training.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_offline_training.sh) to handle the full end-to-end flow: local Crafter service, local rollout collection, Modal inference and SFT, final evals, and base-vs-finetuned comparison.
+Edit [src/nanohorizon/baselines/offline_sft.py](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/offline_sft.py) to change the learning logic. Run [run_offline_training.sh](/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_offline_training.sh) to handle the full end-to-end flow: local Craftax service, local rollout collection, Modal inference and SFT, final evals, and base-vs-finetuned comparison.
 
-The reference script runs async parallel Crafter rollouts, filters to high-reward tool-calling traces, fine-tunes the student, and compares base versus fine-tuned evaluation on held-out seeds with `thinking_budget_tokens = 2000`.
+The reference script runs async parallel Craftax rollouts, filters to high-reward tool-calling traces, fine-tunes the student, and compares base versus fine-tuned evaluation on held-out seeds with `thinking_budget_tokens = 2000`.
 
 ## Expected Record Bundle
 

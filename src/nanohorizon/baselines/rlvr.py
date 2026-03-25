@@ -28,7 +28,12 @@ import modal
 import yaml
 from modal import experimental as modal_exp
 
-from nanohorizon.shared.crafter_data import summarize_achievement_frequencies
+REMOTE_SRC = Path("/root/nanohorizon/src")
+if REMOTE_SRC.exists():
+    sys.path.insert(0, str(REMOTE_SRC))
+
+from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
+from nanohorizon.shared.craftax_data import summarize_achievement_frequencies
 from nanohorizon.shared.modal_common import ARTIFACT_DIR, ARTIFACT_VOLUME, RECORDS_DIR, RECORDS_VOLUME
 
 
@@ -100,38 +105,21 @@ class Timer:
         return now_utc_iso()
 
 
-CRAFTER_ACTION_ENUM = [
-    "move_left",
-    "move_right",
-    "move_up",
-    "move_down",
-    "do",
-    "sleep",
-    "place_table",
-    "place_stone",
-    "place_furnace",
-    "place_plant",
-    "make_wood_pickaxe",
-    "make_stone_pickaxe",
-    "make_iron_pickaxe",
-    "make_wood_sword",
-    "make_stone_sword",
-    "make_iron_sword",
-]
+CRAFTAX_ACTION_ENUM = list(DEFAULT_ACTION_NAMES)
 
-CRAFTER_INTERACT_TOOL = {
+CRAFTAX_INTERACT_TOOL = {
     "type": "function",
     "function": {
-        "name": "crafter_interact",
-        "description": "Choose the next short Crafter macro-action sequence.",
+        "name": PRIMARY_TOOL_NAME,
+        "description": "Choose the next short Craftax macro-action sequence.",
         "parameters": {
             "type": "object",
             "properties": {
                 "actions_list": {
                     "type": "array",
-                    "items": {"type": "string", "enum": CRAFTER_ACTION_ENUM},
+                    "items": {"type": "string", "enum": CRAFTAX_ACTION_ENUM},
                     "minItems": 1,
-                    "maxItems": 4,
+                    "maxItems": 10,
                 }
             },
             "required": ["actions_list"],
@@ -249,8 +237,8 @@ def build_rollout_request(
     enable_thinking: bool = False,
     thinking_budget_tokens: int = 0,
     policy_version: str = "bootstrap",
-    target_action_batch_size: int = 4,
-    min_action_batch_size: int = 3,
+    target_action_batch_size: int = 8,
+    min_action_batch_size: int = 5,
     timeout_s: int = 45,
 ) -> dict[str, Any]:
     return {
@@ -548,9 +536,9 @@ def release_cuda_memory() -> None:
         pass
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a Crafter RL policy.\n"
-    "Use the provided `crafter_interact` tool exactly once for the final answer.\n"
-    "Return a short useful macro-action with 3-4 valid Crafter actions.\n"
+    "You are a Craftax RL policy.\n"
+    f"Use the provided `{PRIMARY_TOOL_NAME}` tool exactly once for the final answer.\n"
+    "Return a short useful macro-action with 5-10 valid full-Craftax actions.\n"
     "Use movement to explore when nothing useful is adjacent.\n"
     "Use 'do' only when facing a useful nearby object or resource.\n"
     "Read the recent action history and avoid repeating unproductive loops.\n"
@@ -576,10 +564,13 @@ class TurnSample:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="NanoHorizon Crafter RLVR training")
+    parser = argparse.ArgumentParser(description="NanoHorizon Craftax RLVR training")
     parser.add_argument("--config", required=True)
     parser.add_argument("--output-dir", default="")
-    parser.add_argument("--container-url", default=os.getenv("NANOHORIZON_RLVR_CONTAINER_URL", ""))
+    parser.add_argument(
+        "--container-url",
+        default=os.getenv("NANOHORIZON_RLVR_CONTAINER_URL", "direct://local"),
+    )
     parser.add_argument("--inference-url", default=os.getenv("NANOHORIZON_RLVR_INFERENCE_URL", ""))
     parser.add_argument("--inference-admin-url", default=os.getenv("NANOHORIZON_RLVR_INFERENCE_ADMIN_URL", ""))
     parser.add_argument("--inference-api-key", default=os.getenv("NANOHORIZON_RLVR_INFERENCE_API_KEY", ""))
@@ -693,11 +684,11 @@ def _tokenize_messages_with_assistant_mask(
     normalized_full_messages = _normalize_messages_for_chat_template(full_messages)
     prompt_text = tokenizer.apply_chat_template(
         normalized_prompt_messages,
-        tools=[CRAFTER_INTERACT_TOOL],
+        tools=[CRAFTAX_INTERACT_TOOL],
         tokenize=False,
         add_generation_prompt=True,
     )
-    full_text = _render_messages(tokenizer, normalized_full_messages, [CRAFTER_INTERACT_TOOL])
+    full_text = _render_messages(tokenizer, normalized_full_messages, [CRAFTAX_INTERACT_TOOL])
     prompt_ids = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
     full_ids = tokenizer(full_text, add_special_tokens=False)["input_ids"]
     if len(full_ids) < len(prompt_ids):
@@ -739,7 +730,7 @@ def _assistant_message_from_turn(turn: dict[str, Any], *, trace_correlation_id: 
                 "id": f"call_{trace_correlation_id or rollout_id}_{turn_index}",
                 "type": "function",
                 "function": {
-                    "name": "crafter_interact",
+                    "name": PRIMARY_TOOL_NAME,
                     "arguments": {
                         "actions_list": actions,
                     },
@@ -898,8 +889,8 @@ def _evaluate_policy(
             enable_thinking=enable_thinking,
             thinking_budget_tokens=thinking_budget_tokens,
             policy_version=policy_version,
-            target_action_batch_size=4,
-            min_action_batch_size=3,
+            target_action_batch_size=8,
+            min_action_batch_size=5,
             request_timeout_seconds=request_timeout_seconds,
             max_concurrent_rollouts=max_concurrent_rollouts,
             trace_prefix=label,
@@ -1157,13 +1148,13 @@ def _copy_config_bundle(*, config_path: Path, output_dir: Path) -> None:
 def _build_metadata(*, config: dict[str, Any], config_path: Path, output_dir: Path) -> dict[str, Any]:
     return {
         "track": str(config.get("task", {}).get("track") or "rlvr_20min_2xa100_40gb"),
-        "task": str(config.get("task", {}).get("name") or "crafter"),
-        "baseline": "modal_crafter_grpo",
+        "task": str(config.get("task", {}).get("name") or "craftax"),
+        "baseline": "modal_craftax_grpo",
         "model": str(config.get("model", {}).get("model") or ""),
         "config_path": str(config_path),
         "output_dir": str(output_dir),
         "user_editable_training_script": "src/nanohorizon/baselines/rlvr.py",
-        "runner_script": "scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh",
+        "runner_script": "scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh",
     }
 
 
@@ -1393,7 +1384,7 @@ def run_training(
 
     metrics = {
         "track": str(config.get("task", {}).get("track") or "rlvr_20min_2xa100_40gb"),
-        "baseline": "modal_crafter_grpo",
+        "baseline": "modal_craftax_grpo",
         "model": str(config.get("model", {}).get("model") or ""),
         "started_at": timer.started_at,
         "ended_at": timer.ended_at,
@@ -1431,7 +1422,7 @@ def run_training(
     )
     write_text(
         out_dir / "command.txt",
-        f"NANOHORIZON_RLVR_OUTPUT_DIR={out_dir} ./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh\n",
+        f"NANOHORIZON_RLVR_OUTPUT_DIR={out_dir} ./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh\n",
     )
 
     release_cuda_memory()
@@ -1471,10 +1462,6 @@ if __name__ == "__main__":
 
 
 # Modal entrypoint collapsed from former modal_rlvr.py
-REMOTE_SRC = Path("/root/nanohorizon/src")
-if REMOTE_SRC.exists():
-    sys.path.insert(0, str(REMOTE_SRC))
-
 from nanohorizon.custom_vllm.runtime import (
     build_thinking_budget_request_overrides,
     enable_thinking_budget_support,
@@ -1487,14 +1474,13 @@ from nanohorizon.shared.modal_common import (
     RECORDS_DIR,
     RECORDS_VOLUME,
     REMOTE_ROOT,
-    TRAIN_PACKAGES,
     TRITON_CACHE_DIR,
     VLLM_COMPILE_CACHE_DIR,
-    _cuda_base_image,
+    offline_image,
     volume_mounts,
 )
-APP_NAME = "nanohorizon-crafter-rlvr"
-CRAFTER_PORT = 8903
+APP_NAME = "nanohorizon-craftax-rlvr"
+CRAFTAX_PORT = 8903
 VLLM_PORT = 8000
 CLUSTER_SIZE = 2
 DEFAULT_REQUEST_TIMEOUT_S = 60 * 20
@@ -1505,13 +1491,6 @@ DEFAULT_MAX_MODEL_LEN = 8192
 DEFAULT_MAX_LORA_RANK = 16
 RUNTIME_LORA_DIR = Path("/tmp/nanohorizon-rlvr-loras")
 RUNTIME_VLLM_BIN = Path(f"{OFFLINE_VENV_ROOT}/teacher/bin/vllm")
-CRAFTER_CORE_ROOT = Path(
-    os.getenv("NANOHORIZON_CRAFTER_CORE_ROOT") or str(PROJECT_ROOT.parent / "crafter-rs")
-).expanduser()
-REMOTE_CRAFTER_CORE = PurePosixPath("/root/crafter-rs")
-REMOTE_CRAFTER_BIN = PurePosixPath(
-    f"{REMOTE_ROOT}/containers/crafter_rs/target/release/crafter-rs-container"
-)
 DEFAULT_INFERENCE_API_KEY = (
     os.getenv("NANOHORIZON_RLVR_INFERENCE_API_KEY", "nanohorizon-rlvr-key").strip()
     or "nanohorizon-rlvr-key"
@@ -1525,84 +1504,29 @@ def _default_output_dir() -> str:
     return f"{RECORDS_DIR}/rlvr_20min_2xa100_40gb/{stamp}_reference_baseline"
 
 
+def _safe_output_label(raw_value: str) -> str:
+    label = "".join(ch.lower() if ch.isalnum() else "-" for ch in str(raw_value or "").strip())
+    collapsed = "-".join(part for part in label.split("-") if part)
+    return collapsed or "run"
+
+
+def _modal_cluster_output_dir(requested_output_dir: str) -> str:
+    requested = str(requested_output_dir or "").strip()
+    stamp = now_utc_iso().replace(":", "").replace("+00:00", "Z")
+    requested_name = Path(requested).name if requested else ""
+    label = _safe_output_label(requested_name or "local-entrypoint")
+    return f"{RECORDS_DIR}/rlvr_20min_2xa100_40gb/modal_runs/{stamp}_{label}"
+
+
 def _default_local_preflight_failure_dir() -> Path:
     stamp = now_utc_iso().replace(":", "").replace("+00:00", "Z")
     return PROJECT_ROOT / "artifacts" / "rlvr_preflight_failures" / stamp
 
 
-def _rlvr_runtime_image() -> modal.Image:
-    if not CRAFTER_CORE_ROOT.exists():
-        print(f"RLVR runtime image fallback: missing crafter-rs checkout at {CRAFTER_CORE_ROOT}", flush=True)
-        return modal.Image.debian_slim(python_version="3.11")
-    teacher_venv = f"{OFFLINE_VENV_ROOT}/teacher"
-    return (
-        _cuda_base_image()
-        .pip_install(*TRAIN_PACKAGES, "fastapi>=0.115.0", "uvicorn>=0.32.0")
-        .run_commands(
-            f"python -m venv {teacher_venv}",
-            f"{teacher_venv}/bin/python -m pip install --upgrade pip",
-            f"{teacher_venv}/bin/python -m pip install "
-            "\"httpx>=0.28.1\" \"pyyaml>=6.0.2\" \"vllm>=0.10.0\"",
-            "curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable",
-            "/root/.cargo/bin/cargo --version",
-        )
-        .add_local_dir(
-            (PROJECT_ROOT / "src").as_posix(), remote_path=f"{REMOTE_ROOT}/src", copy=True
-        )
-        .add_local_dir(
-            (PROJECT_ROOT / "scripts").as_posix(), remote_path=f"{REMOTE_ROOT}/scripts", copy=True
-        )
-        .add_local_dir(
-            (PROJECT_ROOT / "configs").as_posix(), remote_path=f"{REMOTE_ROOT}/configs", copy=True
-        )
-        .add_local_dir(
-            (PROJECT_ROOT / "data").as_posix(), remote_path=f"{REMOTE_ROOT}/data", copy=True
-        )
-        .add_local_dir(
-            (PROJECT_ROOT / "containers" / "crafter_rs" / "src").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/src",
-            copy=True,
-        )
-        .add_local_file(
-            (PROJECT_ROOT / "containers" / "crafter_rs" / "Cargo.toml").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/Cargo.toml",
-            copy=True,
-        )
-        .add_local_file(
-            (PROJECT_ROOT / "containers" / "crafter_rs" / "Cargo.lock").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/Cargo.lock",
-            copy=True,
-        )
-        .add_local_file(
-            (PROJECT_ROOT / "containers" / "crafter_rs" / "README.md").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/containers/crafter_rs/README.md",
-            copy=True,
-        )
-        .add_local_file(
-            (PROJECT_ROOT / "pyproject.toml").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/pyproject.toml",
-            copy=True,
-        )
-        .add_local_file(
-            (PROJECT_ROOT / "README.md").as_posix(),
-            remote_path=f"{REMOTE_ROOT}/README.md",
-            copy=True,
-        )
-        .add_local_dir(
-            CRAFTER_CORE_ROOT.as_posix(), remote_path=str(REMOTE_CRAFTER_CORE), copy=True
-        )
-        .run_commands(
-            f"cd {REMOTE_ROOT}/containers/crafter_rs && "
-            "/root/.cargo/bin/cargo build --release --bin crafter-rs-container"
-        )
-        .env({"PYTHONPATH": f"{REMOTE_ROOT}/src"})
-    )
-
-
 if REMOTE_SRC.exists():
     runtime_image = modal.Image.debian_slim(python_version="3.11")
 else:
-    runtime_image = _rlvr_runtime_image()
+    runtime_image = offline_image()
 
 
 def _pythonpath_with_repo() -> str:
@@ -1852,18 +1776,18 @@ def _clustered_ipv4_addresses(cluster_info: modal_exp.ClusterInfo) -> list[str]:
     scaledown_window=60 * 10,
     volumes=volume_mounts(),
 )
-class CrafterService:
-    @modal.web_server(port=CRAFTER_PORT, startup_timeout=60 * 10)
+class CraftaxService:
+    @modal.web_server(port=CRAFTAX_PORT, startup_timeout=60 * 10)
     def serve(self) -> None:
         runtime_env = {
             **os.environ,
             "PYTHONUNBUFFERED": "1",
             "PYTHONPATH": _pythonpath_with_repo(),
-            "NANOHORIZON_CRAFTER_BIND_HOST": "0.0.0.0",
-            "NANOHORIZON_CRAFTER_BIND_PORT": str(CRAFTER_PORT),
+            "NANOHORIZON_CRAFTAX_BIND_HOST": "0.0.0.0",
+            "NANOHORIZON_CRAFTAX_BIND_PORT": str(CRAFTAX_PORT),
         }
-        cmd = [str(REMOTE_CRAFTER_BIN)]
-        print("Launching Crafter service:", " ".join(shlex.quote(part) for part in cmd), flush=True)
+        cmd = [sys.executable, "-m", "nanohorizon.craftax_core.http_shim"]
+        print("Launching Craftax service:", " ".join(shlex.quote(part) for part in cmd), flush=True)
         subprocess.Popen(cmd, env=runtime_env)
 
 
@@ -2257,40 +2181,45 @@ def _clustered_inference_worker(payload: dict[str, Any], cluster_info: modal_exp
                 process.wait(timeout=10)
 
 
-def _start_local_crafter() -> subprocess.Popen[bytes]:
-    """Start the Crafter Rust binary on the controller (rank 0).
+def _start_local_craftax() -> subprocess.Popen[bytes]:
+    """Start the Craftax Python shim on the controller (rank 0).
 
-    By running Crafter on the same container as the controller, rollout
-    requests go via localhost instead of Modal's web proxy, and Crafter
+    By running Craftax on the same container as the controller, rollout
+    requests go via localhost instead of Modal's web proxy, and Craftax
     can reach the inference worker via the cluster's internal network
     instead of a Modal tunnel — eliminating the request serialization
     bottleneck.
     """
-    crafter_bin = str(REMOTE_CRAFTER_BIN)
     runtime_env = {
         **os.environ,
         "PYTHONUNBUFFERED": "1",
-        "NANOHORIZON_CRAFTER_BIND_HOST": "0.0.0.0",
-        "NANOHORIZON_CRAFTER_BIND_PORT": str(CRAFTER_PORT),
+        "PYTHONPATH": _pythonpath_with_repo(),
+        "NANOHORIZON_CRAFTAX_BIND_HOST": "0.0.0.0",
+        "NANOHORIZON_CRAFTAX_BIND_PORT": str(CRAFTAX_PORT),
     }
-    cmd = [crafter_bin]
-    print("Launching local Crafter on controller:", " ".join(shlex.quote(part) for part in cmd), flush=True)
+    cmd = [sys.executable, "-m", "nanohorizon.craftax_core.http_shim"]
+    print("Launching local Craftax on controller:", " ".join(shlex.quote(part) for part in cmd), flush=True)
     return subprocess.Popen(cmd, env=runtime_env)
 
 
-def _wait_for_local_crafter(process: subprocess.Popen[bytes], timeout_s: float = 60.0) -> None:
-    """Wait for the local Crafter binary to start accepting connections."""
-    deadline = time.time() + timeout_s
+def _wait_for_local_craftax(process: subprocess.Popen[bytes], timeout_s: float | None = None) -> None:
+    """Wait for the local Craftax runtime to start accepting connections."""
+    resolved_timeout_s = float(
+        timeout_s
+        if timeout_s is not None
+        else os.getenv("NANOHORIZON_RLVR_CRAFTAX_STARTUP_TIMEOUT_SECONDS", "180")
+    )
+    deadline = time.time() + resolved_timeout_s
     while time.time() < deadline:
         if process.poll() is not None:
-            raise RuntimeError(f"local Crafter exited early with code {process.returncode}")
+            raise RuntimeError(f"local Craftax runtime exited early with code {process.returncode}")
         try:
-            with socket.create_connection(("127.0.0.1", CRAFTER_PORT), timeout=1.0):
-                print("local Crafter is accepting connections on port", CRAFTER_PORT, flush=True)
+            with socket.create_connection(("127.0.0.1", CRAFTAX_PORT), timeout=1.0):
+                print("local Craftax runtime is accepting connections on port", CRAFTAX_PORT, flush=True)
                 return
         except (ConnectionRefusedError, OSError):
             time.sleep(0.5)
-    raise RuntimeError(f"local Crafter did not start within {timeout_s}s")
+    raise RuntimeError(f"local Craftax runtime did not start within {resolved_timeout_s}s")
 
 
 def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.ClusterInfo) -> dict[str, Any]:
@@ -2305,15 +2234,41 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
         config_filename=str(payload.get("config_filename") or ""),
     )
 
-    # Start Crafter locally on rank 0 — avoids Modal web proxy bottleneck
-    crafter_process = _start_local_crafter()
-    try:
-        _wait_for_local_crafter(crafter_process)
-    except Exception:
-        if crafter_process.poll() is None:
-            crafter_process.terminate()
-        raise
-    local_container_url = f"http://127.0.0.1:{CRAFTER_PORT}"
+    fallback_container_url = str(payload.get("container_url") or "").rstrip("/")
+    prefer_local_craftax = (
+        str(os.getenv("NANOHORIZON_RLVR_USE_LOCAL_CRAFTAX", "0")).strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    craftax_process: subprocess.Popen[bytes] | None = None
+    local_container_url = fallback_container_url
+
+    if prefer_local_craftax:
+        # This keeps the old localhost optimization available for experiments,
+        # but we do not block RLVR by default on another cold Craftax startup.
+        craftax_process = _start_local_craftax()
+        try:
+            _wait_for_local_craftax(craftax_process)
+            local_container_url = f"http://127.0.0.1:{CRAFTAX_PORT}"
+        except Exception as exc:
+            if craftax_process.poll() is None:
+                craftax_process.terminate()
+            craftax_process = None
+            if not fallback_container_url:
+                raise
+            print(
+                "local Craftax startup timed out; falling back to Craftax service endpoint:",
+                fallback_container_url,
+                f"({type(exc).__name__}: {exc})",
+                flush=True,
+            )
+    else:
+        if not fallback_container_url:
+            raise RuntimeError("Craftax service endpoint was not provided for RLVR controller")
+        print(
+            "RLVR controller using Craftax service endpoint by default:",
+            fallback_container_url,
+            flush=True,
+        )
 
     ready_payload = _wait_for_cluster_signal(
         ready_path=control_paths["ready"],
@@ -2328,22 +2283,30 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
         failure_path = output_dir / "preflight_failure.json"
         write_json(failure_path, failure_payload)
         _volume_commit()
-        crafter_process.terminate()
+        if craftax_process is not None and craftax_process.poll() is None:
+            craftax_process.terminate()
         raise RuntimeError(f"clustered inference worker failed during startup: {ready_payload}")
 
-    # Use the internal cluster IP for inference — bypasses Modal tunnel
+    # Use the internal cluster IP for controller-local probes/admin, but keep a
+    # service-reachable inference URL for Craftax rollout requests that execute
+    # inside a different container.
     internal_inference_base_url = str(
         ready_payload.get("internal_inference_base_url") or ready_payload["inference_base_url"]
     ).rstrip("/")
-    # Keep the tunnel URL for admin/LoRA operations that may need the public endpoint
     tunnel_inference_base_url = str(ready_payload["inference_base_url"]).rstrip("/")
+    rollout_inference_base_url = (
+        internal_inference_base_url
+        if local_container_url.startswith("http://127.0.0.1:")
+        else tunnel_inference_base_url
+    )
     served_model_name = str(payload["served_model_name"])
     inference_api_key = str(payload["inference_api_key"])
 
     print(
-        f"clustered controller using local Crafter={local_container_url} "
+        f"clustered controller using local Craftax={local_container_url} "
         f"internal_inference={internal_inference_base_url} "
-        f"tunnel_inference={tunnel_inference_base_url}",
+        f"tunnel_inference={tunnel_inference_base_url} "
+        f"rollout_inference={rollout_inference_base_url}",
         flush=True,
     )
 
@@ -2351,7 +2314,8 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
         "container_url": local_container_url,
         "inference_base_url": internal_inference_base_url,
         "tunnel_inference_base_url": tunnel_inference_base_url,
-        "inference_url": f"{internal_inference_base_url}/v1/chat/completions",
+        "rollout_inference_base_url": rollout_inference_base_url,
+        "inference_url": f"{rollout_inference_base_url}/v1/chat/completions",
         "inference_admin_url": f"{internal_inference_base_url}/v1",
         "served_model_name": served_model_name,
         "cluster": {
@@ -2375,7 +2339,7 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
         )
         bootstrap_info["preflight"]["container_roundtrip_probe"] = _probe_container_roundtrip(
             container_url=local_container_url,
-            inference_url=f"{internal_inference_base_url}/v1/chat/completions",
+            inference_url=f"{rollout_inference_base_url}/v1/chat/completions",
             api_key=inference_api_key,
             request_model=served_model_name,
         )
@@ -2384,7 +2348,7 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
         failure_path = output_dir / "preflight_failure.json"
         write_json(failure_path, failure_payload)
         _volume_commit()
-        crafter_process.terminate()
+        craftax_process.terminate()
         raise RuntimeError(f"clustered RLVR preflight failed: {exc}") from exc
 
     external_inference_server = _ClusteredInferenceHandle(control_paths)
@@ -2393,7 +2357,7 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
             config_path=runtime_config_path,
             output_dir=str(output_dir),
             container_url=local_container_url,
-            inference_url=f"{internal_inference_base_url}/v1/chat/completions",
+            inference_url=f"{rollout_inference_base_url}/v1/chat/completions",
             inference_admin_url=f"{internal_inference_base_url}/v1",
             inference_api_key=inference_api_key,
             request_model=served_model_name,
@@ -2405,10 +2369,10 @@ def _clustered_controller(payload: dict[str, Any], cluster_info: modal_exp.Clust
             control_paths["done"],
             {"status": "done", "finished_at": now_utc_iso()},
         )
-        if crafter_process.poll() is None:
-            crafter_process.terminate()
+        if craftax_process is not None and craftax_process.poll() is None:
+            craftax_process.terminate()
             with suppress(subprocess.TimeoutExpired):
-                crafter_process.wait(timeout=10)
+                craftax_process.wait(timeout=10)
 
 
 @app.function(
@@ -2428,7 +2392,7 @@ def run_clustered_rlvr(payload: dict[str, Any]) -> dict[str, Any] | None:
 
 @app.local_entrypoint()
 def modal_main(
-    config: str = "configs/crafter_rlvr_qwen35_4b_2xa100_20min.yaml",
+    config: str = "configs/craftax_rlvr_qwen35_4b_2xa100_20min.yaml",
     output_dir: str = "",
 ) -> None:
     config_path = PROJECT_ROOT / config
@@ -2468,17 +2432,19 @@ def modal_main(
         or config_payload.get("inference", {}).get("api_key")
         or DEFAULT_INFERENCE_API_KEY
     ).strip() or DEFAULT_INFERENCE_API_KEY
-    resolved_output_dir = str(output_dir or _default_output_dir())
-    crafter_service = CrafterService()
-    crafter_web_url = crafter_service.serve.get_web_url()
-    if not crafter_web_url:
-        raise RuntimeError("Crafter service did not provide a web URL")
-    container_url = crafter_web_url.rstrip("/")
+    requested_output_dir = str(output_dir or "").strip()
+    remote_output_dir = _modal_cluster_output_dir(requested_output_dir)
+    craftax_service = CraftaxService()
+    craftax_web_url = craftax_service.serve.get_web_url()
+    if not craftax_web_url:
+        raise RuntimeError("Craftax service did not provide a web URL")
+    container_url = craftax_web_url.rstrip("/")
     payload = {
         "config": config,
         "config_text": submitted_config_path.read_text(encoding="utf-8"),
         "config_filename": submitted_config_path.name,
-        "output_dir": resolved_output_dir,
+        "output_dir": remote_output_dir,
+        "requested_output_dir": requested_output_dir,
         "container_url": container_url,
         "inference_api_key": inference_api_key,
         "inference_model": model_name,
@@ -2492,14 +2458,25 @@ def modal_main(
         failure_payload = {
             "container_url": container_url,
             "config": config,
-            "output_dir": resolved_output_dir,
+            "output_dir": requested_output_dir or remote_output_dir,
+            "remote_output_dir": remote_output_dir,
             "error": f"{type(exc).__name__}: {exc}",
         }
         failure_path = _write_local_preflight_failure(
-            output_dir=resolved_output_dir,
+            output_dir=requested_output_dir,
             payload=failure_payload,
         )
         raise RuntimeError(
             f"clustered RLVR run failed; details written to {failure_path}: {exc}"
         ) from exc
+    if requested_output_dir:
+        local_destination = ensure_dir(requested_output_dir)
+        write_json(
+            local_destination / "modal_rlvr_result.json",
+            {
+                "requested_output_dir": requested_output_dir,
+                "remote_output_dir": remote_output_dir,
+                "result": result,
+            },
+        )
     print(json.dumps(result, indent=2, sort_keys=True))

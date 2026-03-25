@@ -6,38 +6,22 @@ import re
 from urllib.parse import urlparse
 
 import httpx
+from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
 
-CRAFTER_ACTIONS = {
-    "move_left",
-    "move_right",
-    "move_up",
-    "move_down",
-    "do",
-    "sleep",
-    "place_table",
-    "place_stone",
-    "place_furnace",
-    "place_plant",
-    "make_wood_pickaxe",
-    "make_stone_pickaxe",
-    "make_iron_pickaxe",
-    "make_wood_sword",
-    "make_stone_sword",
-    "make_iron_sword",
-}
+CRAFTAX_ACTIONS = set(DEFAULT_ACTION_NAMES)
 
 
-def sanitize_crafter_actions(values: list[object]) -> list[str]:
+def sanitize_craftax_actions(values: list[object]) -> list[str]:
     sanitized: list[str] = []
     for value in values:
         raw = str(value).strip().lower()
         if not raw:
             continue
-        if raw in CRAFTER_ACTIONS and raw not in sanitized:
+        if raw in CRAFTAX_ACTIONS and raw not in sanitized:
             sanitized.append(raw)
             continue
         for token in re.findall(r"[a-z_]+", raw):
-            if token in CRAFTER_ACTIONS and token not in sanitized:
+            if token in CRAFTAX_ACTIONS and token not in sanitized:
                 sanitized.append(token)
     return sanitized
 
@@ -122,7 +106,7 @@ def chat_completion(
     return str(message.get("content") or "").strip()
 
 
-def extract_crafter_actions(payload: dict, *, tool_name: str = "crafter_interact") -> list[str]:
+def extract_craftax_actions(payload: dict, *, tool_name: str = PRIMARY_TOOL_NAME) -> list[str]:
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
         return []
@@ -138,7 +122,8 @@ def extract_crafter_actions(payload: dict, *, tool_name: str = "crafter_interact
             function = tool_call.get("function", {})
             if not isinstance(function, dict):
                 continue
-            if tool_name and function.get("name") != tool_name:
+            name = str(function.get("name") or "").strip()
+            if name != (tool_name or PRIMARY_TOOL_NAME):
                 continue
             arguments = function.get("arguments", "{}")
             if isinstance(arguments, str):
@@ -151,13 +136,13 @@ def extract_crafter_actions(payload: dict, *, tool_name: str = "crafter_interact
             for key in ("actions_list", "actions"):
                 values = arguments.get(key)
                 if isinstance(values, list):
-                    parsed = sanitize_crafter_actions(values)
+                    parsed = sanitize_craftax_actions(values)
                     if parsed:
                         return parsed
     return []
 
 
-def extract_qwen_tool_calls(payload: dict, *, tool_name: str = "crafter_interact") -> list[dict]:
+def extract_qwen_tool_calls(payload: dict, *, tool_name: str = PRIMARY_TOOL_NAME) -> list[dict]:
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
         return []
@@ -182,6 +167,8 @@ def extract_qwen_tool_calls(payload: dict, *, tool_name: str = "crafter_interact
                 except Exception:
                     arguments = {}
             if name and isinstance(arguments, dict):
+                if name != (tool_name or PRIMARY_TOOL_NAME):
+                    continue
                 parsed_calls.append({"name": name, "arguments": arguments})
         if parsed_calls:
             return parsed_calls
@@ -200,6 +187,8 @@ def extract_qwen_tool_calls(payload: dict, *, tool_name: str = "crafter_interact
                 name = str(parsed.get("name") or "").strip()
                 arguments = parsed.get("arguments", {})
                 if name and isinstance(arguments, dict):
+                    if name != (tool_name or PRIMARY_TOOL_NAME):
+                        continue
                     parsed_calls.append({"name": name, "arguments": arguments})
 
     if parsed_calls:
@@ -207,7 +196,7 @@ def extract_qwen_tool_calls(payload: dict, *, tool_name: str = "crafter_interact
     return []
 
 
-def extract_openai_tool_calls(payload: dict, *, tool_name: str = "crafter_interact") -> list[dict]:
+def extract_openai_tool_calls(payload: dict, *, tool_name: str = PRIMARY_TOOL_NAME) -> list[dict]:
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
         return []
@@ -225,7 +214,7 @@ def extract_openai_tool_calls(payload: dict, *, tool_name: str = "crafter_intera
             if not isinstance(function, dict):
                 continue
             name = str(function.get("name") or "").strip()
-            if tool_name and name != tool_name:
+            if name != (tool_name or PRIMARY_TOOL_NAME):
                 continue
             arguments = function.get("arguments", {})
             if isinstance(arguments, str):
@@ -251,7 +240,7 @@ def extract_openai_tool_calls(payload: dict, *, tool_name: str = "crafter_intera
             if not isinstance(parsed, dict):
                 continue
             name = str(parsed.get("name") or "").strip()
-            if tool_name and name != tool_name:
+            if name != (tool_name or PRIMARY_TOOL_NAME):
                 continue
             arguments = parsed.get("arguments", {})
             if name and isinstance(arguments, dict):

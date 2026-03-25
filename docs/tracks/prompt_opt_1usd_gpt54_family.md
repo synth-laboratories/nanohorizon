@@ -7,7 +7,7 @@ This is the prompt optimization benchmark track for NanoHorizon.
 ## Contract
 
 - policy model: `Qwen/Qwen3.5-4B`
-- environment: Crafter
+- environment: Craftax
 - optimizer budget: $1 total compute spend
 - optimizer models: any mix of `gpt-5.4`, `gpt-5.4-mini`, and `gpt-5.4-nano`
 
@@ -28,7 +28,7 @@ This is the prompt optimization benchmark track for NanoHorizon.
 ## Expected Starter Script
 
 ```bash
-./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh
+./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh
 ```
 
 ## Reference Baseline
@@ -41,7 +41,7 @@ This is the prompt optimization benchmark track for NanoHorizon.
 
 Interpretation:
 
-- the leaderboard score for this track is actual Crafter `mean_outcome_reward`
+- the leaderboard score for this track is actual Craftax `mean_outcome_reward`
 - `GEPA` search score is tracked in `metrics.json -> best_gepa_val_score`, but it is not the track score
 - this checked-in baseline is a completed honest-accounting reference run, even though it regressed from the seed prompt
 
@@ -49,7 +49,7 @@ Interpretation:
 
 - Modal for execution
 - `gpt-5.4-mini` proposer by default
-- shared Crafter eval harness
+- shared Craftax eval harness
 - default example GPU: `L4` via `NANOHORIZON_MODAL_GPU_PROMPT_OPT`
 
 ## Expected Record Bundle

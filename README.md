@@ -1,12 +1,12 @@
 # NanoHorizon
 
 <p align="center">
-  <img src="assets/crafter_gpt54nano.gif" width="200" alt="Real NanoHorizon Crafter RS rollout captured after each in-game action using gpt-5.4-nano via the OpenAI API" />
+  <img src="assets/craftax_gpt54nano.gif" width="200" alt="Real NanoHorizon Craftax RS rollout captured after each in-game action using gpt-5.4-nano via the OpenAI API" />
 </p>
 
 **Fast, cheap iteration for long-horizon and classic RL agents.** Improve agents under hard time, hardware, and budget caps with reproducible runs, pinned metrics, and public records anyone can verify.
 
-*GIF: real NanoHorizon Crafter RS rollout captured after each in-game action with `gpt-5.4-nano` via the OpenAI API.*
+*GIF: real NanoHorizon Craftax RS rollout captured after each in-game action with `gpt-5.4-nano` via the OpenAI API.*
 
 [Join the Synth Discord](https://discord.gg/cjfAMcCZef)
 
@@ -21,7 +21,7 @@ There are two ways to win:
 1. **Higher score** — get more reward out of the same time and hardware budget.
 2. **Higher throughput** — get the same reward in less time, or more lift per minute of training. A method that reaches the current best score 3x faster is a real contribution.
 
-Base model target for the Crafter tracks: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
+Base model target for the Craftax tracks: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 
 ## Leaderboard
 
@@ -31,10 +31,10 @@ Status: **three checked-in training reference baselines** plus a checked-in pure
 | --- | ---: | --- | --- | --- | --- |
 | `offline_20min_1xa100_40gb` | 1 | `modal_4b_nochange_baseline` | `0.7` | Pure no-change 4B baseline via Modal inference on the 20 held-out seeds; includes raw rewards and 22-achievement frequencies | [info](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/) |
 | `offline_20min_1xa100_40gb` | 2 | `throughput_optimized_baseline` | `0.6` | FBC on 4B with 9B teacher; +0.2 delta in **8.2 min** (was ~20 min); 40k tokens, 23 examples, A100 teacher at 32x concurrency; naive SFT scaling experiments show this is the algorithmic ceiling | [info](records/offline_20min_1xa100_40gb/2026-03-22_throughput_optimized_baseline/) |
-| `offline_20min_1xa100_40gb` | 3 | `reference_baseline` | `0.5` | Crafter FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
-| `rlvr_20min_2xa100_40gb` | 1 | `throughput_baseline` | `2.5` | 3 GRPO iterations, 69 rollouts in 18.7 min, +0.25 reward lift from bootstrap (2.25 → 2.5); V1 engine + CUDA graphs + local Crafter + internal networking; 470 tok/s steady-state, 1451 tok/s peak | — |
+| `offline_20min_1xa100_40gb` | 3 | `reference_baseline` | `0.5` | Craftax FBC on 4B with 9B teacher; held-out compare gives `+0.2` reward delta | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
+| `rlvr_20min_2xa100_40gb` | 1 | `throughput_baseline` | `2.5` | 3 GRPO iterations, 69 rollouts in 18.7 min, +0.25 reward lift from bootstrap (2.25 → 2.5); V1 engine + CUDA graphs + local Craftax + internal networking; 470 tok/s steady-state, 1451 tok/s peak | — |
 | `rlvr_20min_2xa100_40gb` | 2 | `reference_baseline` | `0.0` | Topology validation only (enforce-eager, 13 tok/s) | [info](records/rlvr_20min_2xa100_40gb/2026-03-21_reference_baseline/) |
-| `prompt_opt_1usd_gpt54_family` | 1 | `reference_baseline` | `0.35` | GEPA prompt search on 4B under honest Crafter reward accounting; 20-rollout held-out probe regressed `-0.25` from the seed prompt | [info](records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) |
+| `prompt_opt_1usd_gpt54_family` | 1 | `reference_baseline` | `0.35` | GEPA prompt search on 4B under honest Craftax reward accounting; 20-rollout held-out probe regressed `-0.25` from the seed prompt | [info](records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/) |
 
 `classic` is now an official track, but it does not have a checked-in reference record yet.
 
@@ -47,27 +47,27 @@ Each track has **one Python file** containing the training algorithm and **one s
 ### RLVR track
 
 1. Change the training algorithm in [rlvr.py](src/nanohorizon/baselines/rlvr.py)
-2. Run: `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh`
+2. Run: `./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh`
 
 Budget: `20` minutes on `2x A100 40GB` · Model: `Qwen/Qwen3.5-4B`
 
-This is the first-track long-horizon RL lane: LLM-in-the-loop, Crafter, and the existing repo container/runtime abstractions.
+This is the first-track long-horizon RL lane: LLM-in-the-loop, Craftax, and the existing repo container/runtime abstractions.
 
 <details>
 <summary>Config override (for smoke tests, not the main edit surface)</summary>
 
 ```bash
-NANOHORIZON_RLVR_CONFIG=configs/crafter_rlvr_qwen35_4b_validation_smoke.yaml \
-./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+NANOHORIZON_RLVR_CONFIG=configs/craftax_rlvr_qwen35_4b_validation_smoke.yaml \
+./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 </details>
 
 What that bash script handles for you:
 
-- builds and uploads the Crafter Rust service into Modal
-- starts a Synth-compatible Crafter HTTP service in the same Modal app
+- builds and uploads the Craftax Rust service into Modal
+- starts a Synth-compatible Craftax HTTP service in the same Modal app
 - starts a clustered learner-plus-inference runtime and forwards a stable inference URL from the inference worker
-- runs grouped online Crafter rollouts
+- runs grouped online Craftax rollouts
 - runs the GRPO-style LoRA update loop from `src/nanohorizon/baselines/rlvr.py`
 - reloads adapters into inference between rollout waves
 - writes periodic eval, final eval, and record-bundle outputs
@@ -79,7 +79,7 @@ What that bash script handles for you:
 
 Task: Craftax-Classic via `craftax` · Regime: `1M` · Policy: random-init RL under `100M` params
 
-This is a separate classic-RL lane. It does not use the in-repo Crafter-RS runtime, container abstractions for environment interaction, or OpenAI-compatible policy serving. The first baseline is a JAX PPO-RNN setup for `Craftax-Classic-Symbolic-v1` at `1M` frames, followed by a fast parallelized eval pass.
+This is a separate classic-RL lane. It does not use the in-repo Craftax runtime, container abstractions for environment interaction, or OpenAI-compatible policy serving. The first baseline is a JAX PPO-RNN setup for `Craftax-Classic-Symbolic-v1` at `1M` frames, followed by a fast parallelized eval pass.
 
 ### Offline (SFT) track
 
@@ -90,17 +90,17 @@ Budget: `20` minutes on `1x A100 40GB` · Student: `Qwen/Qwen3.5-4B` · Teacher:
 
 What that bash script handles for you:
 
-- starts the local Crafter service
+- starts the local Craftax service
 - runs teacher inference on Modal
 - runs SFT on Modal
-- collects rollouts locally against the local Crafter container
-- runs held-out base vs finetuned evals locally against the local Crafter container
+- collects rollouts locally against the local Craftax container
+- runs held-out base vs finetuned evals locally against the local Craftax container
 - writes the comparison summary
 
 Default offline path:
 
 - no tunnel
-- local Crafter container at `http://127.0.0.1:8903`
+- local Craftax container at `http://127.0.0.1:8903`
 - remote Modal inference for teacher, base student, and finetuned student
 - remote Modal SFT for the student LoRA
 
@@ -116,10 +116,19 @@ Pure no-change 4B Modal baseline:
 - mean reward over 20 held-out seeds: `0.7`
 - checked-in fields include raw rewards and 22-achievement frequencies
 
+Known issue / current focus for submissions:
+
+- Simply scaling teacher volume does not reliably improve score.
+- Recent quality-filtered runs still admitted mostly `collect_wood` traces,
+  with weak coverage of stronger target behaviors like `eat_cow`,
+  `defeat_zombie`, and `defeat_skeleton`.
+- For this SFT track, improving high-quality data filtering and trace
+  selection should be treated as a primary optimization target.
+
 ### Prompt-opt track
 
 1. Change the search/optimization algorithm in [prompt_opt.py](src/nanohorizon/baselines/prompt_opt.py)
-2. Run: `./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh`
+2. Run: `./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
 
 Budget: `$1` optimizer spend (GPT-5.4 family) · Model: `Qwen/Qwen3.5-4B`
 
@@ -133,7 +142,7 @@ SMR complements local `./scripts/...` runs. To **submit your solution**, follow 
 
 ## Reference baseline
 
-Canonical Crafter SFT baseline:
+Canonical Craftax SFT baseline:
 
 ```bash
 ./scripts/run_offline_training.sh
@@ -149,7 +158,7 @@ Default reference settings:
 
 - student: `Qwen/Qwen3.5-4B`
 - teacher: `Qwen/Qwen3.5-9B`
-- tool-calling-only Crafter traces
+- tool-calling-only Craftax traces
 - `thinking_budget_tokens = 2000`
 - async local rollout collection, reward filtering, Modal LoRA SFT, then held-out base-vs-finetuned compare
 - held-out compare defaults: `20` eval rollouts at concurrency `10`
@@ -162,10 +171,10 @@ Most recent proved comparison:
 
 ## RLVR reference baseline
 
-Canonical Crafter RLVR baseline:
+Canonical Craftax RLVR baseline:
 
 ```bash
-./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh
+./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh
 ```
 
 Single Python file to modify:
@@ -177,8 +186,8 @@ src/nanohorizon/baselines/rlvr.py
 Default reference settings:
 
 - model: `Qwen/Qwen3.5-4B`
-- topology: Crafter runs locally on controller (rank 0), vLLM on rank 1, connected via cluster-internal networking
-- tool-calling-only Crafter interaction
+- topology: Craftax runs locally on controller (rank 0), vLLM on rank 1, connected via cluster-internal networking
+- tool-calling-only Craftax interaction
 - `thinking_budget_tokens = 2000`
 - `max_tokens = 3072`
 - grouped rollout size: `4`
@@ -206,7 +215,7 @@ Key throughput optimizations over the initial topology-validation baseline:
 
 1. vLLM V1 engine + torch.compile + CUDA graphs (was `--enforce-eager`)
 2. In-place vLLM LoRA patch for Qwen3.5 hybrid Mamba-attention CUDA graph profiling (`src/nanohorizon/custom_vllm/lora_patch.py`)
-3. Local Crafter on controller + cluster-internal inference networking (was Modal web proxy + tunnel, which serialized all LLM requests to concurrency 1)
+3. Local Craftax on controller + cluster-internal inference networking (was Modal web proxy + tunnel, which serialized all LLM requests to concurrency 1)
 4. Full-layer LoRA: added GDN projections (`in_proj_qkv`, `in_proj_z`, `in_proj_b`, `in_proj_a`, `out_proj`) per [Tinker LoRA recommendations](https://thinkingmachines.ai/blog/lora/)
 
 How to interpret RLVR results:
@@ -222,7 +231,7 @@ How to interpret RLVR results:
 
 | Run | Score | Student | Teacher | Summary | Date | Info |
 | --- | ---: | --- | --- | --- | --- | --- |
-| `reference_baseline` | `0.5` | `Qwen/Qwen3.5-4B` | `Qwen/Qwen3.5-9B` | Crafter FBC with tool-calling traces, 2k thinking budget, and held-out compare (`+0.2` delta over base) | `2026-03-20` | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
+| `reference_baseline` | `0.5` | `Qwen/Qwen3.5-4B` | `Qwen/Qwen3.5-9B` | Craftax FBC with tool-calling traces, 2k thinking budget, and held-out compare (`+0.2` delta over base) | `2026-03-20` | [info](records/offline_20min_1xa100_40gb/2026-03-20_reference_baseline/) |
 | `modal_4b_nochange_baseline` | `0.7` | `Qwen/Qwen3.5-4B` | `-` | Pure no-change 4B baseline via Modal inference on the 20 held-out seeds; raw rewards and 22-achievement frequencies are checked in | `2026-03-22` | [info](records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/) |
 
 ---
@@ -232,11 +241,11 @@ How to interpret RLVR results:
 | Track | Wall / budget | What you run |
 | --- | --- | --- |
 | `offline_20min_1xa100_40gb` | 20 min · 1× A100 40GB | `./scripts/run_offline_training.sh` |
-| `rlvr_20min_2xa100_40gb` | 20 min · 2× A100 40GB | `./scripts/run_crafter_rlvr_qwen35_4b_2xa100_20min.sh` |
-| `prompt_opt_1usd_gpt54_family` | **$1** optimizer spend (GPT-5.4 family) | `./scripts/run_crafter_prompt_opt_qwen35_4b_gpt54_budget.sh` |
+| `rlvr_20min_2xa100_40gb` | 20 min · 2× A100 40GB | `./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh` |
+| `prompt_opt_1usd_gpt54_family` | **$1** optimizer spend (GPT-5.4 family) | `./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh` |
 | `classic` | Craftax-Classic `1M` · random-init RL under `100M` params | `./scripts/run_classic_craftax_1m_modal.sh` |
 
-Crafter reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`** teacher. The Crafter tracks are the repo's long-horizon RL lane; `classic` is the separate classic-RL lane. Track rules: [docs/tracks/](docs/tracks/) · tasks: [docs/task-crafter.md](docs/task-crafter.md), [docs/task-craftax-classic.md](docs/task-craftax-classic.md).
+Craftax reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`** teacher. The Craftax tracks are the repo's long-horizon RL lane; `classic` is the separate classic-RL lane. Track rules: [docs/tracks/](docs/tracks/) · tasks: [docs/task-craftax.md](docs/task-craftax.md), [docs/task-craftax-classic.md](docs/task-craftax-classic.md).
 
 ## Prompt-opt reference baseline
 
@@ -245,7 +254,7 @@ Crafter reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwe
 - baseline seed-prompt eval: `0.6`
 - optimizer family: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano` (default: `gpt-5.4-mini`)
 - search backend: `GEPA`
-- score reported in the leaderboard: actual Crafter `mean_outcome_reward`, not GEPA search score
+- score reported in the leaderboard: actual Craftax `mean_outcome_reward`, not GEPA search score
 
 How to interpret prompt-opt results:
 
@@ -266,11 +275,11 @@ How to interpret prompt-opt results:
    uv run modal setup
    ```
 
-   Crafter prerequisite for the offline reference path:
+   Craftax prerequisite for the offline reference path:
 
    ```text
    ~/Documents/GitHub/nanohorizon
-   ~/Documents/GitHub/crafter-rs
+   ~/Documents/GitHub/craftax-core
    ```
 
 2. **Clone and run** (from repo root):
@@ -308,7 +317,7 @@ How to interpret prompt-opt results:
 ## Modal layout
 
 - Shared Modal substrate: `src/nanohorizon/shared/modal_common.py`
-- Shared Crafter eval entrypoint: `src/nanohorizon/shared/modal_eval.py`
+- Shared Craftax eval entrypoint: `src/nanohorizon/shared/modal_eval.py`
 - Offline/FBC core logic: `src/nanohorizon/baselines/offline_sft.py`
 - Offline/FBC Modal SFT entrypoint: `src/nanohorizon/baselines/offline_sft.py`
 - Shared teacher / student vLLM entrypoint: `src/nanohorizon/shared/modal_teacher.py`

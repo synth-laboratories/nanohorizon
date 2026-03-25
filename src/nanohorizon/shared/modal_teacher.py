@@ -14,9 +14,9 @@ if REMOTE_SRC.exists():
     sys.path.insert(0, str(REMOTE_SRC))
 
 from nanohorizon.custom_vllm.runtime import enable_thinking_budget_support
-from nanohorizon.shared.modal_common import GPU_TEACHER, OFFLINE_VENV_ROOT, offline_image, volume_mounts
+from nanohorizon.shared.modal_common import GPU_TEACHER, rlvr_vllm_image, volume_mounts
 
-APP_NAME = os.environ.get("NANOHORIZON_MODAL_TEACHER_APP_NAME", "nanohorizon-crafter-teacher").strip() or "nanohorizon-crafter-teacher"
+APP_NAME = os.environ.get("NANOHORIZON_MODAL_TEACHER_APP_NAME", "nanohorizon-craftax-teacher").strip() or "nanohorizon-craftax-teacher"
 VLLM_PORT = 8000
 DEFAULT_MODEL = os.environ.get("NANOHORIZON_TEACHER_MODEL", "Qwen/Qwen3.5-9B").strip() or "Qwen/Qwen3.5-9B"
 DEFAULT_SERVED_MODEL_NAME = os.environ.get("NANOHORIZON_TEACHER_SERVED_MODEL_NAME", "").strip()
@@ -27,7 +27,7 @@ DEFAULT_LORA_PATH = os.environ.get("NANOHORIZON_TEACHER_LORA_PATH", "").strip()
 DEFAULT_MAX_LORA_RANK = int(os.environ.get("NANOHORIZON_TEACHER_MAX_LORA_RANK", "16").strip() or "16")
 
 app = modal.App(APP_NAME)
-image = offline_image()
+image = rlvr_vllm_image()
 
 
 @app.cls(
@@ -36,8 +36,9 @@ image = offline_image()
     timeout=60 * 60 * 24,
     scaledown_window=60 * 10,
     volumes=volume_mounts(),
+    buffer_containers=1,
 )
-@modal.concurrent(max_inputs=32)
+@modal.concurrent(max_inputs=64)
 class TeacherServer:
     model: str = modal.parameter(default=DEFAULT_MODEL)
     served_model_name: str = modal.parameter(default=DEFAULT_SERVED_MODEL_NAME)
@@ -49,7 +50,7 @@ class TeacherServer:
 
     @modal.web_server(port=VLLM_PORT, startup_timeout=60 * 20)
     def serve(self) -> None:
-        vllm_bin = f"{OFFLINE_VENV_ROOT}/teacher/bin/vllm"
+        vllm_bin = "vllm"
         model = self.model.strip() or DEFAULT_MODEL
         served_model_name = self.served_model_name.strip() or model
         api_key = self.api_key.strip() or DEFAULT_API_KEY
