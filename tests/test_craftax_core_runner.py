@@ -80,6 +80,53 @@ def test_texture_cache_syncs_with_shared_root(monkeypatch, tmp_path):
     assert restored["classic"]["restored_from_shared_cache"] is True
 
 
+def test_texture_cache_restores_shared_files_before_craftax_import(monkeypatch, tmp_path):
+    package_root = tmp_path / "fake_site"
+    full_assets = package_root / "craftax" / "craftax" / "assets"
+    classic_assets = package_root / "craftax" / "craftax_classic" / "assets"
+    full_assets.mkdir(parents=True, exist_ok=True)
+    classic_assets.mkdir(parents=True, exist_ok=True)
+
+    for init_file in (
+        package_root / "craftax" / "__init__.py",
+        package_root / "craftax" / "craftax" / "__init__.py",
+        package_root / "craftax" / "craftax_classic" / "__init__.py",
+    ):
+        init_file.write_text("", encoding="utf-8")
+
+    full_target = full_assets / "texture_cache.pbz2"
+    classic_target = classic_assets / "texture_cache_classic.pbz2"
+    (package_root / "craftax" / "craftax" / "constants.py").write_text(
+        f'TEXTURE_CACHE_FILE = r"{full_target}"\n',
+        encoding="utf-8",
+    )
+    (package_root / "craftax" / "craftax_classic" / "constants.py").write_text(
+        f'TEXTURE_CACHE_FILE = r"{classic_target}"\n',
+        encoding="utf-8",
+    )
+
+    shared_root = tmp_path / "shared"
+    shared_full = shared_root / "full" / full_target.name
+    shared_classic = shared_root / "classic" / classic_target.name
+    shared_full.parent.mkdir(parents=True, exist_ok=True)
+    shared_classic.parent.mkdir(parents=True, exist_ok=True)
+    shared_full.write_bytes(b"shared-full-cache")
+    shared_classic.write_bytes(b"shared-classic-cache")
+
+    monkeypatch.setenv("NANOHORIZON_CRAFTAX_CACHE_DIR", str(shared_root))
+    monkeypatch.syspath_prepend(str(package_root))
+    for module_name in list(sys.modules):
+        if module_name == "craftax" or module_name.startswith("craftax."):
+            monkeypatch.delitem(sys.modules, module_name, raising=False)
+
+    restored = ensure_texture_cache()
+
+    assert full_target.read_bytes() == b"shared-full-cache"
+    assert classic_target.read_bytes() == b"shared-classic-cache"
+    assert restored["full"]["restored_from_shared_cache"] is True
+    assert restored["classic"]["restored_from_shared_cache"] is True
+
+
 def test_media_persist_smoke(tmp_path):
     frames = [np.zeros((8, 8, 3), dtype=np.uint8), np.full((8, 8, 3), 255, dtype=np.uint8)]
     artifacts = persist_media(frames=frames, output_dir=tmp_path / "media", fps=4, write_mp4=False)

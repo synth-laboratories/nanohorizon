@@ -117,6 +117,11 @@ def run(
             "NANOHORIZON_CRAFTAX_BIND_PORT": str(CRAFTAX_PORT),
             "NANOHORIZON_CRAFTAX_BIND_HOST": "0.0.0.0",
             "NANOHORIZON_CRAFTAX_BIND_PORT": str(CRAFTAX_PORT),
+            "CUDA_VISIBLE_DEVICES": "",
+            "JAX_PLATFORMS": "cpu",
+            "JAX_PLATFORM_NAME": "cpu",
+            "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+            "XLA_PYTHON_CLIENT_MEM_FRACTION": "0.0",
         }
         craftax_fh = open(str(craftax_log), "w")
         craftax_proc = subprocess.Popen(

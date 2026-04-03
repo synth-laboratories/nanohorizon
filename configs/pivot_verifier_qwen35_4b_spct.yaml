@@ -1,0 +1,77 @@
+task:
+  track: pivot_verifier_qwen35_4b
+  method_name: spct_qwen35_4b_baseline
+
+data:
+  bootstrap_rollouts_path: ""
+
+bootstrap:
+  container_url: ""
+  container_worker_token: ""
+  teacher_inference_url: ""
+  teacher_api_key: ""
+  teacher_model: Qwen/Qwen3.5-9B
+  seed_start: 0
+  seed_count: 16
+  max_steps: 32
+  temperature: 0.2
+  max_new_tokens: 2048
+  thinking_budget_tokens: 1500
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 4
+  target_action_batch_size: 4
+  min_action_batch_size: 3
+  enable_thinking: true
+  request_timeout_seconds: 300
+
+dataset:
+  lookahead: 1
+  max_examples: 256
+  holdout_fraction: 0.15
+  split_seed: 13
+
+verifier:
+  base_model: Qwen/Qwen3.5-4B
+  max_length: 4096
+
+training:
+  learning_rate: 1.0e-5
+  epochs: 1
+  max_steps: 32
+  lora_rank: 16
+  use_native_tool_calling: true
+  refinement:
+    enabled: true
+    max_examples: 16
+    samples_per_example: 3
+    temperature: 0.7
+    max_new_tokens: 384
+    max_lora_rank: 16
+    gpu_memory_utilization: 0.7
+    enable_thinking: true
+    thinking_budget_tokens: 512
+    epochs: 1
+    max_steps: 32
+
+evaluation:
+  max_examples: 24
+  max_new_tokens: 384
+  max_lora_rank: 16
+  gpu_memory_utilization: 0.7
+  enable_thinking: true
+  thinking_budget_tokens: 512
+  golden_eval_path: data/craftax/pivot_verifier_golden_eval.jsonl
+
+downstream_policy:
+  enabled: false
+  base_model: Qwen/Qwen3.5-4B
+  max_examples: 256
+  learning_rate: 5.0e-6
+  epochs: 1
+  max_steps: 64
+  lora_rank: 8
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+  max_length: 1536
+  beta: 0.2
+  chosen_distill_weight: 0.05

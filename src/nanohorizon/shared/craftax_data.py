@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import math
 import time
+from collections.abc import Callable
 from statistics import mean
 from typing import Any
 
 import httpx
+
 from nanohorizon.craftax_core.metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
@@ -59,6 +61,19 @@ def _is_cloudflare_quick_tunnel_url(url: str) -> bool:
     return hostname.endswith(".trycloudflare.com")
 
 
+def _is_modal_edge_url(url: str) -> bool:
+    try:
+        hostname = httpx.URL(url).host or ""
+    except Exception:
+        return False
+    return hostname.endswith(".modal.run") or hostname.endswith(".w.modal.host")
+
+
+def _container_base_urls(raw_url: str) -> list[str]:
+    urls = [item.strip().rstrip("/") for item in str(raw_url or "").split(",") if item.strip()]
+    return urls or [""]
+
+
 def _container_headers(
     *,
     container_url: str,
@@ -66,6 +81,12 @@ def _container_headers(
     environment_api_key: str | None,
 ) -> dict[str, str]:
     headers: dict[str, str] = {"Content-Type": "application/json"}
+    if (
+        _is_synthtunnel_url(container_url)
+        or _is_cloudflare_quick_tunnel_url(container_url)
+        or _is_modal_edge_url(container_url)
+    ):
+        headers["Connection"] = "close"
     if _is_synthtunnel_url(container_url):
         worker_token = (container_worker_token or "").strip()
         if not worker_token:
@@ -237,6 +258,7 @@ def build_rollout_request(
     min_action_batch_size: int = 5,
     timeout_s: int = 45,
     media: dict[str, Any] | None = None,
+    request_logprobs: bool = True,
 ) -> dict[str, Any]:
     payload = {
         "trace_correlation_id": trace_correlation_id,
@@ -265,6 +287,7 @@ def build_rollout_request(
                 "target_action_batch_size": int(target_action_batch_size),
                 "min_action_batch_size": int(min_action_batch_size),
                 "timeout_s": int(timeout_s),
+                "request_logprobs": bool(request_logprobs),
             }
         },
     }
@@ -299,6 +322,8 @@ async def collect_rollouts_concurrently(
     video_capture_fps: int = 6,
     video_capture_tile_size: int = 16,
     video_capture_show_status_bars: bool = True,
+    request_logprobs: bool = True,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
     rollouts, _summary = await collect_rollouts_concurrently_with_summary(
         container_url=container_url,
@@ -325,6 +350,8 @@ async def collect_rollouts_concurrently(
         video_capture_fps=video_capture_fps,
         video_capture_tile_size=video_capture_tile_size,
         video_capture_show_status_bars=video_capture_show_status_bars,
+        request_logprobs=request_logprobs,
+        progress_callback=progress_callback,
     )
     return rollouts
 
@@ -357,6 +384,8 @@ async def collect_rollouts_concurrently_with_summary(
     video_capture_show_status_bars: bool = True,
     rollout_concurrency: int | None = None,
     rollout_semaphore_limit: int | None = None,
+    request_logprobs: bool = True,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if not str(container_url or "").strip() or str(container_url).strip().lower().startswith("direct://"):
         started_at = time.perf_counter()
@@ -397,6 +426,7 @@ async def collect_rollouts_concurrently_with_summary(
                 min_action_batch_size=min_action_batch_size,
                 timeout_s=max(1, math.ceil(request_timeout_seconds)),
                 media=media,
+                request_logprobs=request_logprobs,
             )
             try:
                 payload = await asyncio.to_thread(run_rollout_request, request_body)
@@ -493,6 +523,7 @@ async def collect_rollouts_concurrently_with_summary(
         ]
         return normalized_results, summary
 
+    container_bases = _container_base_urls(container_url)
     worker_count = max(
         1,
         int(rollout_concurrency if rollout_concurrency is not None else max_concurrent_rollouts),
@@ -503,15 +534,21 @@ async def collect_rollouts_concurrently_with_summary(
     )
     semaphore = asyncio.Semaphore(permit_limit)
     timeout = httpx.Timeout(float(request_timeout_seconds), connect=min(30.0, float(request_timeout_seconds)))
-    container_base = str(container_url).rstrip("/")
-    headers = _container_headers(
-        container_url=container_base,
-        container_worker_token=container_worker_token,
-        environment_api_key=environment_api_key,
-    )
-    is_quick_tunnel = _is_cloudflare_quick_tunnel_url(container_base)
-    if is_quick_tunnel:
-        headers = {**headers, "Connection": "close"}
+    headers_by_base = {
+        base: _container_headers(
+            container_url=base,
+            container_worker_token=container_worker_token,
+            environment_api_key=environment_api_key,
+        )
+        for base in container_bases
+    }
+    proxy_edge_bases = {
+        base
+        for base in container_bases
+        if _is_cloudflare_quick_tunnel_url(base) or _is_modal_edge_url(base)
+    }
+    for base in proxy_edge_bases:
+        headers_by_base[base] = {**headers_by_base[base], "Connection": "close"}
     rollout_queue: asyncio.Queue[tuple[int, int] | None] = asyncio.Queue()
     for index, seed in enumerate(seeds):
         rollout_queue.put_nowait((index, int(seed)))
@@ -524,6 +561,8 @@ async def collect_rollouts_concurrently_with_summary(
     started_at = time.perf_counter()
 
     async def _run_one(client: httpx.AsyncClient, seed: int, index: int) -> dict[str, Any]:
+        container_base = container_bases[index % len(container_bases)]
+        headers = headers_by_base[container_base]
         media = None
         if video_capture_rollout_index is not None and index == int(video_capture_rollout_index):
             media = {
@@ -551,6 +590,7 @@ async def collect_rollouts_concurrently_with_summary(
             min_action_batch_size=min_action_batch_size,
             timeout_s=max(1, math.ceil(request_timeout_seconds)),
             media=media,
+            request_logprobs=request_logprobs,
         )
         try:
             response = await client.post(
@@ -618,10 +658,34 @@ async def collect_rollouts_concurrently_with_summary(
                     request_latencies_s.append(time.perf_counter() - request_started_at)
                     requests_finished += 1
                     active_rollouts -= 1
+                    latest = results[index]
+                    if progress_callback is not None and isinstance(latest, dict):
+                        completed_rollouts = [item for item in results if isinstance(item, dict)]
+                        valid_rollouts = [
+                            item
+                            for item in completed_rollouts
+                            if not item.get("error") and is_rollout_payload(item)
+                        ]
+                        rewards = [rollout_outcome_reward(item) for item in valid_rollouts]
+                        progress_callback(
+                            {
+                                "stage": "teacher_rollout_progress",
+                                "requested_rollouts": len(seeds),
+                                "completed_rollouts": len(completed_rollouts),
+                                "num_structured_rollouts": len(valid_rollouts),
+                                "num_errors": len(completed_rollouts) - len(valid_rollouts),
+                                "active_rollouts": active_rollouts,
+                                "rollout_requests_started": requests_started,
+                                "rollout_requests_finished": requests_finished,
+                                "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+                                "max_outcome_reward": max(rewards) if rewards else 0.0,
+                                "latest_rollout": latest,
+                            }
+                        )
             rollout_queue.task_done()
 
     client_kwargs: dict[str, Any] = {"timeout": timeout}
-    if is_quick_tunnel:
+    if proxy_edge_bases:
         client_kwargs.update(
             {
                 "limits": httpx.Limits(

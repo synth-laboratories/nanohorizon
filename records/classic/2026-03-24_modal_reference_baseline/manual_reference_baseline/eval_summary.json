@@ -1,0 +1,10 @@
+{
+  "eval_seed": 123,
+  "greedy": true,
+  "mean_episode_length": 122.3,
+  "mean_episode_return": 0.5429999781399966,
+  "median_episode_return": 0.10000006854534149,
+  "num_eval_envs": 128,
+  "num_eval_episodes": 100,
+  "std_episode_return": 0.6320212607593627
+}

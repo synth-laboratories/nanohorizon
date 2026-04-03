@@ -1,0 +1,38 @@
+task:
+  name: craftax
+  track: cpt_sft_rlvr_qwen35_0p8b
+
+model:
+  model: JoshPurtell/qwen35-0p8b-craftax-cpt
+
+budget:
+  wall_clock_minutes: 10
+  gpus: 1
+  gpu_type: A100-40GB
+
+data:
+  # Built from CPT rollouts via: build_openai_sft_rows_from_rollouts
+  dataset_jsonl: ../data/craftax/sft_from_cpt_rollouts.jsonl
+  dataset_name: craftax_sft_from_cpt_teacher
+
+teacher_generation:
+  enabled: false
+
+filtering:
+  enabled: false
+
+training:
+  method: trl_sft
+  epochs: 4
+  max_steps: 24
+  max_length: 3072
+  learning_rate: 5.0e-5
+  lora_rank: 16
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 2
+
+evaluation:
+  enabled: false
+
+output:
+  root_dir: ../artifacts/sft_qwen35_0p8b_from_cpt_rollouts

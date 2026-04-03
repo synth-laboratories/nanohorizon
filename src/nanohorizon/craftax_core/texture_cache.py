@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -48,27 +50,82 @@ def _sync_shared_cache(
     return report
 
 
+def _module_texture_cache_target(
+    *,
+    package_name: str,
+    constants_module_name: str,
+    fallback_filename: str,
+) -> Path | None:
+    constants_module = sys.modules.get(constants_module_name)
+    texture_cache_file = getattr(constants_module, "TEXTURE_CACHE_FILE", None)
+    if texture_cache_file:
+        return Path(str(texture_cache_file)).expanduser().resolve()
+
+    spec = importlib.util.find_spec(package_name)
+    origin = getattr(spec, "origin", None) if spec is not None else None
+    if not origin:
+        return None
+    return Path(origin).expanduser().resolve().parent / "assets" / fallback_filename
+
+
+def _merge_reports(primary: dict[str, Any], secondary: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(primary)
+    merged.update(secondary)
+    return merged
+
+
 def ensure_texture_cache() -> dict[str, Any]:
     os.environ.pop("CRAFTAX_RELOAD_TEXTURES", None)
     shared_root = _shared_cache_root()
     report: dict[str, Any] = {"status": "ok", "full": {}, "classic": {}}
+
+    full_target = _module_texture_cache_target(
+        package_name="craftax.craftax",
+        constants_module_name="craftax.craftax.constants",
+        fallback_filename="texture_cache.pbz2",
+    )
+    if full_target is not None:
+        report["full"] = _sync_shared_cache(
+            target_file=full_target,
+            shared_root=shared_root,
+            namespace="full",
+        )
+
+    classic_target = _module_texture_cache_target(
+        package_name="craftax.craftax_classic",
+        constants_module_name="craftax.craftax_classic.constants",
+        fallback_filename="texture_cache_classic.pbz2",
+    )
+    if classic_target is not None:
+        report["classic"] = _sync_shared_cache(
+            target_file=classic_target,
+            shared_root=shared_root,
+            namespace="classic",
+        )
+
     try:
         import craftax.craftax.constants as craftax_constants
 
-        report["full"] = _sync_shared_cache(
-            target_file=craftax_constants.TEXTURE_CACHE_FILE,
-            shared_root=shared_root,
-            namespace="full",
+        report["full"] = _merge_reports(
+            report["full"],
+            _sync_shared_cache(
+                target_file=craftax_constants.TEXTURE_CACHE_FILE,
+                shared_root=shared_root,
+                namespace="full",
+            ),
         )
     except Exception as exc:  # pragma: no cover - optional dependency
         report["full"] = {"error": f"{type(exc).__name__}: {exc}"}
     try:
         import craftax.craftax_classic.constants as craftax_classic_constants
 
-        report["classic"] = _sync_shared_cache(
-            target_file=craftax_classic_constants.TEXTURE_CACHE_FILE,
-            shared_root=shared_root,
-            namespace="classic",
+        report["classic"] = _merge_reports(
+            report["classic"],
+            _sync_shared_cache(
+                target_file=craftax_classic_constants.TEXTURE_CACHE_FILE,
+                shared_root=shared_root,
+                namespace="classic",
+            ),
         )
     except Exception as exc:  # pragma: no cover - optional dependency
         report["classic"] = {"error": f"{type(exc).__name__}: {exc}"}

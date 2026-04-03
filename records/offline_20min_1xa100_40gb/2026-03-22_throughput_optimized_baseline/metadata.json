@@ -1,0 +1,7 @@
+{
+  "name": "throughput_optimized_baseline",
+  "track": "offline_20min_1xa100_40gb",
+  "date": "2026-03-22",
+  "score": 0.6,
+  "author": "nanohorizon"
+}

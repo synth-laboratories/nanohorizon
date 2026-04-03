@@ -1785,6 +1785,7 @@ class CraftaxService:
             "PYTHONPATH": _pythonpath_with_repo(),
             "NANOHORIZON_CRAFTAX_BIND_HOST": "0.0.0.0",
             "NANOHORIZON_CRAFTAX_BIND_PORT": str(CRAFTAX_PORT),
+            "NANOHORIZON_CRAFTAX_UVICORN_WORKERS": "16",
         }
         cmd = [sys.executable, "-m", "nanohorizon.craftax_core.http_shim"]
         print("Launching Craftax service:", " ".join(shlex.quote(part) for part in cmd), flush=True)
@@ -1833,9 +1834,7 @@ def _start_local_vllm(
     runtime_env["PYTHONPATH"] = _pythonpath_with_repo()
     runtime_env["VLLM_ALLOW_RUNTIME_LORA_UPDATING"] = "1"
     runtime_env["HF_HOME"] = str(os.environ.get("HF_HOME") or "/root/.cache/huggingface")
-    runtime_env["HF_HUB_ENABLE_HF_TRANSFER"] = str(
-        os.environ.get("HF_HUB_ENABLE_HF_TRANSFER") or "1"
-    )
+    runtime_env["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
     runtime_env["TORCHINDUCTOR_CACHE_DIR"] = str(
         os.environ.get("TORCHINDUCTOR_CACHE_DIR") or VLLM_COMPILE_CACHE_DIR
     )
@@ -1880,7 +1879,7 @@ def _start_local_vllm(
     ]
     cmd, runtime_env = enable_thinking_budget_support(cmd=cmd, env=runtime_env, model_ref=model)
     print("Launching clustered RLVR vLLM:", " ".join(shlex.quote(part) for part in cmd), flush=True)
-    return subprocess.Popen(cmd, env=runtime_env)
+    return subprocess.Popen(cmd, env=runtime_env, stderr=subprocess.STDOUT)
 
 
 def _local_listener_diagnostics(process: subprocess.Popen[bytes] | None) -> dict[str, Any]:
@@ -1943,6 +1942,13 @@ def _wait_for_local_vllm(
     while time.time() < deadline:
         attempt += 1
         if process.poll() is not None:
+            # Try to capture any remaining stdout/stderr
+            try:
+                remaining, _ = process.communicate(timeout=5)
+                if remaining:
+                    print(f"[vllm-stderr] {remaining.decode(errors='replace')[-4000:]}", flush=True)
+            except Exception:
+                pass
             raise RuntimeError(f"clustered RLVR vLLM exited early with code {process.returncode}")
         for host in hosts:
             try:
@@ -2408,24 +2414,12 @@ def modal_main(
         or DEFAULT_MAX_MODEL_LEN
     )
     max_lora_rank = int(config_payload.get("training", {}).get("lora_rank", DEFAULT_MAX_LORA_RANK))
-    if model_name != DEFAULT_INFERENCE_MODEL:
+    model_path = Path(model_name).expanduser()
+    if model_path.exists():
         raise RuntimeError(
-            f"RLVR Modal inference currently supports model={DEFAULT_INFERENCE_MODEL!r}; got {model_name!r}"
-        )
-    if served_model_name != DEFAULT_SERVED_MODEL_NAME:
-        raise RuntimeError(
-            "RLVR Modal inference currently supports "
-            f"served_model_name={DEFAULT_SERVED_MODEL_NAME!r}; got {served_model_name!r}"
-        )
-    if max_model_len != DEFAULT_MAX_MODEL_LEN:
-        raise RuntimeError(
-            "RLVR Modal inference currently supports "
-            f"max_model_len={DEFAULT_MAX_MODEL_LEN}; got {max_model_len}"
-        )
-    if max_lora_rank != DEFAULT_MAX_LORA_RANK:
-        raise RuntimeError(
-            "RLVR Modal inference currently supports "
-            f"training.lora_rank={DEFAULT_MAX_LORA_RANK}; got {max_lora_rank}"
+            "RLVR Modal inference requires `model.model` to be a Hugging Face model id or another "
+            "remote-accessible model reference. Local filesystem checkpoints are not automatically "
+            f"uploaded into the clustered Modal runtime: {model_name!r}"
         )
     inference_api_key = str(
         os.getenv("NANOHORIZON_RLVR_INFERENCE_API_KEY")

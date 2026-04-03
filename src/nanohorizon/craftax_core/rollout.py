@@ -8,10 +8,12 @@ from collections.abc import Mapping
 from pathlib import Path
 from statistics import mean
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
 from nanohorizon.shared.common import ensure_dir
+from nanohorizon.custom_vllm.runtime import build_thinking_budget_request_overrides
 
 from .media import persist_media
 from .metadata import (
@@ -175,26 +177,71 @@ def _chat_completion(
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
+    parsed = urlparse(inference_url)
+    hostname = str(parsed.hostname or "").lower()
+    supports_vllm_request_overrides = hostname in {"127.0.0.1", "localhost"}
+    uses_proxy_edge = (
+        hostname.endswith(".modal.run")
+        or hostname.endswith(".w.modal.host")
+        or hostname.endswith(".trycloudflare.com")
+    )
+    if uses_proxy_edge:
+        headers["Connection"] = "close"
     request_body: dict[str, Any] = {
         "model": model,
         "messages": messages,
         "temperature": float(temperature),
         "tools": _tool_schema(),
-        "tool_choice": "auto",
+        "tool_choice": "required" if supports_vllm_request_overrides else "auto",
     }
     if "api.openai.com" in inference_url:
         request_body["max_completion_tokens"] = int(max_tokens)
     else:
         request_body["max_tokens"] = int(max_tokens)
-    if enable_thinking:
-        request_body["chat_template_kwargs"] = {"enable_thinking": True}
-        request_body["extra_body"] = {"thinking_budget_tokens": int(thinking_budget_tokens)}
+    thinking_overrides = build_thinking_budget_request_overrides(
+        enable_thinking=enable_thinking,
+        thinking_budget=thinking_budget_tokens,
+    )
+    if not supports_vllm_request_overrides:
+        # Remote OpenAI-compatible teacher endpoints in our Modal flow do not
+        # accept vLLM-specific request extensions such as chat_template_kwargs.
+        thinking_overrides.pop("chat_template_kwargs", None)
+        thinking_overrides.pop("vllm_xargs", None)
+    request_body.update(thinking_overrides)
     if request_logprobs:
         request_body["logprobs"] = True
-    with httpx.Client(timeout=httpx.Timeout(float(timeout_s), connect=min(30.0, float(timeout_s)))) as client:
-        response = client.post(inference_url, headers=headers, json=request_body)
-        response.raise_for_status()
-        payload = response.json()
+    timeout = httpx.Timeout(float(timeout_s), connect=min(30.0, float(timeout_s)))
+    last_error: Exception | None = None
+    retryable_statuses = {429, 500, 502, 503, 504}
+    if uses_proxy_edge:
+        retryable_statuses.add(404)
+    for attempt in range(1, 7):
+        try:
+            with httpx.Client(
+                timeout=timeout,
+                follow_redirects=True,
+                headers={"Connection": "close"} if uses_proxy_edge else None,
+            ) as client:
+                response = client.post(inference_url, headers=headers, json=request_body)
+            if response.status_code in retryable_statuses and attempt < 6:
+                time.sleep(min(5.0, float(attempt)))
+                continue
+            if response.status_code >= 400:
+                body_preview = response.text[:2000]
+                raise RuntimeError(
+                    f"inference request failed status={response.status_code} body={body_preview}"
+                )
+            payload = response.json()
+            break
+        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError, httpx.TimeoutException) as exc:
+            last_error = exc
+            if attempt >= 6:
+                raise RuntimeError(f"inference request transport failed after retries: {exc!r}") from exc
+            time.sleep(min(5.0, float(attempt)))
+    else:
+        if last_error is not None:
+            raise RuntimeError(f"inference request failed after retries: {last_error!r}") from last_error
+        raise RuntimeError("inference request failed after retries")
     if not isinstance(payload, dict):
         raise RuntimeError("inference response was not an object")
     return payload
@@ -231,6 +278,7 @@ def run_rollout(
     render_mode: RenderMode = RenderMode.TEXT,
     media: Mapping[str, Any] | None = None,
     env_kind: str = "full",
+    request_logprobs: bool = True,
 ) -> dict[str, Any]:
     runner = make_runner(kind="full" if env_kind == "full" else "classic", seed=int(seed), render_mode=render_mode)
     start = runner.reset()
@@ -264,7 +312,7 @@ def run_rollout(
             enable_thinking=enable_thinking,
             thinking_budget_tokens=thinking_budget_tokens,
             timeout_s=timeout_s,
-            request_logprobs=True,
+            request_logprobs=request_logprobs,
         )
         llm_call_count += 1
         message = _extract_message(payload)
@@ -273,8 +321,8 @@ def run_rollout(
         if len(actions) < int(min_action_batch_size):
             invalid_parse = True
             repair_messages = [
-                *prompt_messages,
-                {"role": "assistant", "content": str(message.get("content") or ""), "tool_calls": message.get("tool_calls", [])},
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
                 {
                     "role": "user",
                     "content": (
@@ -293,7 +341,7 @@ def run_rollout(
                 enable_thinking=enable_thinking,
                 thinking_budget_tokens=thinking_budget_tokens,
                 timeout_s=timeout_s,
-                request_logprobs=True,
+                request_logprobs=request_logprobs,
             )
             llm_call_count += 1
             message = _extract_message(payload)
@@ -400,6 +448,7 @@ def run_rollout_request(request: Mapping[str, Any]) -> dict[str, Any]:
         render_mode=RenderMode.BOTH if media else RenderMode.TEXT,
         media=media if isinstance(media, Mapping) else None,
         env_kind=str(env_config.get("env_kind") or "full"),
+        request_logprobs=bool(policy_config.get("request_logprobs", True)),
     )
 
 

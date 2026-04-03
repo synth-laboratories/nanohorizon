@@ -135,6 +135,16 @@ def main() -> None:
     print(f"Craftax texture cache ready: {texture_report}", flush=True)
     host = os.getenv("NANOHORIZON_CRAFTAX_BIND_HOST") or "127.0.0.1"
     port = int(os.getenv("NANOHORIZON_CRAFTAX_BIND_PORT") or "8903")
+    workers = max(1, int(os.getenv("NANOHORIZON_CRAFTAX_UVICORN_WORKERS") or "1"))
+    if workers > 1:
+        uvicorn.run(
+            "nanohorizon.craftax_core.http_shim:app",
+            host=str(host),
+            port=port,
+            log_level="info",
+            workers=workers,
+        )
+        return
     uvicorn.run(app, host=str(host), port=port, log_level="info")
 
 

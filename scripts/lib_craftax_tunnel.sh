@@ -13,9 +13,48 @@ nanohorizon_craftax_local_port() {
 }
 
 
+nanohorizon_craftax_local_shim_count() {
+  if [[ -n "${NANOHORIZON_CRAFTAX_LOCAL_SHIMS:-}" ]]; then
+    printf '%s\n' "${NANOHORIZON_CRAFTAX_LOCAL_SHIMS}"
+    return 0
+  fi
+  "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY'
+import os
+import subprocess
+
+def _sysctl(name: str) -> int | None:
+    try:
+        value = subprocess.check_output(["sysctl", "-n", name], text=True).strip()
+        return int(value)
+    except Exception:
+        return None
+
+perf = _sysctl("hw.perflevel0.physicalcpu_max")
+logical = _sysctl("hw.ncpu") or (os.cpu_count() or 1)
+candidate = perf or logical
+print(max(1, min(int(candidate), 8)))
+PY
+}
+
+
+nanohorizon_craftax_local_urls() {
+  local base_port
+  base_port="$(nanohorizon_craftax_local_port)"
+  local count
+  count="$(nanohorizon_craftax_local_shim_count)"
+  "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY' "$base_port" "$count"
+import sys
+
+base = int(sys.argv[1])
+count = max(1, int(sys.argv[2]))
+print(",".join(f"http://127.0.0.1:{base + offset}" for offset in range(count)))
+PY
+}
+
+
 nanohorizon_craftax_service_ready() {
   local port="$1"
-  python3 - <<'PY' "$port"
+  "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY' "$port"
 import json
 import sys
 import urllib.request
@@ -48,37 +87,63 @@ nanohorizon_start_local_craftax_if_needed() {
   fi
   local local_port
   local_port="$(nanohorizon_craftax_local_port)"
-  if nanohorizon_craftax_service_ready "$local_port"; then
+  local shim_count
+  shim_count="$(nanohorizon_craftax_local_shim_count)"
+  local ready_count=0
+  for offset in $(seq 0 $((shim_count - 1))); do
+    if nanohorizon_craftax_service_ready "$((local_port + offset))"; then
+      ready_count=$((ready_count + 1))
+    fi
+  done
+  if [[ "$ready_count" -eq "$shim_count" ]]; then
     return 0
   fi
 
   local artifact_dir="${NANOHORIZON_CRAFTAX_TUNNEL_ARTIFACT_DIR:-$root/.out/craftax_tunnel}"
   mkdir -p "$artifact_dir"
-  local container_log="$artifact_dir/craftax_core_http_shim.log"
   local uv_bin="${UV_BIN:-/opt/homebrew/bin/uv}"
+  local pids=()
+  for offset in $(seq 0 $((shim_count - 1))); do
+    local port=$((local_port + offset))
+    local container_log="$artifact_dir/craftax_core_http_shim_${port}.log"
+    (
+      cd "$root"
+      NANOHORIZON_CRAFTAX_BIND_HOST="127.0.0.1" \
+      NANOHORIZON_CRAFTAX_BIND_PORT="$port" \
+      NANOHORIZON_CRAFTAX_UVICORN_WORKERS="1" \
+      PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}" \
+        "$uv_bin" run python -m nanohorizon.craftax_core.http_shim
+    ) >"$container_log" 2>&1 &
+    pids+=("$!")
+  done
+  NANOHORIZON_LOCAL_CRAFTAX_PIDS="${pids[*]}"
+  export NANOHORIZON_LOCAL_CRAFTAX_PIDS
 
-  (
-    cd "$root"
-    NANOHORIZON_CRAFTAX_BIND_HOST="127.0.0.1" \
-    NANOHORIZON_CRAFTAX_BIND_PORT="$local_port" \
-    PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}" \
-      "$uv_bin" run python -m nanohorizon.craftax_core.http_shim
-  ) >"$container_log" 2>&1 &
-  NANOHORIZON_LOCAL_CRAFTAX_PID=$!
-  export NANOHORIZON_LOCAL_CRAFTAX_PID
-
-  for _ in $(seq 1 120); do
-    if nanohorizon_craftax_service_ready "$local_port"; then
+  for _ in $(seq 1 180); do
+    ready_count=0
+    for offset in $(seq 0 $((shim_count - 1))); do
+      local port=$((local_port + offset))
+      if nanohorizon_craftax_service_ready "$port"; then
+        ready_count=$((ready_count + 1))
+      fi
+    done
+    if [[ "$ready_count" -eq "$shim_count" ]]; then
       return 0
     fi
-    if ! kill -0 "$NANOHORIZON_LOCAL_CRAFTAX_PID" >/dev/null 2>&1; then
-      tail -n 80 "$container_log" >&2 || true
-      return 1
-    fi
+    for pid in "${pids[@]}"; do
+      if ! kill -0 "$pid" >/dev/null 2>&1; then
+        for offset in $(seq 0 $((shim_count - 1))); do
+          tail -n 80 "$artifact_dir/craftax_core_http_shim_$((local_port + offset)).log" >&2 || true
+        done
+        return 1
+      fi
+    done
     sleep 1
   done
 
-  tail -n 80 "$container_log" >&2 || true
+  for offset in $(seq 0 $((shim_count - 1))); do
+    tail -n 80 "$artifact_dir/craftax_core_http_shim_$((local_port + offset)).log" >&2 || true
+  done
   return 1
 }
 
@@ -152,6 +217,10 @@ nanohorizon_open_craftax_tunnel_if_needed() {
       --hold
     )
   fi
+  local requested_ttl="${NANOHORIZON_CRAFTAX_TUNNEL_TTL_SECONDS:-7200}"
+  if [[ "$requested_ttl" -gt 0 ]]; then
+    cmd+=(--requested-ttl-seconds "$requested_ttl")
+  fi
   if [[ -n "$managed_ngrok_url" ]]; then
     cmd+=(--managed-ngrok-url "$managed_ngrok_url")
   fi
@@ -194,13 +263,15 @@ nanohorizon_open_craftax_tunnel_if_needed() {
 
 nanohorizon_cleanup_craftax_tunnel() {
   if [[ -n "${NANOHORIZON_MODAL_TEACHER_PID:-}" ]]; then
-    kill "$NANOHORIZON_MODAL_TEACHER_PID" >/dev/null 2>&1 || true
+    nanohorizon_stop_modal_endpoint "$NANOHORIZON_MODAL_TEACHER_PID"
   fi
   if [[ -n "${NANOHORIZON_CRAFTAX_TUNNEL_PID:-}" ]]; then
     kill "$NANOHORIZON_CRAFTAX_TUNNEL_PID" >/dev/null 2>&1 || true
   fi
-  if [[ -n "${NANOHORIZON_LOCAL_CRAFTAX_PID:-}" ]]; then
-    kill "$NANOHORIZON_LOCAL_CRAFTAX_PID" >/dev/null 2>&1 || true
+  if [[ -n "${NANOHORIZON_LOCAL_CRAFTAX_PIDS:-}" ]]; then
+    for pid in ${NANOHORIZON_LOCAL_CRAFTAX_PIDS}; do
+      kill "$pid" >/dev/null 2>&1 || true
+    done
   fi
 }
 
@@ -210,21 +281,46 @@ nanohorizon_wait_for_openai_compat_endpoint() {
   local api_key="$2"
   local startup_attempts="${3:-180}"
   local sleep_seconds="${4:-2}"
+  local skip_warmup="${5:-0}"
 
-  local models_url="${base_url%/}/v1/models"
-  local warmup_url="${base_url%/}/v1/chat/completions"
+  local normalized_base="${base_url%/}"
+  if [[ "$normalized_base" == */v1 ]]; then
+    local models_url="${normalized_base}/models"
+    local warmup_url="${normalized_base}/chat/completions"
+  else
+    local models_url="${normalized_base}/v1/models"
+    local warmup_url="${normalized_base}/v1/chat/completions"
+  fi
+  local warmup_model="${NANOHORIZON_TEACHER_SERVED_MODEL_NAME:-${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-9B}}"
 
   for _ in $(seq 1 "$startup_attempts"); do
-    if curl --max-time 10 -sf -H "Authorization: Bearer $api_key" "$models_url" >/dev/null 2>&1; then
-      python3 - <<'PY' "$warmup_url" "$api_key" >/dev/null 2>&1 || true
+    if "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY' "$models_url" "$api_key" >/dev/null 2>&1
+import sys
+import urllib.request
+
+url = sys.argv[1]
+api_key = sys.argv[2]
+request = urllib.request.Request(
+    url,
+    method="GET",
+    headers={"Authorization": f"Bearer {api_key}"},
+)
+with urllib.request.urlopen(request, timeout=15) as response:
+    if int(getattr(response, "status", 0)) != 200:
+        raise SystemExit(1)
+PY
+    then
+      if [[ "$skip_warmup" != "1" ]]; then
+        "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY' "$warmup_url" "$api_key" "$warmup_model" >/dev/null 2>&1 || true
 import json
 import sys
 import urllib.request
 
 url = sys.argv[1]
 api_key = sys.argv[2]
+model = sys.argv[3]
 payload = {
-    "model": "Qwen/Qwen3.5-9B",
+    "model": model,
     "messages": [{"role": "user", "content": "ping"}],
     "max_tokens": 8,
     "temperature": 0.0,
@@ -241,12 +337,178 @@ request = urllib.request.Request(
 with urllib.request.urlopen(request, timeout=30):
     pass
 PY
+      fi
       return 0
     fi
     sleep "$sleep_seconds"
   done
 
   return 1
+}
+
+
+nanohorizon_extract_modal_endpoint_url() {
+  local log_stdout="$1"
+  "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY' "$log_stdout"
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8") if path.exists() else ""
+for raw in text.splitlines():
+    if raw.startswith("vLLM endpoint: "):
+        print(raw.split("vLLM endpoint: ", 1)[1].strip())
+        raise SystemExit(0)
+match = re.search(r"https://[A-Za-z0-9._/-]*modal\.run", text.replace("\n", ""))
+if match:
+    print(match.group(0).strip())
+PY
+}
+
+
+nanohorizon_extract_modal_app_id() {
+  local log_stdout="$1"
+  "${UV_BIN:-/opt/homebrew/bin/uv}" run python3 - <<'PY' "$log_stdout"
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8") if path.exists() else ""
+match = re.search(r"/(ap-[A-Za-z0-9]+)\b", text)
+if match:
+    print(match.group(1))
+PY
+}
+
+
+nanohorizon_stop_modal_endpoint() {
+  local handle="${1:-}"
+  if [[ -z "$handle" ]]; then
+    return 0
+  fi
+  if [[ "$handle" =~ ^ap-[A-Za-z0-9]+$ ]]; then
+    local uv_bin="${UV_BIN:-/opt/homebrew/bin/uv}"
+    "$uv_bin" run --group modal modal app stop "$handle" >/dev/null 2>&1 || true
+    return 0
+  fi
+  if [[ "$handle" =~ ^[0-9]+$ ]]; then
+    kill "$handle" >/dev/null 2>&1 || true
+  fi
+}
+
+
+nanohorizon_start_modal_endpoint() {
+  local log_stdout="$1"
+  local log_stderr="$2"
+  local app_name="$3"
+  local model_ref="$4"
+  local max_model_len="$5"
+  local lora_name="${6:-}"
+  local lora_path="${7:-}"
+  local max_lora_rank="${8:-16}"
+
+  : >"$log_stdout"
+  : >"$log_stderr"
+
+  local uv_bin="${UV_BIN:-/opt/homebrew/bin/uv}"
+  local api_key="${NANOHORIZON_TEACHER_API_KEY:-${NANOHORIZON_VLLM_API_KEY:-dummy-local-key}}"
+  local keepalive_s="${NANOHORIZON_MODAL_TEACHER_KEEPALIVE_S:-7200}"
+  local launch_mode="${NANOHORIZON_MODAL_TEACHER_LAUNCH_MODE:-detach}"
+
+  local -a cmd=(
+    "$uv_bin" run --group modal modal run
+  )
+  if [[ "$launch_mode" == "detach" ]]; then
+    cmd+=(--detach)
+  fi
+  cmd+=(src/nanohorizon/shared/modal_teacher.py --keepalive-s "$keepalive_s")
+
+  env \
+    COLUMNS=200 \
+    NANOHORIZON_MODAL_TEACHER_APP_NAME="$app_name" \
+    NANOHORIZON_TEACHER_MODEL="$model_ref" \
+    NANOHORIZON_TEACHER_API_KEY="$api_key" \
+    NANOHORIZON_TEACHER_MAX_MODEL_LEN="$max_model_len" \
+    NANOHORIZON_TEACHER_LORA_NAME="$lora_name" \
+    NANOHORIZON_TEACHER_LORA_PATH="$lora_path" \
+    NANOHORIZON_TEACHER_MAX_LORA_RANK="$max_lora_rank" \
+    "${cmd[@]}" >"$log_stdout" 2>"$log_stderr" &
+  local pid=$!
+  for _ in $(seq 1 240); do
+    if [[ -f "$log_stdout" ]]; then
+      local url
+      url="$(nanohorizon_extract_modal_endpoint_url "$log_stdout")"
+      if [[ -n "$url" ]]; then
+        if ! nanohorizon_wait_for_openai_compat_endpoint "$url" "$api_key" 240 2; then
+          cat "$log_stderr" >&2 || true
+          cat "$log_stdout" >&2 || true
+          return 1
+        fi
+        local handle="$pid"
+        local app_id
+        app_id="$(nanohorizon_extract_modal_app_id "$log_stdout")"
+        if [[ -n "$app_id" ]]; then
+          handle="$app_id"
+        fi
+        printf '%s\n%s\n' "$handle" "${url%/}/v1/chat/completions"
+        return 0
+      fi
+    fi
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      cat "$log_stderr" >&2 || true
+      cat "$log_stdout" >&2 || true
+      return 1
+    fi
+    sleep 2
+  done
+
+  cat "$log_stderr" >&2 || true
+  cat "$log_stdout" >&2 || true
+  return 1
+}
+
+
+nanohorizon_deploy_modal_endpoint() {
+  local log_stdout="$1"
+  local log_stderr="$2"
+  local app_name="$3"
+  local model_ref="$4"
+  local max_model_len="$5"
+  local lora_name="${6:-}"
+  local lora_path="${7:-}"
+  local max_lora_rank="${8:-16}"
+
+  : >"$log_stdout"
+  : >"$log_stderr"
+
+  local uv_bin="${UV_BIN:-/opt/homebrew/bin/uv}"
+  local api_key="${NANOHORIZON_TEACHER_API_KEY:-${NANOHORIZON_VLLM_API_KEY:-dummy-local-key}}"
+
+  if ! env \
+    COLUMNS=200 \
+    NANOHORIZON_MODAL_TEACHER_APP_NAME="$app_name" \
+    NANOHORIZON_TEACHER_MODEL="$model_ref" \
+    NANOHORIZON_TEACHER_API_KEY="$api_key" \
+    NANOHORIZON_TEACHER_MAX_MODEL_LEN="$max_model_len" \
+    NANOHORIZON_TEACHER_LORA_NAME="$lora_name" \
+    NANOHORIZON_TEACHER_LORA_PATH="$lora_path" \
+    NANOHORIZON_TEACHER_MAX_LORA_RANK="$max_lora_rank" \
+    "$uv_bin" run --group modal modal deploy src/nanohorizon/shared/modal_teacher.py --name "$app_name" >"$log_stdout" 2>"$log_stderr"
+  then
+    cat "$log_stderr" >&2 || true
+    cat "$log_stdout" >&2 || true
+    return 1
+  fi
+
+  local url
+  url="$(nanohorizon_extract_modal_endpoint_url "$log_stdout")"
+  if [[ -z "$url" ]]; then
+    cat "$log_stdout" >&2 || true
+    return 1
+  fi
+  printf 'deployed\n%s/v1/chat/completions\n' "${url%/}"
 }
 
 
@@ -260,57 +522,46 @@ nanohorizon_start_modal_teacher_if_needed() {
   local teacher_stdout="$artifact_dir/teacher.stdout.log"
   local teacher_stderr="$artifact_dir/teacher.stderr.log"
   mkdir -p "$artifact_dir"
-
-  local uv_bin="${UV_BIN:-/opt/homebrew/bin/uv}"
   local teacher_model="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-4B}"
-  local teacher_api_key="${NANOHORIZON_TEACHER_API_KEY:-dummy-local-key}"
+  local teacher_api_key="${NANOHORIZON_TEACHER_API_KEY:-${NANOHORIZON_VLLM_API_KEY:-dummy-local-key}}"
   local teacher_app_name="${NANOHORIZON_MODAL_TEACHER_APP_NAME:-nanohorizon-craftax-teacher}"
-  local code_version="${NANOHORIZON_CODE_VERSION:-$(git -C "$root" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
+  local teacher_max_model_len="${NANOHORIZON_TEACHER_MAX_MODEL_LEN:-4096}"
+  local teacher_launch_mode="${NANOHORIZON_MODAL_TEACHER_LAUNCH_MODE:-detach}"
 
-  if ! env \
-    NANOHORIZON_MODAL_TEACHER_APP_NAME="$teacher_app_name" \
-    NANOHORIZON_TEACHER_MODEL="$teacher_model" \
-    NANOHORIZON_TEACHER_API_KEY="$teacher_api_key" \
-    NANOHORIZON_CODE_VERSION="$code_version" \
-    "$uv_bin" run --group modal modal deploy src/nanohorizon/shared/modal_teacher.py \
-    >"$teacher_stdout" 2>"$teacher_stderr"; then
-    cat "$teacher_stderr" >&2 || true
-    cat "$teacher_stdout" >&2 || true
-    return 1
+  local endpoint_raw
+  if [[ "$teacher_launch_mode" == "deploy" ]]; then
+    endpoint_raw="$(nanohorizon_deploy_modal_endpoint \
+      "$teacher_stdout" \
+      "$teacher_stderr" \
+      "$teacher_app_name" \
+      "$teacher_model" \
+      "$teacher_max_model_len" \
+      "" \
+      "" \
+      "16")"
+  else
+    endpoint_raw="$(nanohorizon_start_modal_endpoint \
+      "$teacher_stdout" \
+      "$teacher_stderr" \
+      "$teacher_app_name" \
+      "$teacher_model" \
+      "$teacher_max_model_len" \
+      "" \
+      "" \
+      "16")"
   fi
-
-  local line
-  line="$(python3 - <<'PY' "$teacher_stdout"
-from pathlib import Path
-import re
-import sys
-path = Path(sys.argv[1])
-text = path.read_text(encoding='utf-8') if path.exists() else ''
-collapsed = ''.join(text.split())
-match = re.search(r'https://[A-Za-z0-9./:-]+modal\.run', collapsed)
-if match:
-    print(match.group(0))
-PY
-)"
-  if [[ -z "$line" ]]; then
-    cat "$teacher_stderr" >&2 || true
-    cat "$teacher_stdout" >&2 || true
-    return 1
+  local teacher_pid_raw
+  teacher_pid_raw="$(printf '%s\n' "$endpoint_raw" | sed -n '1p')"
+  if [[ "$teacher_pid_raw" =~ ^[0-9]+$ ]]; then
+    NANOHORIZON_MODAL_TEACHER_PID="$teacher_pid_raw"
+  else
+    NANOHORIZON_MODAL_TEACHER_PID=""
   fi
-
-  local probe_attempts="${NANOHORIZON_TEACHER_ENDPOINT_PROBE_ATTEMPTS:-${NANOHORIZON_TEACHER_STARTUP_ATTEMPTS:-240}}"
-  if ! nanohorizon_wait_for_openai_compat_endpoint \
-    "${line%/}" \
-    "$teacher_api_key" \
-    "$probe_attempts" \
-    "${NANOHORIZON_TEACHER_STARTUP_SLEEP_SECONDS:-2}"; then
-    echo "teacher endpoint failed readiness probe: ${line%/}" >&2
-    cat "$teacher_stderr" >&2 || true
-    cat "$teacher_stdout" >&2 || true
-    return 1
+  export NANOHORIZON_MODAL_TEACHER_PID
+  export NANOHORIZON_TEACHER_INFERENCE_URL="$(printf '%s\n' "$endpoint_raw" | sed -n '2p')"
+  export NANOHORIZON_TEACHER_API_KEY="$teacher_api_key"
+  if [[ -n "${NANOHORIZON_TEACHER_INFERENCE_URL:-}" ]]; then
+    nanohorizon_wait_for_openai_compat_endpoint "${NANOHORIZON_TEACHER_INFERENCE_URL%/v1/chat/completions}" "$teacher_api_key" 240 2
   fi
-
-  export NANOHORIZON_TEACHER_INFERENCE_URL="${line%/}/v1/chat/completions"
-  export NANOHORIZON_TEACHER_API_KEY="${NANOHORIZON_TEACHER_API_KEY:-dummy-local-key}"
   return 0
 }

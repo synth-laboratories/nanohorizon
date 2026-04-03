@@ -1,0 +1,34 @@
+task:
+  name: craftax_cpt_bootstrap
+  track: cpt_rlvr_qwen35_0p8b
+
+model:
+  model: Qwen/Qwen3.5-0.8B
+  recipe_hint: qwen3_600m
+  trust_remote_code: true
+
+data:
+  source_jsonl: ../data/craftax/cpt_rollouts_text.jsonl
+  text_field: text
+  token_budget: 100000
+
+training:
+  gpus_per_node: 1
+  seq_length: 2048
+  train_iters: 10
+  save_interval: 10
+  global_batch_size: 8
+  micro_batch_size: 1
+  learning_rate: 3.0e-5
+  lr_warmup_iters: 1
+  # Megatron-specific (unused by hf-run):
+  tensor_model_parallel_size: 1
+  pipeline_model_parallel_size: 1
+  context_parallel_size: 1
+
+export:
+  enabled: true
+  hf_output_path: ../artifacts/cpt_qwen35_0p8b_100k_hf_export
+
+output:
+  root_dir: ../artifacts/cpt_qwen35_0p8b_100k

@@ -1,0 +1,46 @@
+task:
+  name: craftax_cpt_data_bootstrap
+  track: cpt_rlvr_qwen35_0p8b
+
+teacher:
+  model: Qwen/Qwen3.5-27B
+
+collection:
+  seed_manifest_json: ../data/craftax/craftax_rlvr_starter_seeds.json
+  request_model: Qwen/Qwen3.5-27B
+  api_key: dummy-local-key
+  max_rollouts: 48
+  rollout_batch_size: 4
+  seed_offset_stride: 1000
+  max_steps: 48
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 4
+  request_timeout_seconds: 300
+  temperature: 0.4
+  max_tokens: 3072
+  enable_thinking: true
+  thinking_budget_tokens: 2000
+  target_action_batch_size: 4
+  min_action_batch_size: 3
+  policy_version: cpt_teacher
+  trace_prefix: cpt_collect
+  request_logprobs: true
+  min_outcome_reward: 0.0
+
+projection:
+  tokenizer_model: Qwen/Qwen3.5-0.8B
+  token_budget: 100000
+  include_reasoning: true
+  include_action_history: false
+
+hf_upload:
+  enabled: false
+  repo_id: ""
+  config_name: craftax_rollouts
+  split: train
+  private: true
+  commit_message: Add NanoHorizon CPT bootstrap shard
+
+output:
+  root_dir: ../artifacts/cpt_data_qwen35_27b_100k
+  dataset_jsonl: ../data/craftax/cpt_rollouts_text.jsonl

@@ -24,7 +24,7 @@ export NANOHORIZON_CODE_VERSION="$CODE_VERSION"
 if [[ "$DEPLOY_BEFORE_RUN" == "1" ]]; then
   ./scripts/deploy_craftax_offline_modal_app.sh
 fi
-/opt/homebrew/bin/uv run --group modal python -m nanohorizon.shared.invoke_modal_offline \
+uv run --group modal python -m nanohorizon.shared.invoke_modal_offline \
   --config "$CONFIG_PATH" \
   --output-dir "$OUTPUT_DIR" \
   --teacher-model "$TEACHER_MODEL" \

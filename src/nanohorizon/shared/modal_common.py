@@ -203,13 +203,13 @@ def offline_image() -> modal.Image:
             )
         )
     )
-    image = _attach_repo(image)
-    return image.run_commands(
+    image = image.run_commands(
         f"python -m venv {teacher_venv}",
         f"{teacher_venv}/bin/python -m pip install --upgrade pip",
         f"{teacher_venv}/bin/python -m pip install "
-        "\"httpx>=0.28.1\" \"pyyaml>=6.0.2\" \"vllm>=0.10.0\"",
+        f"\"httpx>=0.28.1\" \"pyyaml>=6.0.2\" \"vllm>=0.10.0\" \"transformers=={TRANSFORMERS_VERSION}\"",
     )
+    return _attach_repo(image)
 
 
 def offline_worker_image() -> modal.Image:

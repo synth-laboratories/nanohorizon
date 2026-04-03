@@ -36,72 +36,17 @@ source "$ROOT/scripts/lib_craftax_tunnel.sh"
 
 cleanup() {
   if [[ -n "${BASE_ENDPOINT_PID:-}" ]]; then
-    kill "$BASE_ENDPOINT_PID" >/dev/null 2>&1 || true
+    nanohorizon_stop_modal_endpoint "$BASE_ENDPOINT_PID"
   fi
   if [[ -n "${FINETUNED_ENDPOINT_PID:-}" ]]; then
-    kill "$FINETUNED_ENDPOINT_PID" >/dev/null 2>&1 || true
+    nanohorizon_stop_modal_endpoint "$FINETUNED_ENDPOINT_PID"
   fi
   nanohorizon_cleanup_craftax_tunnel
 }
 trap cleanup EXIT
 
 start_modal_endpoint() {
-  local log_stdout="$1"
-  local log_stderr="$2"
-  local app_name="$3"
-  local model_ref="$4"
-  local max_model_len="$5"
-  local lora_name="$6"
-  local lora_path="$7"
-  local max_lora_rank="$8"
-
-  env \
-    NANOHORIZON_MODAL_TEACHER_APP_NAME="$app_name" \
-    NANOHORIZON_TEACHER_MODEL="$model_ref" \
-    NANOHORIZON_TEACHER_API_KEY="$VLLM_API_KEY" \
-    NANOHORIZON_TEACHER_MAX_MODEL_LEN="$max_model_len" \
-    NANOHORIZON_TEACHER_LORA_NAME="$lora_name" \
-    NANOHORIZON_TEACHER_LORA_PATH="$lora_path" \
-    NANOHORIZON_TEACHER_MAX_LORA_RANK="$max_lora_rank" \
-    "$UV_BIN" run --group modal modal run src/nanohorizon/shared/modal_teacher.py --keepalive-s 7200 >"$log_stdout" 2>"$log_stderr" &
-  local pid=$!
-  for _ in $(seq 1 240); do
-    if [[ -f "$log_stdout" ]]; then
-      local url
-      url="$(python3 - <<'PY' "$log_stdout"
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-text = path.read_text(encoding="utf-8") if path.exists() else ""
-for raw in text.splitlines():
-    if raw.startswith("vLLM endpoint: "):
-        print(raw.split("vLLM endpoint: ", 1)[1].strip())
-        break
-PY
-)"
-      if [[ -n "$url" ]]; then
-        if ! nanohorizon_wait_for_openai_compat_endpoint "$url" "$VLLM_API_KEY" 180 2; then
-          echo "modal endpoint failed readiness probe: $url" >&2
-          cat "$log_stderr" >&2 || true
-          cat "$log_stdout" >&2 || true
-          return 1
-        fi
-        printf '%s\n%s\n' "$pid" "${url%/}/v1/chat/completions"
-        return 0
-      fi
-    fi
-    if ! kill -0 "$pid" >/dev/null 2>&1; then
-      cat "$log_stderr" >&2 || true
-      cat "$log_stdout" >&2 || true
-      return 1
-    fi
-    sleep 2
-  done
-
-  cat "$log_stderr" >&2 || true
-  cat "$log_stdout" >&2 || true
-  return 1
+  nanohorizon_start_modal_endpoint "$@"
 }
 
 run_local_eval() {
@@ -148,7 +93,7 @@ base_endpoint_raw="$(start_modal_endpoint \
 BASE_ENDPOINT_PID="$(printf '%s\n' "$base_endpoint_raw" | sed -n '1p')"
 BASE_INFERENCE_URL="$(printf '%s\n' "$base_endpoint_raw" | sed -n '2p')"
 run_local_eval "$BASE_EVAL_DIR" "$BASE_INFERENCE_URL" "$STUDENT_MODEL"
-kill "$BASE_ENDPOINT_PID" >/dev/null 2>&1 || true
+nanohorizon_stop_modal_endpoint "$BASE_ENDPOINT_PID"
 unset BASE_ENDPOINT_PID
 
 finetuned_endpoint_raw="$(start_modal_endpoint \
@@ -164,7 +109,7 @@ FINETUNED_ENDPOINT_PID="$(printf '%s\n' "$finetuned_endpoint_raw" | sed -n '1p')
 FINETUNED_INFERENCE_URL="$(printf '%s\n' "$finetuned_endpoint_raw" | sed -n '2p')"
 run_local_eval "$FINETUNED_EVAL_DIR" "$FINETUNED_INFERENCE_URL" "policy-lora"
 
-python3 - <<'PY' "$BASE_EVAL_DIR/eval_summary.json" "$FINETUNED_EVAL_DIR/eval_summary.json" "$COMPARISON_PATH" "$REMOTE_OUTPUT_DIR"
+"$UV_BIN" run python3 - <<'PY' "$BASE_EVAL_DIR/eval_summary.json" "$FINETUNED_EVAL_DIR/eval_summary.json" "$COMPARISON_PATH" "$REMOTE_OUTPUT_DIR"
 from pathlib import Path
 import json
 import sys

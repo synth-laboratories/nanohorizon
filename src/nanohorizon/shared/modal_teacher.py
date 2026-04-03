@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from typing import Any, cast
 
+import httpx
 import modal
 
 REMOTE_SRC = Path("/root/nanohorizon/src")
@@ -34,11 +35,11 @@ image = rlvr_vllm_image()
     image=image,
     gpu=GPU_TEACHER,
     timeout=60 * 60 * 24,
+    max_containers=1,
     scaledown_window=60 * 10,
+    buffer_containers=int(os.environ.get("NANOHORIZON_TEACHER_BUFFER_CONTAINERS", "0")),
     volumes=volume_mounts(),
-    buffer_containers=1,
 )
-@modal.concurrent(max_inputs=64)
 class TeacherServer:
     model: str = modal.parameter(default=DEFAULT_MODEL)
     served_model_name: str = modal.parameter(default=DEFAULT_SERVED_MODEL_NAME)
@@ -105,7 +106,22 @@ class TeacherServer:
             model_ref=model,
         )
         print("Launching teacher vLLM:", " ".join(shlex.quote(x) for x in cmd), flush=True)
-        subprocess.Popen(cmd, env=env)
+        process = subprocess.Popen(cmd, env=env)
+        deadline = time.time() + (60 * 20)
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
+        models_url = f"http://127.0.0.1:{VLLM_PORT}/v1/models"
+        while time.time() < deadline:
+            if process.poll() is not None:
+                raise RuntimeError(f"teacher vLLM exited before readiness with code {process.returncode}")
+            try:
+                with httpx.Client(timeout=5.0) as client:
+                    response = client.get(models_url, headers=headers)
+                if response.status_code == 200:
+                    return
+            except Exception:
+                pass
+            time.sleep(1.0)
+        raise RuntimeError("timed out waiting for teacher vLLM readiness")
 
 
 @app.local_entrypoint()

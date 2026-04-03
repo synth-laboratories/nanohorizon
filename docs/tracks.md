@@ -11,6 +11,16 @@ NanoHorizon now has **four** official tracks across two task families. The first
 
 Task definitions: [docs/task-craftax.md](task-craftax.md) and [docs/task-craftax-classic.md](task-craftax-classic.md)
 
+## Planned Track Families
+
+These are planning docs for proposed lanes, not finalized public benchmark
+contracts yet.
+
+| Track ID | Doc |
+| --- | --- |
+| `cpt_rlvr_qwen35_0p8b` | [CPT -> RLVR planned track](tracks/cpt_rlvr_qwen35_0p8b.md) |
+| `pivot_verifier_qwen35_4b` | [Pivot verifier planned track](tracks/pivot_verifier_qwen35_4b.md) |
+
 ## RLVR track — summary
 
 - Intent: end-to-end engineering for a short real training run; model-in-the-loop data and RLVR-style updates.
