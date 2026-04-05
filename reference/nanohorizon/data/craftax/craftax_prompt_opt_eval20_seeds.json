@@ -1,0 +1,36 @@
+{
+  "train_seeds": [
+    10007,
+    10008,
+    10011,
+    10014,
+    10018,
+    10003
+  ],
+  "eval_seeds": [
+    10001,
+    10002,
+    10004,
+    10005,
+    10006,
+    10009,
+    10010,
+    10012,
+    10013,
+    10015,
+    10016,
+    10017,
+    10019,
+    10020,
+    10021,
+    10022,
+    10023,
+    10024,
+    10025,
+    10026
+  ],
+  "notes": [
+    "Prompt-opt probe split with 20 held-out eval seeds.",
+    "Eval seeds exclude the train seeds used for GEPA reflection."
+  ]
+}
