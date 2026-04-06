@@ -23,6 +23,9 @@ There are two ways to win:
 
 Base model target for the Craftax tracks: `Qwen/Qwen3.5-4B` unless a track doc states otherwise.
 
+Leaderboard demo note:
+- keep at least one small reviewable candidate PR available so downstream leaderboard demos always have a stable clickable baseline.
+
 ## Leaderboard
 
 Status: **three checked-in training reference baselines** plus a checked-in pure 4B Modal eval baseline — all reproducible from `records/`.
