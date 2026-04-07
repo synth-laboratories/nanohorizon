@@ -103,12 +103,18 @@ def _run_baseline(output_root: Path) -> subprocess.CompletedProcess[str]:
     nanohorizon_root = _resolve_nanohorizon_root()
     summary_path = _artifact_path(output_root, "eval_summary")
     rollouts_path = _artifact_path(output_root, "rollouts")
-    cmd = [
-        "uv",
-        "run",
-        "--directory",
+    env = os.environ.copy()
+    pythonpath_parts = [
         str(nanohorizon_root),
-        "python",
+        str(nanohorizon_root / "src"),
+    ]
+    existing_pythonpath = str(env.get("PYTHONPATH") or "").strip()
+    if existing_pythonpath:
+        pythonpath_parts.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+    env["NANOHORIZON_REPO_ROOT"] = str(nanohorizon_root)
+    cmd = [
+        sys.executable,
         str(WORKER_SCRIPT),
         "--summary-output",
         str(summary_path),
@@ -118,6 +124,7 @@ def _run_baseline(output_root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=str(output_root),
+        env=env,
         capture_output=True,
         text=True,
         check=False,
