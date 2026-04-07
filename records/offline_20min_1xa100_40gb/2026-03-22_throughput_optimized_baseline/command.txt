@@ -1,0 +1,1 @@
+python -m nanohorizon.baselines.offline_sft --config /Users/joshpurtell/Documents/GitHub/nanohorizon/configs/craftax_offline_reference.yaml

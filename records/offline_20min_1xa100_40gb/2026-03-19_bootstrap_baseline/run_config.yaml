@@ -1,0 +1,3 @@
+track: offline_20min_1xa100_40gb
+task: craftax
+base_model: Qwen/Qwen3.5-4B

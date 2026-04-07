@@ -1,0 +1,6 @@
+{
+  "status": "placeholder",
+  "primary_score": null,
+  "optimizer_budget_usd": 1.0,
+  "policy_model": "Qwen/Qwen3.5-4B"
+}

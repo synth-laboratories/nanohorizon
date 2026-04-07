@@ -1,0 +1,46 @@
+# Install: see dev/README.md  (uv sync && uv run pre-commit install)
+# Run all: uv run pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-json
+        exclude: ^records/
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty
+        entry: uv run ty check
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|src/.*\.py)$
+
+      - id: cargo-fmt
+        name: cargo fmt (crafter_rs)
+        entry: bash -c 'cd containers/crafter_rs && cargo fmt --check'
+        language: system
+        pass_filenames: false
+        files: ^containers/crafter_rs/.*\.rs$
+
+      - id: cargo-clippy
+        name: cargo clippy (crafter_rs)
+        entry: bash -c 'cd containers/crafter_rs && cargo clippy --all-targets -- -D warnings'
+        language: system
+        pass_filenames: false
+        files: ^containers/crafter_rs/.*\.rs$

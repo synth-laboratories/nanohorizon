@@ -1,0 +1,51 @@
+task:
+  name: craftax
+
+policy:
+  model: gemini-2.5-flash-lite
+  served_model_name: gemini-2.5-flash-lite
+  max_model_len: 32768
+
+optimizer:
+  budget_usd: 1.0
+  proposer_model: gemini-2.5-flash-lite
+  reflection_backend: policy_inference
+  allowed_models:
+  - gemini-2.5-flash-lite
+  allowed_split: any
+
+search:
+  objective: maximize_unique_achievements
+  max_metric_calls: 24
+  reflection_minibatch_size: 2
+  candidate_selection_strategy: epsilon_greedy
+  seed: 7
+
+prompt:
+  component_name: system_prompt
+  seed_prompt: >
+    You are a Craftax policy agent. Think carefully, then use the
+    `craftax_interact` tool exactly once. Return 1 valid full-Craftax action
+    unless the episode is already done. Use only the tool call as the final
+    answer. Do not output JSON, prose, or a plain-text action list.
+
+data:
+  seed_file: ../data/craftax/craftax_prompt_opt_eval20_seeds.json
+  num_train_seeds: 6
+  num_eval_seeds: 20
+
+rollout:
+  max_steps: 8
+  max_concurrent_rollouts: 4
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 2
+  request_timeout_seconds: 900
+  target_action_batch_size: 1
+  min_action_batch_size: 1
+  temperature: 0.0
+  max_tokens: 3072
+  enable_thinking: true
+  thinking_budget_tokens: 0
+
+output:
+  root_dir: ../records/prompt_opt_gemini25_flash_lite_local/eval20_default

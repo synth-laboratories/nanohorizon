@@ -1,0 +1,9 @@
+{
+  "platform": "Modal",
+  "hardware_contract": "2x A100-40GB",
+  "environment_runtime": "Craftax via Modal-hosted Synth-compatible Craftax core runtime service",
+  "training_backend": "Custom sequence-level GRPO-style LoRA loop in src/nanohorizon/rlvr_training.py",
+  "inference_backend": "Clustered Modal vLLM runtime forwarded from the learner-owned rank-1 worker",
+  "student_model": "Qwen/Qwen3.5-4B",
+  "reproducibility": "Reference runner is ./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh with user edits confined to src/nanohorizon/rlvr_training.py."
+}

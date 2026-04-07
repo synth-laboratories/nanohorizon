@@ -1,0 +1,118 @@
+{
+  "achievement_frequencies": {
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 6,
+      "frequency": 0.3
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 8,
+      "frequency": 0.4
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "artifact_dir": "/Users/joshpurtell/Documents/GitHub/nanohorizon/artifacts/pure_4b_modal_baseline_20260322T162333Z",
+  "container_url": "https://infra-api.usesynth.ai/s/rt__2wIOPvVFZN7pbGzmzI68doddb8TMHVo",
+  "mean_reward": 0.7,
+  "raw_rewards": [
+    1.0,
+    2.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    0.0
+  ],
+  "teacher_base_url": "https://synth-laboratories--nanohorizon-craftax-teacher-teac-4ed4be-dev.modal.run"
+}

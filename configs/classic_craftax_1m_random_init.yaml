@@ -1,0 +1,57 @@
+task:
+  name: craftax_classic
+  track: classic
+
+environment:
+  package: craftax
+  env_name: Craftax-Classic-Symbolic-v1
+  benchmark_variant: 1m
+  observation_type: symbolic
+
+model:
+  family: random_init_small_rl
+  architecture: ppo_rnn
+  max_params_million: 100
+  target_params_million: 25
+  layer_size: 256
+
+training:
+  initialization: random
+  framework: jax
+  method_family: rl
+  algorithm: ppo_rnn
+  env_step_budget: 1000000
+  num_envs: 1024
+  num_steps: 64
+  learning_rate: 0.0002
+  update_epochs: 4
+  num_minibatches: 8
+  gamma: 0.99
+  gae_lambda: 0.8
+  clip_eps: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 1.0
+  anneal_lr: true
+  use_optimistic_resets: true
+  optimistic_reset_ratio: 16
+  seed: 0
+
+hardware:
+  accelerators: 1
+  accelerator_type: single_modal_gpu
+
+evaluation:
+  num_envs: 128
+  num_episodes: 100
+  chunk_steps: 64
+  max_steps_per_episode: 2000
+  greedy: true
+  seed: 123
+
+modal:
+  gpu: L4
+  notes: default NanoHorizon classic baseline GPU; override with NANOHORIZON_MODAL_GPU_CLASSIC if needed
+
+output:
+  root_dir: ../records/classic/manual_reference_baseline

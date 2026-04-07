@@ -1,0 +1,5 @@
+{
+  "platform": "bootstrap",
+  "hardware_contract": "2x A100 40GB",
+  "reproducibility": "scaffold-only"
+}

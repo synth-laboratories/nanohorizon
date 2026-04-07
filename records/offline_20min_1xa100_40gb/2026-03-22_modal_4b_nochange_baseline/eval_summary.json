@@ -1,0 +1,355 @@
+{
+  "achievement_frequencies": {
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 6,
+      "frequency": 0.3
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 8,
+      "frequency": 0.4
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "achievement_names": [
+    "collect_coal",
+    "collect_diamond",
+    "collect_drink",
+    "collect_iron",
+    "collect_sapling",
+    "collect_stone",
+    "collect_wood",
+    "defeat_skeleton",
+    "defeat_zombie",
+    "eat_cow",
+    "eat_plant",
+    "make_iron_pickaxe",
+    "make_iron_sword",
+    "make_stone_pickaxe",
+    "make_stone_sword",
+    "make_wood_pickaxe",
+    "make_wood_sword",
+    "place_furnace",
+    "place_plant",
+    "place_stone",
+    "place_table",
+    "wake_up"
+  ],
+  "details": [
+    {
+      "achievements": [
+        "collect_sapling"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00000_10000",
+      "seed": 10000,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00000_10000"
+    },
+    {
+      "achievements": [
+        "collect_sapling",
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 2.0,
+      "rollout_id": "eval_summary_00001_10001",
+      "seed": 10001,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00001_10001"
+    },
+    {
+      "achievements": [
+        "collect_sapling"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00002_10002",
+      "seed": 10002,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00002_10002"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00003_10003",
+      "seed": 10003,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00003_10003"
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00004_10004",
+      "seed": 10004,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00004_10004"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00005_10005",
+      "seed": 10005,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00005_10005"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00006_10006",
+      "seed": 10006,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00006_10006"
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00007_10007",
+      "seed": 10007,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00007_10007"
+    },
+    {
+      "achievements": [
+        "collect_sapling",
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 2.0,
+      "rollout_id": "eval_summary_00008_10008",
+      "seed": 10008,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00008_10008"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00009_10009",
+      "seed": 10009,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00009_10009"
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00010_10010",
+      "seed": 10010,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00010_10010"
+    },
+    {
+      "achievements": [
+        "collect_sapling",
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 2.0,
+      "rollout_id": "eval_summary_00011_10011",
+      "seed": 10011,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00011_10011"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00012_10012",
+      "seed": 10012,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00012_10012"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00013_10013",
+      "seed": 10013,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00013_10013"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00014_10014",
+      "seed": 10014,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00014_10014"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00015_10015",
+      "seed": 10015,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00015_10015"
+    },
+    {
+      "achievements": [
+        "collect_sapling"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00016_10016",
+      "seed": 10016,
+      "success_status": "failed",
+      "trace_correlation_id": "eval_summary_00016_10016"
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00017_10017",
+      "seed": 10017,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00017_10017"
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 1.0,
+      "rollout_id": "eval_summary_00018_10018",
+      "seed": 10018,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00018_10018"
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "eval_summary_00019_10019",
+      "seed": 10019,
+      "success_status": "success",
+      "trace_correlation_id": "eval_summary_00019_10019"
+    }
+  ],
+  "enable_thinking": true,
+  "inference_backend": "remote_openai_compat",
+  "inference_url": "https://synth-laboratories--nanohorizon-craftax-teacher-teac-4ed4be-dev.modal.run/v1/chat/completions",
+  "max_outcome_reward": 2.0,
+  "mean_llm_calls_per_rollout": 0.0,
+  "mean_outcome_reward": 0.7,
+  "mean_outcome_reward_over_requested_rollouts": 0.7,
+  "num_eval_rollouts": 20,
+  "num_rollout_errors": 0,
+  "request_model": "Qwen/Qwen3.5-4B",
+  "requested_num_eval_rollouts": 20,
+  "thinking_budget_tokens": 2000
+}

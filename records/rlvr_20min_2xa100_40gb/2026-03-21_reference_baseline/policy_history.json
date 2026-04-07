@@ -1,0 +1,9 @@
+[
+  {
+    "adapter_dir": "/__modal/volumes/vo-9BQfgMaVXbHYG19MmLgqVB/rlvr_20min_2xa100_40gb/2026-03-21T154358+0000_reference_baseline/adapters/iter_000",
+    "adapter_name": "policy-iter-000",
+    "iteration_index": 0,
+    "mean_outcome_reward": 0.0,
+    "policy_version": "iter_000"
+  }
+]

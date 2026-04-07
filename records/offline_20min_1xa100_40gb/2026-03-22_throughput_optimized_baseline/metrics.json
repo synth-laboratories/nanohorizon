@@ -1,0 +1,33 @@
+{
+  "achievement_deltas": {},
+  "adapter_dir": "/__modal/volumes/vo-gyLIL86pXukRgio0K6FWta/offline_reference/offline_reference_20260322T235119Z/adapter",
+  "base_achievement_frequencies": {},
+  "base_mean_outcome_reward": 0.0,
+  "base_num_eval_rollouts": 0,
+  "baseline": "filtered_behavior_cloning",
+  "dataset_jsonl": "/Users/joshpurtell/Documents/GitHub/nanohorizon/artifacts/offline_reference_20260322T235119Z/filtered_sft_data.jsonl",
+  "elapsed_minutes": 8.243758296966552,
+  "ended_at": "2026-03-23T00:03:37+00:00",
+  "examples_seen": 23,
+  "finetuned_achievement_frequencies": {},
+  "finetuned_mean_outcome_reward": 0.0,
+  "finetuned_num_eval_rollouts": 0,
+  "mean_loss": 0.34780440479516983,
+  "optimizer_steps": 16,
+  "reward_delta": 0.0,
+  "sft_token_volume": {
+    "max_sequence_length": 2494,
+    "mean_sequence_length": 1759.0869565217392,
+    "total_completion_tokens": 11127,
+    "total_prompt_tokens": 29332,
+    "total_tokens": 40459
+  },
+  "started_at": "2026-03-22T23:55:23+00:00",
+  "submission_achievement_frequencies": {},
+  "submission_mean_outcome_reward": 0.0,
+  "teacher_generation_enabled": true,
+  "teacher_model": "Qwen/Qwen3.5-9B",
+  "track": "offline_20min_1xa100_40gb",
+  "training_backend": "modal",
+  "training_output_dir": "/__modal/volumes/vo-gyLIL86pXukRgio0K6FWta/offline_reference/offline_reference_20260322T235119Z"
+}

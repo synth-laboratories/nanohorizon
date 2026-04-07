@@ -1,0 +1,8 @@
+{
+  "adapter_dir": "/__modal/volumes/vo-gyLIL86pXukRgio0K6FWta/offline_reference/offline_reference_20260322T235119Z/adapter",
+  "base_mean_outcome_reward": 0.4,
+  "base_num_eval_rollouts": 20,
+  "finetuned_mean_outcome_reward": 0.6,
+  "finetuned_num_eval_rollouts": 20,
+  "reward_delta": 0.19999999999999996
+}

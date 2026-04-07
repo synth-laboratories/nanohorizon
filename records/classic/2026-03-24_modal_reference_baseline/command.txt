@@ -1,0 +1,1 @@
+./scripts/run_classic_craftax_1m_modal.sh

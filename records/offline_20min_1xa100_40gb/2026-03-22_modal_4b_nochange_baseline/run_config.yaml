@@ -1,0 +1,19 @@
+track: offline_20min_1xa100_40gb
+task: craftax
+base_model: Qwen/Qwen3.5-4B
+reference_script: ./scripts/run_craftax_model_eval.sh
+eval:
+  num_rollouts: 20
+  max_concurrency: 10
+  max_steps: 10
+  seed_start: 10000
+  thinking_budget_tokens: 2000
+  max_new_tokens: 2200
+  inference_backend: modal_teacher_remote_openai_compat
+inference:
+  host: Modal
+  served_model_name: Qwen/Qwen3.5-4B
+  api_shape: openai_compatible_chat_completions
+record_artifacts:
+  eval_summary: eval_summary.json
+  result_summary: result_summary.json

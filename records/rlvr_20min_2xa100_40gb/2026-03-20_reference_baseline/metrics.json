@@ -1,0 +1,11 @@
+{
+  "status": "implemented_unscored",
+  "primary_metric": "final_mean_outcome_reward",
+  "primary_score": null,
+  "wall_clock_minutes_budget": 20,
+  "gpu_count": 2,
+  "gpu_type": "A100-40GB",
+  "model": "Qwen/Qwen3.5-4B",
+  "algorithm": "modal_craftax_grpo",
+  "notes": "Implementation landed in repo; scored reference run pending."
+}

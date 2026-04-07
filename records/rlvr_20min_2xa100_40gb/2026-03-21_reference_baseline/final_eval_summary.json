@@ -1,0 +1,26 @@
+{
+  "collection": {
+    "active_rollout_high_watermark": 1,
+    "completed_rollouts": 4,
+    "elapsed_s": 316.28634500399994,
+    "max_outcome_reward": 0.0,
+    "max_request_latency_s": 170.0722413420001,
+    "mean_outcome_reward": 0.0,
+    "mean_request_latency_s": 79.07114834625003,
+    "num_errors": 0,
+    "num_structured_rollouts": 4,
+    "requested_rollouts": 4,
+    "rollout_concurrency": 1,
+    "rollout_requests_finished": 4,
+    "rollout_requests_started": 4,
+    "rollout_semaphore_limit": 1,
+    "rollouts_per_minute": 0.7588060749096355
+  },
+  "label": "final_eval",
+  "max_outcome_reward": 0.0,
+  "mean_outcome_reward": 0.0,
+  "num_eval_rollouts": 4,
+  "num_rollout_errors": 0,
+  "policy_version": "iter_000",
+  "seed_count": 4
+}

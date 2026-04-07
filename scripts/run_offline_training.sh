@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ARTIFACT_DIR="${NANOHORIZON_OFFLINE_TRAINING_ARTIFACT_DIR:-$ROOT/artifacts/offline_reference_$(date -u +%Y%m%dT%H%M%SZ)}"
+CONFIG_PATH="${NANOHORIZON_OFFLINE_CONFIG:-configs/craftax_offline_reference.yaml}"
+TRAINING_LOG="$ARTIFACT_DIR/offline_training.log"
+MODAL_SFT_DEPLOY_LOG="$ARTIFACT_DIR/modal_sft_deploy.log"
+MODAL_TRAIN_RESULT_PATH="$ARTIFACT_DIR/modal_train_result.json"
+BASE_ENDPOINT_STDOUT="$ARTIFACT_DIR/base_endpoint.stdout.log"
+BASE_ENDPOINT_STDERR="$ARTIFACT_DIR/base_endpoint.stderr.log"
+FINETUNED_ENDPOINT_STDOUT="$ARTIFACT_DIR/finetuned_endpoint.stdout.log"
+FINETUNED_ENDPOINT_STDERR="$ARTIFACT_DIR/finetuned_endpoint.stderr.log"
+BASE_EVAL_DIR="$ARTIFACT_DIR/base_eval"
+FINETUNED_EVAL_DIR="$ARTIFACT_DIR/finetuned_eval"
+COMPARISON_PATH="$ARTIFACT_DIR/comparison_summary.json"
+
+STUDENT_MODEL="${NANOHORIZON_STUDENT_MODEL:-Qwen/Qwen3.5-4B}"
+TEACHER_MODEL="${NANOHORIZON_TEACHER_MODEL:-Qwen/Qwen3.5-9B}"
+THINKING_BUDGET="${NANOHORIZON_THINKING_BUDGET_TOKENS:-512}"
+MAX_NEW_TOKENS="${NANOHORIZON_MAX_NEW_TOKENS:-712}"
+MAX_MODEL_LEN="${NANOHORIZON_MAX_MODEL_LEN:-8192}"
+NUM_EVAL_ROLLOUTS="${NANOHORIZON_NUM_EVAL_ROLLOUTS:-20}"
+EVAL_SEED_START="${NANOHORIZON_EVAL_SEED_START:-10000}"
+EVAL_MAX_STEPS="${NANOHORIZON_EVAL_MAX_STEPS:-8}"
+EVAL_MAX_CONCURRENCY="${NANOHORIZON_EVAL_MAX_CONCURRENCY:-10}"
+EVAL_REQUEST_TIMEOUT_SECONDS="${NANOHORIZON_EVAL_REQUEST_TIMEOUT_SECONDS:-600}"
+VLLM_API_KEY="${NANOHORIZON_VLLM_API_KEY:-dummy-local-key}"
+UV_BIN="${UV_BIN:-/opt/homebrew/bin/uv}"
+DEPLOY_BEFORE_RUN="${NANOHORIZON_MODAL_DEPLOY_BEFORE_RUN:-1}"
+TRAIN_ON_MODAL="${NANOHORIZON_TRAIN_ON_MODAL:-1}"
+
+mkdir -p "$ARTIFACT_DIR" "$BASE_EVAL_DIR" "$FINETUNED_EVAL_DIR"
+
+source "$ROOT/scripts/lib_craftax_tunnel.sh"
+
+cleanup() {
+  if [[ -n "${BASE_ENDPOINT_PID:-}" ]]; then
+    nanohorizon_stop_modal_endpoint "$BASE_ENDPOINT_PID"
+  fi
+  if [[ -n "${FINETUNED_ENDPOINT_PID:-}" ]]; then
+    nanohorizon_stop_modal_endpoint "$FINETUNED_ENDPOINT_PID"
+  fi
+  nanohorizon_cleanup_craftax_tunnel
+}
+trap cleanup EXIT
+
+wait_for_modal_endpoint() {
+  local base_url="$1"
+  local api_key="$2"
+
+  for _ in $(seq 1 180); do
+    if curl --max-time 10 -sf -H "Authorization: Bearer $api_key" "${base_url%/}/v1/models" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  return 1
+}
+
+start_modal_endpoint() {
+  nanohorizon_start_modal_endpoint "$@"
+}
+
+run_local_eval() {
+  local output_dir="$1"
+  local inference_url="$2"
+  local request_model="$3"
+  "$UV_BIN" run python -m nanohorizon.shared.eval_model \
+    --base-model "$STUDENT_MODEL" \
+    --container-url "$NANOHORIZON_CRAFTAX_CONTAINER_URL" \
+    --output-dir "$output_dir" \
+    --seed-start "$EVAL_SEED_START" \
+    --num-rollouts "$NUM_EVAL_ROLLOUTS" \
+    --max-steps "$EVAL_MAX_STEPS" \
+    --max-concurrent-rollouts "$EVAL_MAX_CONCURRENCY" \
+    --max-length "$MAX_MODEL_LEN" \
+    --max-new-tokens "$MAX_NEW_TOKENS" \
+    --thinking-budget-tokens "$THINKING_BUDGET" \
+    --enable-thinking \
+    --request-timeout-seconds "$EVAL_REQUEST_TIMEOUT_SECONDS" \
+    --inference-url "$inference_url" \
+    --inference-api-key "$VLLM_API_KEY" \
+    --request-model "$request_model"
+}
+
+cd "$ROOT"
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export NANOHORIZON_OFFLINE_CONFIG="$CONFIG_PATH"
+export NANOHORIZON_TEACHER_MODEL="$TEACHER_MODEL"
+export NANOHORIZON_TEACHER_MAX_MODEL_LEN="$MAX_MODEL_LEN"
+export NANOHORIZON_TEACHER_ENFORCE_EAGER="${NANOHORIZON_TEACHER_ENFORCE_EAGER:-1}"
+export NANOHORIZON_MIN_TEACHER_REWARD="${NANOHORIZON_MIN_TEACHER_REWARD:-1.0}"
+export NANOHORIZON_MAX_TEACHER_ROWS="${NANOHORIZON_MAX_TEACHER_ROWS:-32}"
+export NANOHORIZON_FILTER_COLLECT_WOOD="${NANOHORIZON_FILTER_COLLECT_WOOD:-1}"
+export NANOHORIZON_MODAL_GPU_OFFLINE="${NANOHORIZON_MODAL_GPU_OFFLINE:-A100-40GB}"
+export NANOHORIZON_TRAIN_ON_MODAL="$TRAIN_ON_MODAL"
+export NANOHORIZON_MODAL_SFT_APP_NAME="${NANOHORIZON_MODAL_SFT_APP_NAME:-nanohorizon-craftax-sft}"
+export NANOHORIZON_MODAL_SFT_OUTPUT_DIR="${NANOHORIZON_MODAL_SFT_OUTPUT_DIR:-/vol/artifacts/offline_reference/$(basename "$ARTIFACT_DIR")}"
+
+nanohorizon_start_local_craftax_if_needed "$ROOT"
+export NANOHORIZON_CRAFTAX_CONTAINER_URL="${NANOHORIZON_CRAFTAX_CONTAINER_URL:-${NANOHORIZON_CRAFTAX_CONTAINER_URL:-http://127.0.0.1:8903}}"
+export NANOHORIZON_CRAFTAX_CONTAINER_URL="${NANOHORIZON_CRAFTAX_CONTAINER_URL:-$NANOHORIZON_CRAFTAX_CONTAINER_URL}"
+export NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN="${NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN:-${NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN:-}}"
+unset NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN
+
+nanohorizon_start_modal_teacher_if_needed "$ROOT"
+if [[ "$TRAIN_ON_MODAL" == "1" && "$DEPLOY_BEFORE_RUN" == "1" ]]; then
+  "$UV_BIN" run --group modal modal deploy src/nanohorizon/baselines/offline_sft.py >"$MODAL_SFT_DEPLOY_LOG" 2>&1
+fi
+
+"$UV_BIN" run --group modal python -m nanohorizon.baselines.offline_sft \
+  --config "$CONFIG_PATH" \
+  --output-dir "$ARTIFACT_DIR" | tee "$TRAINING_LOG"
+
+ADAPTER_DIR="$("$UV_BIN" run python3 - <<'PY' "$MODAL_TRAIN_RESULT_PATH" "$ARTIFACT_DIR"
+from pathlib import Path
+import json
+import sys
+
+modal_result_path = Path(sys.argv[1])
+artifact_dir = Path(sys.argv[2]).resolve()
+if modal_result_path.exists():
+    payload = json.loads(modal_result_path.read_text(encoding="utf-8"))
+    value = str(payload.get("adapter_dir") or "").strip()
+    if value:
+        print(value)
+        raise SystemExit(0)
+local_adapter = artifact_dir / "adapter"
+if local_adapter.exists():
+    print(str(local_adapter))
+    raise SystemExit(0)
+raise SystemExit(1)
+PY
+)"
+
+base_endpoint_raw="$(start_modal_endpoint \
+  "$BASE_ENDPOINT_STDOUT" \
+  "$BASE_ENDPOINT_STDERR" \
+  nanohorizon-craftax-student-base \
+  "$STUDENT_MODEL" \
+  "$MAX_MODEL_LEN" \
+  "" \
+  "" \
+  "16")"
+BASE_ENDPOINT_PID="$(printf '%s\n' "$base_endpoint_raw" | sed -n '1p')"
+BASE_INFERENCE_URL="$(printf '%s\n' "$base_endpoint_raw" | sed -n '2p')"
+run_local_eval "$BASE_EVAL_DIR" "$BASE_INFERENCE_URL" "$STUDENT_MODEL"
+nanohorizon_stop_modal_endpoint "$BASE_ENDPOINT_PID"
+unset BASE_ENDPOINT_PID
+
+finetuned_endpoint_raw="$(start_modal_endpoint \
+  "$FINETUNED_ENDPOINT_STDOUT" \
+  "$FINETUNED_ENDPOINT_STDERR" \
+  nanohorizon-craftax-student-finetuned \
+  "$STUDENT_MODEL" \
+  "$MAX_MODEL_LEN" \
+  "policy-lora" \
+  "$ADAPTER_DIR" \
+  "16")"
+FINETUNED_ENDPOINT_PID="$(printf '%s\n' "$finetuned_endpoint_raw" | sed -n '1p')"
+FINETUNED_INFERENCE_URL="$(printf '%s\n' "$finetuned_endpoint_raw" | sed -n '2p')"
+run_local_eval "$FINETUNED_EVAL_DIR" "$FINETUNED_INFERENCE_URL" "policy-lora"
+
+"$UV_BIN" run python3 - <<'PY' "$BASE_EVAL_DIR/eval_summary.json" "$FINETUNED_EVAL_DIR/eval_summary.json" "$COMPARISON_PATH" "$ADAPTER_DIR"
+from pathlib import Path
+import json
+import sys
+
+base_summary = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+finetuned_summary = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+base_freqs = base_summary.get("achievement_frequencies", {})
+ft_freqs = finetuned_summary.get("achievement_frequencies", {})
+all_achs = sorted(set(list(base_freqs.keys()) + list(ft_freqs.keys())))
+achievement_deltas = {}
+for ach in all_achs:
+    bf = float((base_freqs.get(ach) or {}).get("frequency", 0.0) or 0.0)
+    ff = float((ft_freqs.get(ach) or {}).get("frequency", 0.0) or 0.0)
+    achievement_deltas[ach] = {"base_frequency": bf, "finetuned_frequency": ff, "delta": round(ff - bf, 4)}
+comparison = {
+    "adapter_dir": sys.argv[4],
+    "base_mean_outcome_reward": float(base_summary.get("mean_outcome_reward", 0.0) or 0.0),
+    "finetuned_mean_outcome_reward": float(finetuned_summary.get("mean_outcome_reward", 0.0) or 0.0),
+    "reward_delta": float(finetuned_summary.get("mean_outcome_reward", 0.0) or 0.0)
+    - float(base_summary.get("mean_outcome_reward", 0.0) or 0.0),
+    "base_num_eval_rollouts": int(base_summary.get("num_eval_rollouts", 0) or 0),
+    "finetuned_num_eval_rollouts": int(finetuned_summary.get("num_eval_rollouts", 0) or 0),
+    "achievement_deltas": achievement_deltas,
+}
+Path(sys.argv[3]).write_text(json.dumps(comparison, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+print(json.dumps(comparison, indent=2, sort_keys=True))
+PY

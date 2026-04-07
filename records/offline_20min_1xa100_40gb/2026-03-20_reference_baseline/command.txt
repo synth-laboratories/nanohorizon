@@ -1,0 +1,1 @@
+./scripts/run_offline_training.sh

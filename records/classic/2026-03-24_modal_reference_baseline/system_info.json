@@ -1,0 +1,10 @@
+{
+  "accelerator": "L4",
+  "distrax_version": "0.1.7",
+  "flax_version": "0.12.2",
+  "jax_version": "0.9.2",
+  "optax_version": "0.2.8",
+  "orbax_available": true,
+  "platform": "Linux-4.4.0-x86_64-with-glibc2.35",
+  "python": "3.11.5"
+}

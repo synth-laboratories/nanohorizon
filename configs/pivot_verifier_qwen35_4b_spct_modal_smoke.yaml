@@ -1,0 +1,58 @@
+task:
+  track: pivot_verifier_qwen35_4b
+  method_name: spct_qwen35_4b_modal_smoke
+
+data:
+  bootstrap_rollouts_path: data/craftax/samples/pivot_verifier_rollouts.sample.jsonl
+
+dataset:
+  lookahead: 1
+  max_examples: 2
+  holdout_fraction: 0.0
+  split_seed: 13
+
+verifier:
+  base_model: Qwen/Qwen3.5-4B
+  max_length: 1536
+
+training:
+  learning_rate: 1.0e-5
+  epochs: 1
+  max_steps: 2
+  lora_rank: 2
+  use_native_tool_calling: true
+  refinement:
+    enabled: true
+    max_examples: 2
+    samples_per_example: 2
+    temperature: 0.7
+    max_new_tokens: 192
+    max_lora_rank: 8
+    gpu_memory_utilization: 0.55
+    enable_thinking: true
+    thinking_budget_tokens: 256
+    epochs: 1
+    max_steps: 2
+
+evaluation:
+  max_examples: 16
+  max_new_tokens: 192
+  max_lora_rank: 8
+  gpu_memory_utilization: 0.55
+  enable_thinking: true
+  thinking_budget_tokens: 384
+  golden_eval_path: data/craftax/pivot_verifier_golden_eval.jsonl
+
+downstream_policy:
+  enabled: true
+  base_model: Qwen/Qwen3.5-4B
+  max_examples: 8
+  learning_rate: 5.0e-6
+  epochs: 1
+  max_steps: 4
+  lora_rank: 4
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+  max_length: 1024
+  beta: 0.2
+  chosen_distill_weight: 0.05

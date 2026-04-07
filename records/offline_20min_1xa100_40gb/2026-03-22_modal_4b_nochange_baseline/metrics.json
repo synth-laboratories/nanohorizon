@@ -1,0 +1,130 @@
+{
+  "status": "verified_reference",
+  "primary_metric": "submission_mean_outcome_reward",
+  "primary_score": 0.7,
+  "submission_mean_outcome_reward": 0.7,
+  "submission_achievement_frequencies": {
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 6,
+      "frequency": 0.3
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 8,
+      "frequency": 0.4
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "raw_rewards": [
+    1.0,
+    2.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    0.0
+  ],
+  "requested_num_eval_rollouts": 20,
+  "num_eval_rollouts": 20,
+  "num_rollout_errors": 0,
+  "eval_max_concurrency": 10,
+  "eval_max_steps": 10,
+  "thinking_budget_tokens": 2000,
+  "max_new_tokens": 2200,
+  "mean_llm_calls_per_rollout": 0.0,
+  "inference_backend": "modal_teacher_remote_openai_compat",
+  "wall_clock_minutes_budget": 20,
+  "gpu_count": 1,
+  "gpu_type": "A100-40GB"
+}
