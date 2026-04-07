@@ -4,5 +4,6 @@
 - Updated the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix/` so `run_config.yaml` and `notes.md` reflect the same candidate wording.
 - Validation run: `uv run pytest tests/test_codex_durable_intent_candidate.py` passed on 2026-04-07.
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` returned `ok: true` on 2026-04-07.
+- Local reviewable commit: `0434db4681ae114669540ab37dd4211c00f20645` (`Preserve Craftax todo guidance during prompt optimization`).
 - Push blocker: `workspace_push` failed with `workspace_push requires a live worker session; no live worker handle was found`, so this run can leave a local reviewable commit but cannot complete the required backend-tracked push flow.
 - Caveat: no live Craftax or Modal rollout run was executed in this task, so score impact remains unmeasured.

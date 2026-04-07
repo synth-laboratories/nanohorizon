@@ -40,6 +40,7 @@ Implement the smallest honest Craftax candidate for the durable-intent / todo-li
 - Result: 3 tests passed.
 - Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix`
 - Result: `{ "ok": true, "warnings": [] }`
+- Local commit: `0434db4681ae114669540ab37dd4211c00f20645` (`Preserve Craftax todo guidance during prompt optimization`)
 - Push flow: `workspace_push` failed with `workspace_push requires a live worker session; no live worker handle was found`.
 - Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
 
