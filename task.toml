@@ -1,195 +1,59 @@
 [task]
-id = "nanohorizon_unique_achievement_gepa_oe"
-title = "NanoHorizon Unique-Achievement GEPA"
+id = "actorbench_nh__craftax_hello_world__worker_v1"
+title = "ActorBench NanoHorizon Craftax Hello World Worker"
 kind = "smr_reportbench"
 version = "0.1"
-score_command = "python3 workspace/score.py score --output-root {output_root}"
-report_path = "eval_report.md"
+runner = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
+default_command = "python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root {output_root}"
+score_command = "python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root {output_root} --verifier-mode precheck"
+report_path = "reports/reproduction.md"
+contract_path = "task_contract.json"
 
 [smr]
 execution_mode = "host_local_runner"
 pool_strategy = "local_workspace_only"
-work_mode = "open_ended_discovery"
-
-[smr.key_policy]
-mode = "synth_only"
+work_mode = "directed_effort"
 
 [smr.runtime]
 runtime_kind = "sandbox_agent"
 environment_kind = "harbor"
 
 [smr.project]
-name = "NanoHorizon Unique Achievement GEPA {nick}-{timestamp}"
+name = "ActorBench NanoHorizon Craftax Hello World Worker {nick}-{timestamp}"
 timezone = "UTC"
 notes = """
-NANOHORIZON UNIQUE-ACHIEVEMENT GEPA — first-step open-ended GEPA research.
+ACTORBENCH - single worker NanoHorizon Craftax hello-world.
 
-Read the staged README, task.toml, verifier rubric, and staged references before
-starting. You are working inside a cloned `nanohorizon` repo checkout for this
-task, and the whole repo is available in the writable workspace.
-
-This is a task-planning lane. You MUST use `plan_tasks` to create tasks.
-Your first non-read action MUST be a `plan_tasks` tool call.
-Do not respond with a prose-only plan. If you describe the task plan without
-calling `plan_tasks`, the run will fail.
-
-Goal:
-- establish the baseline held-out unique-achievement result
-- run one local GEPA optimization pass targeting unique achievements
-- judge lift, scientific quality, and throughput under a 500-rollout budget
-
-Baseline validity rule:
-- The only valid baseline track for this lane is `prompt_opt_local_gemini25_flash_lite`.
-- Baseline grounding must come from a fresh local run of:
-  - `scripts/run_craftax_prompt_opt_gemini25_flash_lite_local.sh`
-  - `configs/craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml`
-- The worker should use `gemini-2.5-flash-lite` as the policy model through an
-  OpenAI-compatible endpoint, not a Modal-hosted inference server.
-- If both `GEMINI_API_KEY` and `OPENAI_API_KEY` are present, prefer
-  `GEMINI_API_KEY` for the policy experiment path.
-- Use
-  `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`
-  for the policy experiment path unless a different OpenAI-compatible Gemini
-  base URL is already provided.
-- Do not use `offline_*`, `rlvr_*`, or any non-prompt-opt record as the
-  baseline for this lane, even if it contains achievement frequencies.
-- Do not use the staged Qwen prompt-opt reference bundle as the baseline for
-  this lane; it is from the wrong policy family.
-- If fresh local Gemini baseline evidence is unavailable, fail the task rather
-  than substituting another baseline source.
-
-Workspace validity rule:
-- Use the current checkout as the writable workspace root.
-- Use the literal `{dataset_ref}` path as the staged packet root.
-- Do not prepend `/workspace/` to `{dataset_ref}` unless the current checkout
-  actually resolves that path.
-- Do not manually `git clone` a replacement repo to recover from an apparent
-  missing workspace.
-- Do not read or borrow artifacts from another run under `/synth/state/.out/...`
-  to satisfy this lane.
-- If the prompt-opt checkout or staged packet is unavailable after inspecting
-  the current checkout root truthfully, fail honestly instead of attempting a
-  salvage path.
-
-Plan exactly one worker-host repo task for the main execution. Do not create a
-separate reviewer task before the main run.
-Do not stop after describing the task graph in natural language. You must
-materialize the task graph with `plan_tasks`.
-
-Execution-routing requirement for every planned repo task:
-- Every task you create with `plan_tasks` MUST include
-  `task_dispatch={{"execution_owner":"worker_host","worker_pool":"default","target_kind":"repo","task_affinity_key":"nanohorizon-unique-achievement-gepa"}}`
-- The only valid execution owner is exactly `"worker_host"`.
-
-Git routing:
-- Use the `workspace_push` tool (not raw git commands).
-- After push succeeds, call `set_task_state` with state `done`.
+The actor under test is the worker. The worker should execute the staged
+hello-world runner, keep outputs inside the workspace root, and then score the
+bundle through the actorbench wrapper.
 """
 
 [smr.research]
-scenario = "reportbench-{task_id}-unique-achievement-gepa"
+scenario = "actorbench-nh-craftax-hello-world-worker"
 repo_url = "https://github.com/synth-laboratories/nanohorizon.git"
 
 [[smr.research.tasks]]
-task_key = "run_unique_achievement_gepa"
+task_key = "run_actorbench_nh_craftax_hello_world"
 kind = "repo_task"
+worker_pool = "{worker_pool_id}"
 instructions = """
-Run a unique-achievement-focused GEPA study for NanoHorizon Craftax and produce
-a scored report.
+Read `{dataset_ref}/README.md`, `{dataset_ref}/task.toml`,
+`{dataset_ref}/task_contract.json`, `{dataset_ref}/VERIFIER_RUBRIC.md`, and
+the workspace runner files before you start.
 
-IMPORTANT:
-- Your first action after reading the staged packet must be a `plan_tasks` call.
-- Do not summarize the plan in plain text instead of calling `plan_tasks`.
-- A prose-only plan does not count as task planning for this lane.
+From the current workspace root run:
 
-Before you start, read:
-- `{dataset_ref}/README.md`
-- `{dataset_ref}/task.toml`
-- `{dataset_ref}/VERIFIER_RUBRIC.md`
-- the `reference/nanohorizon/...` files in `{dataset_ref}`
+`python3 {dataset_ref}/workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root .`
 
-Workspace discipline:
-- Use the literal `{dataset_ref}` path exactly as provided by the task contract.
-- Do not assume the packet is mounted under `/workspace/...` unless you have
-  verified that from the current checkout.
-- Do not `git clone` a replacement repo to work around a missing packet.
-- Do not read or copy prior-run artifacts from `/synth/state/.out/...`.
-- If the packet appears missing, inspect the current checkout root first and
-  only then fail honestly. Do not fabricate or salvage a result bundle.
+Then score the bundle:
 
-Treat the NanoHorizon prompt-opt track as the canonical GEPA baseline:
-- `reference/nanohorizon/src/nanohorizon/baselines/prompt_opt.py`
-- `reference/nanohorizon/scripts/run_craftax_prompt_opt_gemini25_flash_lite_local.sh`
-- `reference/nanohorizon/configs/craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml`
-- `reference/nanohorizon/docs/tracks/prompt_opt_1usd_gpt54_family.md`
-
-You are working inside a cloned `nanohorizon` repo checkout, so the full repo
-is available in the writable workspace in addition to the staged packet.
-
-Goal:
-- determine the baseline held-out unique-achievement outcome
-- use local GEPA with a 500-rollout training budget to maximize unique achievements
-- compare baseline vs optimized results on the same held-out set
-
-Hard baseline requirement:
-- The only valid baseline track is `prompt_opt_local_gemini25_flash_lite`.
-- Valid baseline evidence must come from a fresh local run using:
-  - `scripts/run_craftax_prompt_opt_gemini25_flash_lite_local.sh`
-  - `configs/craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml`
-- `offline_*`, `rlvr_*`, checked-in reference bundles, and any non-prompt-opt records are invalid baseline
-  sources for this lane.
-- Use `gemini-2.5-flash-lite` as the policy `request_model`.
-- If both `GEMINI_API_KEY` and `OPENAI_API_KEY` are present, the policy run
-  must use `GEMINI_API_KEY`, not the generic OpenAI key.
-- Run the trainer locally via `python -m nanohorizon.baselines.prompt_opt` through
-  the local launcher script, not `modal run`.
-- If the local Gemini baseline cannot be grounded, stop and fail honestly instead
-  of substituting another baseline.
-
-No salvage rule:
-- Do not borrow prior-run surrogate bundles, copied result directories, or
-  manually probed candidates from other runs to satisfy this task.
-- Do not assemble a passing bundle from old artifacts if the fresh run did not
-  execute.
-- Do not cite or copy artifacts from another run id under `/synth/state/.out/...`.
-- Do not use the checked-in Qwen prompt-opt reference record as a substitute
-  for the required fresh local Gemini run.
-
-Required final artifacts:
-- `artifacts/unique_achievement_baseline.json`
-- `artifacts/unique_achievement_gepa_result.json`
-- `artifacts/unique_achievement_summary.json`
-- `artifacts/reportbench_output.json`
-- `eval_report.md`
-
-Required report content:
-- baseline track id used, which must be `prompt_opt_local_gemini25_flash_lite`
-- baseline source kind, which must indicate a fresh local Gemini run
-- baseline script/config path used
-- baseline record path used
-- held-out measurement set used
-- baseline unique-achievement score
-- optimized unique-achievement score
-- unique-achievement uplift
-- supporting baseline and optimized achievement-frequency summaries
-- training rollouts used, capped at 500
-- if training rollouts used is materially below budget, a concrete termination
-  reason explaining why the run stopped early
-- elapsed wall-clock time and throughput discussion
-- short notes on what GEPA tried and whether the final change looks like a real
-  algorithmic improvement
-
-Use `workspace_push` with a commit message summarizing the baseline score, best
-score, and uplift, then call `set_task_state` with state `done`.
+`python3 {dataset_ref}/workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root . --verifier-mode precheck`
 """
 acceptance_criteria = [
-  "artifacts/unique_achievement_baseline.json exists with grounded fresh local Gemini prompt-opt baseline held-out measurements",
-  "artifacts/unique_achievement_gepa_result.json exists with optimization output",
-  "artifacts/unique_achievement_summary.json exists with baseline, optimized, uplift, runtime, and rollout budget accounting",
-  "The baseline artifact declares baseline_track_id = prompt_opt_local_gemini25_flash_lite and uses the local Gemini script/config paths",
-  "The GEPA run used no more than 500 training rollouts and either used at least 100 training rollouts or reports a concrete termination reason for stopping early",
-  "eval_report.md explains lift, scientific quality, and throughput for the unique-achievement objective",
-  "All required artifacts are committed and pushed",
+  "The workspace root contains eval_summary, rollouts, result_manifest, reportbench_output, actorbench_output, and reproduction report artifacts.",
+  "The eval summary reports the 10-rollout hello-world contract.",
+  "The actorbench score is grounded in the concrete worker-produced artifacts."
 ]
 
 [smr.pools]
@@ -216,79 +80,41 @@ path = "VERIFIER_RUBRIC.md"
 content_type = "text/markdown"
 
 [[smr.workspace_inputs.files]]
-local = "workspace/score.py"
-path = "workspace/score.py"
-content_type = "text/plain"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/README.md"
-path = "reference/nanohorizon/README.md"
-content_type = "text/markdown"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/docs/task-craftax.md"
-path = "reference/nanohorizon/docs/task-craftax.md"
-content_type = "text/markdown"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/docs/tracks/prompt_opt_1usd_gpt54_family.md"
-path = "reference/nanohorizon/docs/tracks/prompt_opt_1usd_gpt54_family.md"
-content_type = "text/markdown"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/scripts/run_craftax_prompt_opt_gemini25_flash_lite_local.sh"
-path = "reference/nanohorizon/scripts/run_craftax_prompt_opt_gemini25_flash_lite_local.sh"
-content_type = "text/plain"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/docker/prompt_opt.Dockerfile"
-path = "reference/nanohorizon/docker/prompt_opt.Dockerfile"
-content_type = "text/plain"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/configs/craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml"
-path = "reference/nanohorizon/configs/craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml"
-content_type = "text/plain"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/data/craftax/craftax_prompt_opt_eval20_seeds.json"
-path = "reference/nanohorizon/data/craftax/craftax_prompt_opt_eval20_seeds.json"
+local = "task_contract.json"
+path = "task_contract.json"
 content_type = "application/json"
 
 [[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/data/craftax/craftax_prompt_opt_starter_seeds.json"
-path = "reference/nanohorizon/data/craftax/craftax_prompt_opt_starter_seeds.json"
-content_type = "application/json"
-
-[[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/prompt_opt.py"
-path = "reference/nanohorizon/src/nanohorizon/baselines/prompt_opt.py"
+local = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
+path = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
 content_type = "text/plain"
 
 [[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/shared/craftax_data.py"
-path = "reference/nanohorizon/src/nanohorizon/shared/craftax_data.py"
+local = "../../shared/actorbench_parent_lane.py"
+path = "workspace/actorbench_parent_lane.py"
 content_type = "text/plain"
 
 [[smr.workspace_inputs.files]]
-local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/craftax_core/metadata.py"
-path = "reference/nanohorizon/src/nanohorizon/craftax_core/metadata.py"
+local = "../../../reportbench/lanes/nanohorizon_craftax_hello_world/workspace/run_nanohorizon_craftax_hello_world_task.py"
+path = "workspace/parent_runner.py"
 content_type = "text/plain"
 
+[[smr.workspace_inputs.files]]
+local = "../../../reportbench/lanes/nanohorizon_craftax_hello_world/workspace/nanohorizon_craftax_hello_world_worker.py"
+path = "workspace/nanohorizon_craftax_hello_world_worker.py"
+content_type = "text/plain"
 
 [smr.roles.orchestrator]
 profile_id = "codex_gpt_5_4_mini_medium"
 agent_kind = "codex"
 model = "gpt-5.4-mini"
 model_params = { reasoning_effort = "medium" }
-purpose = "Plan and review the unique-achievement GEPA study"
 
 [smr.roles.worker]
 profile_id = "codex_gpt_5_4_mini_medium"
 agent_kind = "codex"
 model = "gpt-5.4-mini"
 model_params = { reasoning_effort = "medium" }
-purpose = "Execute the unique-achievement GEPA study"
 
 [smr.roles.verifier]
 provider = "openai"
@@ -298,79 +124,59 @@ seed = 0
 api_key_env = "OPENAI_API_KEY"
 
 [limits]
-time_budget_seconds = 5400
-cost_budget_usd = 10.0
-monthly_cost_budget_usd = 30.0
+time_budget_seconds = 1800
+cost_budget_usd = 3.0
+monthly_cost_budget_usd = 15.0
 
 [smr.submission]
 scoring_mode = "score_command"
 
 [[smr.submission.artifacts]]
-artifact_type = "eval_report"
-path = "eval_report.md"
+artifact_type = "report_md"
+path = "reports/reproduction.md"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "unique_achievement_baseline"
-path = "artifacts/unique_achievement_baseline.json"
+artifact_type = "eval_summary"
+path = "artifacts/eval_summary.json"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "unique_achievement_gepa_result"
-path = "artifacts/unique_achievement_gepa_result.json"
+artifact_type = "rollouts"
+path = "artifacts/rollouts.jsonl"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "unique_achievement_summary"
-path = "artifacts/unique_achievement_summary.json"
+artifact_type = "result_manifest"
+path = "artifacts/result_manifest.json"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "reportbench_output"
-path = "artifacts/reportbench_output.json"
+artifact_type = "actorbench_output"
+path = "artifacts/actorbench_output.json"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "verifier_review"
-path = "artifacts/verifier_review.json"
-required = false
+artifact_type = "actorbench_verifier_review"
+path = "artifacts/actorbench_verifier_review.json"
+required = true
 
 [reward]
-mode = "verifier_score"
-primary_metric = "rubric_reward"
-source_artifact = "artifacts/verifier_review.json"
-source_json_path = "score"
-rollout_source_artifact = "artifacts/reportbench_output.json"
+mode = "artifact_json_path"
+primary_metric = "actor_score"
+source_artifact = "artifacts/actorbench_output.json"
+source_json_path = "actor_score"
 
 [verifier]
 enabled = true
 rubric_path = "VERIFIER_RUBRIC.md"
-report_path = "eval_report.md"
+report_path = "reports/reproduction.md"
 artifact_paths = [
-  "artifacts/unique_achievement_baseline.json",
-  "artifacts/unique_achievement_gepa_result.json",
-  "artifacts/unique_achievement_summary.json",
-  "artifacts/reportbench_output.json",
+  "artifacts/eval_summary.json",
+  "artifacts/result_manifest.json",
+  "artifacts/reportbench_output.json"
 ]
-output_path = "artifacts/verifier_review.json"
+output_path = "artifacts/actorbench_verifier_review.json"
 
 [output]
-canonical_json_path = "artifacts/reportbench_output.json"
-
-[reportbench.metadata]
-schema_version = 1
-task_type = "optimization"
-call_budget = "medium"
-mode = "openended"
-difficulty = "medium"
-duration = "45_mins"
-
-quality = "high"
-maturity = "medium"
-[reportbench.metadata.method]
-family = "online"
-name = "gepa"
-
-[reportbench.metadata.optimized_model]
-size = "small"
-modality = "text_only"
+canonical_json_path = "artifacts/actorbench_output.json"

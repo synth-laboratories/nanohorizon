@@ -1,0 +1,7 @@
+{
+  "task_id": "actorbench_nh__craftax_hello_world__worker_v1",
+  "benchmark": "actorbench",
+  "target_actor_type": "worker",
+  "parent_task_id": "nanohorizon_craftax_hello_world",
+  "objective": "Run the minimal NanoHorizon Craftax hello-world worker path and package the concrete rollout artifacts."
+}
