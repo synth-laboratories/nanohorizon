@@ -10,6 +10,8 @@
 
 [Join the Synth Discord](https://discord.gg/cjfAMcCZef)
 
+Minimal note: this branch exists to validate the public NanoHorizon leaderboard candidate flow end to end.
+
 ---
 
 ### What this benchmark is about
