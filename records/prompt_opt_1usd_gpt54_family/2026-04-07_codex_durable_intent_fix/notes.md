@@ -5,7 +5,8 @@ Hypothesis:
 - Adding a tiny private three-item todo list should improve long-horizon consistency without changing the shared Craftax runtime or eval harness.
 
 What changed:
-- Added a new prompt-opt config with a seed prompt that asks the model to maintain a private todo list covering immediate resource/survival need, next position, and next unlock.
+- Added a prompt-opt candidate config with a seed prompt that asks the model to maintain a private todo list covering immediate resource/survival need, next position, and next unlock.
+- Tightened the durable-intent wording so the model explicitly refreshes completed todo items and swaps targets after repeated no-progress movement loops.
 - Preserved the existing tool contract, model target, budget, seed split, and rollout shape from the prompt-opt reference baseline.
 
 Evidence gathered before choosing this change:
@@ -18,4 +19,5 @@ Validation performed in this task:
 
 Residual risks:
 - The hidden todo instruction could increase reasoning verbosity or distract from local tactical cues.
+- The stricter refresh/swap wording could overreact to short local detours if the model interprets normal navigation as a failed loop.
 - GEPA may rewrite away the todo structure unless the seed prompt produces a measurable bootstrap lift.

@@ -1,10 +1,8 @@
-2026-04-07 - Craftax durable-intent candidate
-- Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
-- Updated Craftax prompt-opt seed prompts in `configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml`, `configs/craftax_prompt_opt_qwen35_4b_gepa_eval20.yaml`, `configs/craftax_prompt_opt_qwen35_4b_gepa_smoke.yaml`, and `configs/craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml` to ask for a compact internal todo list covering immediate blocker, nearby resource target, and loop checking before the final tool call.
-- Updated `src/nanohorizon/baselines/prompt_opt.py` reflection constraints and rollout feedback so GEPA keeps the todo/scratchpad requirement instead of optimizing it away.
-- Validation run: `uv run pytest tests/test_prompt_opt_durable_intent.py` passed on 2026-04-07.
-- Caveat: no live Craftax or Modal-backed rollout eval was run in this task; benefit is justified by alignment with existing prompt-opt search heuristics that already reward nearby-resource progress and penalize loops.
 2026-04-07 - Craftax todo-tool candidate packaging
-- Added `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` plus `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix/` as a separate candidate bundle that leaves the shared runtime surfaces untouched.
-- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` returned `ok: true`.
-- Blocker: required backend push helper failed with `workspace_push requires a live worker session; no live worker handle was found`, so this run can leave a local reviewable commit but cannot truthfully mark the push/PR flow complete.
+- Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
+- Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.
+- Updated the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix/` so `run_config.yaml` and `notes.md` reflect the same candidate wording.
+- Validation run: `uv run pytest tests/test_codex_durable_intent_candidate.py` passed on 2026-04-07.
+- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` returned `ok: true` on 2026-04-07.
+- Push blocker: `workspace_push` failed with `workspace_push requires a live worker session; no live worker handle was found`, so this run can leave a local reviewable commit but cannot complete the required backend-tracked push flow.
+- Caveat: no live Craftax or Modal rollout run was executed in this task, so score impact remains unmeasured.
