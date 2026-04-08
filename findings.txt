@@ -17,3 +17,23 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-08 - Craftax todo string fix E2E candidate
+- Kept the change inside `src/nanohorizon/baselines/prompt_opt.py`, one new prompt-opt config, one new record bundle, one focused regression test, and handoff docs; protected shared Craftax harness files remained unchanged.
+- Strengthened `TODO_SCRATCHPAD_REQUIREMENTS` so prompt reflection and rollout feedback now preserve two extra constraints: each todo item stays a short string fragment, and the 3-4 action batch advances the current first todo item end-to-end instead of mixing unrelated goals.
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_todo_string_fix_e2e.yaml` and the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e/`.
+- Comparison evidence recorded in the candidate bundle: `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/metrics.json` shows `bootstrap_score=0.6` and `primary_score=0.35`, which supports choosing another narrow prompt-only correction over a harness edit.
+- `uv run pytest ...` with the default project environment is currently blocked in this workspace because `uv.lock` resolves the optional `synth-ai` dependency to a missing local path (`../synth-ai` / `/Users/joshpurtell/Documents/GitHub/synth-ai`); use `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml ...` as the current reproducible workaround for focused local validation.
+
+2026-04-08 - Craftax todo string Fix E2E
+- Kept the new change set to `src/nanohorizon/baselines/prompt_opt.py` plus the focused regression test in `tests/test_codex_todo_refresh_gate_candidate.py`; protected Craftax harness files remained untouched.
+- Added `enforce_todo_scratchpad_contract(...)` so the canonical three-item todo/scratchpad contract is re-applied to the seed prompt, every evaluated candidate prompt, and the persisted best candidate prompt. This closes an end-to-end string-preservation gap where GEPA reflection could drift away from the todo wording despite the reflection instructions asking it not to.
+- Verification that succeeded in this workspace:
+  `PYTHONPATH=/workspace/src uv tool run --with pytest --with pyyaml pytest tests/test_codex_todo_refresh_gate_candidate.py`
+  `PYTHONPATH=/workspace/src uv tool run --with pyyaml python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
+  `git diff --check -- src/nanohorizon/baselines/prompt_opt.py tests/test_codex_todo_refresh_gate_candidate.py`
+- Verifier-style feedback:
+  `uv tool run --with ruff ruff check src/nanohorizon/baselines/prompt_opt.py tests/test_codex_todo_refresh_gate_candidate.py` failed on pre-existing import-layout and duplicate-import findings in `src/nanohorizon/baselines/prompt_opt.py`; this fix did not broaden scope to clean that older file-wide lint debt.
+- Environment caveat:
+  plain `uv run ...` still fails in this workspace because `pyproject.toml` pins `synth-ai @ file:///Users/joshpurtell/Documents/GitHub/synth-ai`, which is not mounted here. Used `uv tool run` instead for reproducible targeted verification.
+- Remaining product caveat: no live Craftax reward run was executed, so this change proves stronger todo-contract preservation end-to-end but does not yet measure leaderboard impact.

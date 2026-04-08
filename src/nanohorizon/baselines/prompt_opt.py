@@ -567,14 +567,33 @@ TRACK_ID = "prompt_opt_1usd_gpt54_family"
 TODO_SCRATCHPAD_REQUIREMENTS = [
     "Keep a tiny private todo list with exactly three items before the tool call.",
     "The three items must track (1) the immediate danger or blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
+    "Each todo item should stay a short string fragment, not a long sentence or paragraph.",
     "Refresh completed todo items every turn.",
     "If the policy repeats the same movement pattern without progress or new information, replace the stale target item instead of continuing the loop.",
+    "Choose one short end-to-end action batch that advances the current first todo item instead of mixing unrelated goals.",
     "Do not reveal the todo list or scratchpad in the final answer.",
 ]
+TODO_SCRATCHPAD_REFLECTION_FOCUS = (
+    "Preserve a compact internal todo list or scratchpad that tracks danger, "
+    "target resource, and loop-avoidance fallback each turn. Keep the durable "
+    "intent focused on danger, target resource, and loop-avoidance even when "
+    "the wording is revised."
+)
 
 
 def todo_scratchpad_directive() -> str:
     return " ".join(TODO_SCRATCHPAD_REQUIREMENTS)
+
+
+def enforce_todo_scratchpad_contract(system_prompt: str) -> str:
+    prompt = str(system_prompt or "").strip()
+    missing = [item for item in TODO_SCRATCHPAD_REQUIREMENTS if item not in prompt]
+    if not missing:
+        return prompt
+    contract = todo_scratchpad_directive()
+    if not prompt:
+        return contract
+    return f"{contract} {prompt}"
 
 
 REFLECTION_PROMPT_TEMPLATE = f"""I provided an assistant with the following Craftax system prompt:
@@ -717,7 +736,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
         if action_summary:
             parts.append(f"Observed action sequence: {action_summary}.")
         parts.append(
-            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this todo-tool contract: {todo_scratchpad_directive()} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
+            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this todo-tool contract: {todo_scratchpad_directive()} {TODO_SCRATCHPAD_REFLECTION_FOCUS} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
         )
         return " ".join(parts)
     parts = [f"This rollout achieved reward {score:.2f} and failed to make progress."]
@@ -732,7 +751,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
     if action_summary:
         parts.append(f"Observed action sequence: {action_summary}.")
     parts.append(
-        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. Add this todo-tool contract before the final action choice: {todo_scratchpad_directive()} The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
+        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. Add this todo-tool contract before the final action choice: {todo_scratchpad_directive()} {TODO_SCRATCHPAD_REFLECTION_FOCUS} The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
     )
     return " ".join(parts)
 
@@ -742,8 +761,8 @@ def build_reflection_system_directive() -> str:
         "You rewrite Craftax system prompts for a tool-calling policy. "
         f"Preserve these hard requirements: the policy must use the `{PRIMARY_TOOL_NAME}` "
         "tool exactly once, must not answer with JSON or a plain-text action list, and must "
-        f"preserve this todo-tool contract: {todo_scratchpad_directive()} Return only the "
-        "revised prompt text."
+        f"preserve this todo-tool contract: {todo_scratchpad_directive()} "
+        f"{TODO_SCRATCHPAD_REFLECTION_FOCUS} Return only the revised prompt text."
     )
 
 
@@ -859,7 +878,7 @@ class CraftaxPromptOptAdapter(GEPAAdapter[PromptOptExample, dict[str, Any], dict
     ) -> EvaluationBatch[dict[str, Any], dict[str, Any]]:
         if not batch:
             return EvaluationBatch(outputs=[], scores=[], trajectories=[] if capture_traces else None)
-        system_prompt = str(candidate["system_prompt"])
+        system_prompt = enforce_todo_scratchpad_contract(str(candidate["system_prompt"]))
         seeds = [example.seed for example in batch]
         rollouts, summary = asyncio.run(
             collect_rollouts_concurrently_with_summary(
@@ -1103,7 +1122,7 @@ def run_training(
     rollout_cfg = dict(config["rollout"])
     rollout_inference_url = _normalize_inference_url(inference_url)
     trainset, valset = _load_seed_splits(config, base_dir)
-    seed_prompt = str(config["prompt"]["seed_prompt"]).strip()
+    seed_prompt = enforce_todo_scratchpad_contract(str(config["prompt"]["seed_prompt"]).strip())
     component_name = str(config["prompt"].get("component_name", "system_prompt")).strip() or "system_prompt"
     seed_candidate = {component_name: seed_prompt}
     adapter = CraftaxPromptOptAdapter(
@@ -1162,6 +1181,14 @@ def run_training(
     best_candidate = result.best_candidate
     if not isinstance(best_candidate, dict):
         raise TypeError("GEPA best_candidate must be a dict for prompt optimization")
+    best_candidate = {
+        key: (
+            enforce_todo_scratchpad_contract(str(value))
+            if key == component_name
+            else value
+        )
+        for key, value in best_candidate.items()
+    }
     best_score = float(result.val_aggregate_scores[result.best_idx])
     bootstrap_score = float(result.val_aggregate_scores[0])
     base_eval = _summarize_eval(
