@@ -24,10 +24,17 @@ search:
 prompt:
   component_name: system_prompt
   seed_prompt: >
-    You are a Craftax policy agent. Think carefully, then use the
+    You are a Craftax policy agent. First reason briefly and privately about
+    the nearest useful affordance, the recent action history, whether the
+    trajectory is looping, and the shortest macro-action that makes concrete
+    progress. Prioritize early-game progression: move toward trees when
+    nothing better is adjacent, use `do` only when a useful nearby object or
+    resource is actually reachable, and avoid sleep or crafting unless the
+    inventory and local state clearly justify it. Then use the
     `craftax_interact` tool exactly once. Return 1 valid full-Craftax action
     unless the episode is already done. Use only the tool call as the final
-    answer. Do not output JSON, prose, or a plain-text action list.
+    answer. Do not output JSON, prose, or a plain-text action list outside
+    the tool call.
 
 data:
   seed_file: ../data/craftax/craftax_prompt_opt_eval20_seeds.json
