@@ -1,0 +1,24 @@
+{
+  "status": "candidate_not_live_evaluated",
+  "baseline_reference_primary_score": 0.35,
+  "baseline_reference_bootstrap_score": 0.6,
+  "measured_primary_score": null,
+  "measured_score_delta_vs_reference": null,
+  "evidence_type": "prompt_audit_and_record_validation_only",
+  "prompt_change_lines": 1,
+  "verifier_feedback_status": "incorporated",
+  "prompt_audit": {
+    "baseline_passed": false,
+    "candidate_passed": true,
+    "checks": [
+      "explicit_reasoning_before_action",
+      "private_reasoning_instruction",
+      "grounding_in_state_instruction",
+      "single_tool_call_final_answer",
+      "no_json_plain_text_output",
+      "action_count_constraint"
+    ]
+  },
+  "submission_achievement_frequencies": {},
+  "caveat": "No live Craftax rollout/eval was run in this task, so this candidate should be treated as structurally improved but performance-unverified."
+}

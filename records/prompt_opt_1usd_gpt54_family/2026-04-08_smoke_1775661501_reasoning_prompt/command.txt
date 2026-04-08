@@ -1,0 +1,1 @@
+uv run --no-project env PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-08_smoke_1775661501_reasoning_prompt
