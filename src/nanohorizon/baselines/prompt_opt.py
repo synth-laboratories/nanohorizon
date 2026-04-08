@@ -462,10 +462,10 @@ The following are examples of task inputs, model outputs, and feedback:
 Write a revised Craftax system prompt.
 
 Hard requirements you must preserve:
-- The policy must think if needed, then use the `craftax_interact` tool exactly once.
+- The policy must reason briefly and privately about the nearest useful affordance, recent action history, whether the trajectory is looping, and the shortest useful macro-action before using the `craftax_interact` tool exactly once.
 - The final answer must not be plain text actions, JSON, or prose outside the tool call.
-- The prompt should ask for 5-10 valid full-Craftax actions unless the episode is already done.
-- The prompt should prioritize early-game resource gathering and avoid repeated movement loops.
+- The prompt should ask for exactly 4 valid full-Craftax actions unless the episode is already done.
+- The prompt should prioritize immediate local affordances, early-game resource gathering, and avoiding repeated movement loops.
 
 Return only the revised system prompt inside ``` blocks."""
 
@@ -581,13 +581,13 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
         if action_summary:
             parts.append(f"Observed action sequence: {action_summary}.")
         parts.append(
-            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with 5-10 valid full-Craftax actions. Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
+            f"Keep the tool-calling contract strict: reason briefly and privately about the nearest useful affordance, recent action history, whether the trajectory is looping, and the shortest useful macro-action before using the `{PRIMARY_TOOL_NAME}` tool exactly once with exactly 4 valid full-Craftax actions. Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
         )
         return " ".join(parts)
     parts = [f"This rollout achieved reward {score:.2f} and failed to make progress."]
     if invalid_parses:
         parts.append(
-            f"It produced {invalid_parses} invalid parse(s); make the prompt stricter about one tool call only with 1-4 valid full-Craftax actions."
+            f"It produced {invalid_parses} invalid parse(s); make the prompt stricter about one tool call only with exactly 4 valid full-Craftax actions."
         )
     if llm_calls <= 1:
         parts.append(
@@ -596,7 +596,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
     if action_summary:
         parts.append(f"Observed action sequence: {action_summary}.")
     parts.append(
-        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
+        f"Emphasize early-game progression: check immediate local affordances first, read the recent action history before repeating a move, move toward trees when no better nearby action exists, use `do` only when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. The model should reason briefly and privately before acting. The final answer must be one `{PRIMARY_TOOL_NAME}` tool call with exactly 4 actions, not a plain-text action list or JSON blob."
     )
     return " ".join(parts)
 
@@ -833,10 +833,12 @@ def _build_reflection_lm(
                 "role": "system",
                 "content": (
                     "You rewrite Craftax system prompts for a tool-calling policy. "
-                    "Preserve these hard requirements: the policy must use the "
-                    f"`{PRIMARY_TOOL_NAME}` tool exactly once, must not answer with JSON "
-                    "or a plain-text action list, and should usually request exactly "
-                    "4 valid full-Craftax actions unless the episode is already done. "
+                    "Preserve these hard requirements: the policy must reason briefly "
+                    "and privately about nearby resources, threats, and the shortest "
+                    f"useful macro-action before using the `{PRIMARY_TOOL_NAME}` tool "
+                    "exactly once, must not answer with JSON or a plain-text action "
+                    "list, and should usually request exactly 4 valid full-Craftax "
+                    "actions unless the episode is already done. "
                     "Return only the revised prompt text."
                 ),
             }

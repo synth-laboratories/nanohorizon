@@ -1,0 +1,7 @@
+2026-04-08
+- Craftax prompt-optimization configs were inconsistent: the default budget and smoke configs already required private reasoning, but the held-out eval20 and Gemini local eval20 configs were less explicit about recent action history and reasoning-before-tool-call.
+- Updated prompt-opt configs to require brief private reasoning over useful affordances, recent action history, loop detection, and shortest concrete progress before the final `craftax_interact` tool call.
+- Updated `src/nanohorizon/baselines/prompt_opt.py` guardrails so GEPA reflection and rollout feedback preserve the same reasoning-first contract instead of drifting back to weaker prompts.
+- Added `tests/test_craftax_prompt_opt_config.py` to keep all prompt-opt configs aligned on the reasoning-first / no-JSON-outside-tool-call contract.
+- `uv run ...` validation is currently blocked by an unavailable local-path dependency declared in `pyproject.toml`: `synth-ai @ file:///Users/joshpurtell/Documents/GitHub/synth-ai`. Used isolated `uv --no-config tool run ...` commands for validation instead.
+- Verifier guidance was taken from the repo-native pivot verifier rubric in `src/nanohorizon/baselines/pivot_verifier.py`: it rewards present, grounded, action-referencing reasoning and penalizes passive or looped behavior.
