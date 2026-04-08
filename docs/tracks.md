@@ -20,6 +20,7 @@ contracts yet.
 | --- | --- |
 | `cpt_rlvr_qwen35_0p8b` | [CPT -> RLVR planned track](tracks/cpt_rlvr_qwen35_0p8b.md) |
 | `pivot_verifier_qwen35_4b` | [Pivot verifier planned track](tracks/pivot_verifier_qwen35_4b.md) |
+| `ttc_reflexion_todo_nano` | [Test-time context planned track](tracks/ttc_reflexion_todo_nano.md) |
 
 ## RLVR track — summary
 
