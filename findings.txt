@@ -23,3 +23,10 @@
 - Added candidate config `configs/craftax_prompt_opt_qwen35_4b_spark_v4_e2e.yaml` and record bundle `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/`.
 - Verification run: `python -m pytest tests/test_craftax_core_contract.py -k "todo_scratchpad" tests/test_codex_spark_v4_candidate.py` (3 passed).
 - Full verification run: `python -m pytest tests/test_craftax_core_contract.py tests/test_codex_spark_v4_candidate.py` (10 collected, 9 passed, 1 failed in `test_http_shim_health_and_task_info` due missing `craftax` module in environment).
+2026-04-08 - Push/PR and verification closure for Spark v4 E2E
+- Ran focused regression suite: `python -m pytest tests/test_craftax_core_contract.py -k "todo_scratchpad" tests/test_codex_spark_v4_candidate.py` (3 passed) and full scoped suite (9 passed, 1 failed due missing `craftax` module in environment for existing health shim test).
+- `uv run ...` was attempted but fails with stale project mapping: `Distribution not found at: file:///Users/joshpurtell/Documents/GitHub/synth-ai`.
+- Workspace push succeeded via required flow: `workspace_push` with commit `bd9c1b4c7ff682b7569c860ca97e94be9925c199` on branch `spark-v4-e2e-todo-scratchpad`.
+- Direct git push to GitHub succeeded after using scoped secret token, creating remote branch `spark-v4-e2e-todo-scratchpad`.
+- Created PR #9: https://github.com/synth-laboratories/nanohorizon/pull/9.
+- Remaining reproducibility gap: live environment verification with full Craftax shim remains blocked until local `craftax` package is installed in this run image.
