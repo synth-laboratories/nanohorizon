@@ -17,3 +17,14 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-08 - Craftax dispatch fix E2E candidate
+- Kept the work in the prompt-opt lane only: `src/nanohorizon/baselines/prompt_opt.py`, one new prompt-opt config, one new record bundle, one focused regression test, and reporting/handoff updates; protected shared Craftax harness files remained unchanged.
+- The smallest gap after the refresh-gate candidate was end-to-end dispatch consistency: the shared GEPA-preserved todo contract did not yet require the 3-4 action batch to stay committed to the current first todo item until that item was satisfied, blocked, or unsafe.
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_dispatch_fix_e2e.yaml`, which applies that dispatch rule in the seed prompt while preserving the same model, budget, seed split, and rollout settings as the prompt-opt baseline.
+- Packaged the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_dispatch_fix_e2e/` with `command.txt`, `metadata.json`, `metrics.json`, `notes.md`, `run_config.yaml`, and `system_info.json`.
+- Evidence for the change came from the prior refresh-gate candidate: its config already used a first-item instruction, but the shared source contract in `src/nanohorizon/baselines/prompt_opt.py` had not yet preserved that dispatch rule through reflection and rollout feedback.
+- Validation run: `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_dispatch_fix_e2e_candidate.py tests/test_codex_todo_refresh_gate_candidate.py tests/test_codex_durable_intent_candidate.py` passed on 2026-04-08.
+- Validation run: `PYTHONPATH=src uv run --no-project python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_dispatch_fix_e2e` returned `ok: true` on 2026-04-08.
+- Dead end: plain `uv run ...` failed because the repo points `synth-ai` at `/Users/joshpurtell/Documents/GitHub/synth-ai` / `../synth-ai`, which is missing in this container.
+- Caveat: no live Craftax reward run was executed in this task, so the dispatch fix is packaged and structurally verified but still unmeasured.
