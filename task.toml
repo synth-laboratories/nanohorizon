@@ -1,0 +1,182 @@
+[task]
+id = "actorbench_nh__craftax_hello_world__worker_v1"
+title = "ActorBench NanoHorizon Craftax Hello World Worker"
+kind = "smr_reportbench"
+version = "0.1"
+runner = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
+default_command = "python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root {output_root}"
+score_command = "python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root {output_root} --verifier-mode precheck"
+report_path = "reports/reproduction.md"
+contract_path = "task_contract.json"
+
+[smr]
+execution_mode = "host_local_runner"
+pool_strategy = "local_workspace_only"
+work_mode = "directed_effort"
+
+[smr.runtime]
+runtime_kind = "sandbox_agent"
+environment_kind = "harbor"
+
+[smr.project]
+name = "ActorBench NanoHorizon Craftax Hello World Worker {nick}-{timestamp}"
+timezone = "UTC"
+notes = """
+ACTORBENCH - single worker NanoHorizon Craftax hello-world.
+
+The actor under test is the worker. The worker should execute the staged
+hello-world runner, keep outputs inside the workspace root, and then score the
+bundle through the actorbench wrapper.
+"""
+
+[smr.research]
+scenario = "actorbench-nh-craftax-hello-world-worker"
+repo_url = "https://github.com/synth-laboratories/nanohorizon.git"
+
+[[smr.research.tasks]]
+task_key = "run_actorbench_nh_craftax_hello_world"
+kind = "repo_task"
+worker_pool = "{worker_pool_id}"
+instructions = """
+Read `{dataset_ref}/README.md`, `{dataset_ref}/task.toml`,
+`{dataset_ref}/task_contract.json`, `{dataset_ref}/VERIFIER_RUBRIC.md`, and
+the workspace runner files before you start.
+
+From the current workspace root run:
+
+`python3 {dataset_ref}/workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root .`
+
+Then score the bundle:
+
+`python3 {dataset_ref}/workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root . --verifier-mode precheck`
+"""
+acceptance_criteria = [
+  "The workspace root contains eval_summary, rollouts, result_manifest, reportbench_output, actorbench_output, and reproduction report artifacts.",
+  "The eval summary reports the 10-rollout hello-world contract.",
+  "The actorbench score is grounded in the concrete worker-produced artifacts."
+]
+
+[smr.pools]
+worker_pool_id = "default"
+require_pool_target = true
+allow_container_url_fallback = false
+allow_local_bootstrap = true
+
+[smr.workspace_inputs]
+
+[[smr.workspace_inputs.files]]
+local = "README.md"
+path = "README.md"
+content_type = "text/markdown"
+
+[[smr.workspace_inputs.files]]
+local = "task.toml"
+path = "task.toml"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "VERIFIER_RUBRIC.md"
+path = "VERIFIER_RUBRIC.md"
+content_type = "text/markdown"
+
+[[smr.workspace_inputs.files]]
+local = "task_contract.json"
+path = "task_contract.json"
+content_type = "application/json"
+
+[[smr.workspace_inputs.files]]
+local = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
+path = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "../../shared/actorbench_parent_lane.py"
+path = "workspace/actorbench_parent_lane.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "../../../reportbench/lanes/nanohorizon_craftax_hello_world/workspace/run_nanohorizon_craftax_hello_world_task.py"
+path = "workspace/parent_runner.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "../../../reportbench/lanes/nanohorizon_craftax_hello_world/workspace/nanohorizon_craftax_hello_world_worker.py"
+path = "workspace/nanohorizon_craftax_hello_world_worker.py"
+content_type = "text/plain"
+
+[smr.roles.orchestrator]
+profile_id = "codex_gpt_5_4_mini_medium"
+agent_kind = "codex"
+model = "gpt-5.4-mini"
+model_params = { reasoning_effort = "medium" }
+
+[smr.roles.worker]
+profile_id = "codex_gpt_5_4_mini_medium"
+agent_kind = "codex"
+model = "gpt-5.4-mini"
+model_params = { reasoning_effort = "medium" }
+
+[smr.roles.verifier]
+provider = "openai"
+model = "gpt-5.4-nano"
+temperature = 0.0
+seed = 0
+api_key_env = "OPENAI_API_KEY"
+
+[limits]
+time_budget_seconds = 1800
+cost_budget_usd = 3.0
+monthly_cost_budget_usd = 15.0
+
+[smr.submission]
+scoring_mode = "score_command"
+
+[[smr.submission.artifacts]]
+artifact_type = "report_md"
+path = "reports/reproduction.md"
+required = true
+
+[[smr.submission.artifacts]]
+artifact_type = "eval_summary"
+path = "artifacts/eval_summary.json"
+required = true
+
+[[smr.submission.artifacts]]
+artifact_type = "rollouts"
+path = "artifacts/rollouts.jsonl"
+required = true
+
+[[smr.submission.artifacts]]
+artifact_type = "result_manifest"
+path = "artifacts/result_manifest.json"
+required = true
+
+[[smr.submission.artifacts]]
+artifact_type = "actorbench_output"
+path = "artifacts/actorbench_output.json"
+required = true
+
+[[smr.submission.artifacts]]
+artifact_type = "actorbench_verifier_review"
+path = "artifacts/actorbench_verifier_review.json"
+required = true
+
+[reward]
+mode = "artifact_json_path"
+primary_metric = "actor_score"
+source_artifact = "artifacts/actorbench_output.json"
+source_json_path = "actor_score"
+
+[verifier]
+enabled = true
+rubric_path = "VERIFIER_RUBRIC.md"
+report_path = "reports/reproduction.md"
+artifact_paths = [
+  "artifacts/eval_summary.json",
+  "artifacts/result_manifest.json",
+  "artifacts/reportbench_output.json"
+]
+output_path = "artifacts/actorbench_verifier_review.json"
+
+[output]
+canonical_json_path = "artifacts/actorbench_output.json"
