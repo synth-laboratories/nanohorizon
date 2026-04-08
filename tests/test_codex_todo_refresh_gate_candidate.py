@@ -34,6 +34,9 @@ def test_prompt_opt_source_centralizes_todo_contract() -> None:
 
     assert "TODO_SCRATCHPAD_REQUIREMENTS" in source
     assert "todo_scratchpad_directive()" in source
+    assert "enforce_todo_scratchpad_contract" in source
+    assert 'system_prompt = enforce_todo_scratchpad_contract(str(candidate["system_prompt"]))' in source
+    assert 'seed_prompt = enforce_todo_scratchpad_contract(str(config["prompt"]["seed_prompt"]).strip())' in source
     assert "replace the stale target item" in source
     assert "Do not reveal the todo list or scratchpad" in source
 
