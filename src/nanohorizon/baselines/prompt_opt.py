@@ -566,9 +566,11 @@ async def collect_rollouts_concurrently_with_summary(
 TRACK_ID = "prompt_opt_1usd_gpt54_family"
 TODO_SCRATCHPAD_REQUIREMENTS = [
     "Keep a tiny private todo list with exactly three items before the tool call.",
+    "Use a compact internal todo list or scratchpad with the ordered slots danger, target resource, and loop-avoidance fallback.",
     "The three items must track (1) the immediate danger or blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
     "Refresh completed todo items every turn.",
     "If the policy repeats the same movement pattern without progress or new information, replace the stale target item instead of continuing the loop.",
+    "Dispatch the 3-4 action batch end-to-end from the current first todo item; only spend actions on lower-priority items after the first item is satisfied, blocked, or unsafe.",
     "Do not reveal the todo list or scratchpad in the final answer.",
 ]
 
@@ -740,6 +742,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
 def build_reflection_system_directive() -> str:
     return (
         "You rewrite Craftax system prompts for a tool-calling policy. "
+        "Preserve the compact internal todo list or scratchpad covering danger, target resource, and loop-avoidance. "
         f"Preserve these hard requirements: the policy must use the `{PRIMARY_TOOL_NAME}` "
         "tool exactly once, must not answer with JSON or a plain-text action list, and must "
         f"preserve this todo-tool contract: {todo_scratchpad_directive()} Return only the "
