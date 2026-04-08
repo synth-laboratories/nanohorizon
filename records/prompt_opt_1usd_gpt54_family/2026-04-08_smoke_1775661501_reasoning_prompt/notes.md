@@ -13,7 +13,7 @@ Make the smallest honest Craftax prompt change that explicitly tells the agent t
 ## Evidence
 
 - Baseline prompt came from `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/prompt_bundle.json`.
-- Prompt audit feedback is stored in `artifacts/prompt_audit.json`.
+- Prompt-audit verifier feedback is stored in `artifacts/prompt_audit.json` and reflected in the candidate prompt wording.
 - Record structure was validated with `uv run --no-project env PYTHONPATH=src python -m nanohorizon.shared.validate_record ...`.
 
 ## Caveats

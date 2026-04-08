@@ -2,3 +2,4 @@
 2026-04-08: Minimal candidate for task `repo_nanohorizon_smoke_1775661501` is a new config `configs/craftax_prompt_opt_qwen35_4b_reasoning_smoke_1775661501.yaml` rather than mutating protected harness files or historical reference rows.
 2026-04-08: Candidate prompt makes private reasoning-before-action explicit and grounded in current state/resources/action history while preserving the single `craftax_interact` tool-call contract.
 2026-04-08: `uv run` against the workspace project is blocked by missing local dependency `file:///Users/joshpurtell/Documents/GitHub/synth-ai`; validation succeeded with `uv run --no-project env PYTHONPATH=src ...`.
+2026-04-08: Follow-up cleanup restored accidental executable-bit drops on unrelated scripts so the smoke candidate diff stays scoped to the prompt-opt config and record/report artifacts.

@@ -30,8 +30,8 @@ The task was to make the smallest reviewable Craftax improvement in the NanoHori
 
 ## Quality and validation
 
-- Validated record shape with `uv run python -m nanohorizon.shared.validate_record ...`.
-- Used a deterministic prompt audit to compare baseline and candidate prompt contract coverage.
+- Validated record shape with `uv run --no-project env PYTHONPATH=src python -m nanohorizon.shared.validate_record ...`.
+- Used a deterministic prompt audit as verifier feedback and incorporated that feedback into the candidate prompt and record bundle.
 - Did not run live Craftax rollouts, held-out eval, or model-serving checks in this task.
 
 ## Reproduction and handoff
