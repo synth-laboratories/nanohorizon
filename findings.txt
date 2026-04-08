@@ -24,6 +24,8 @@
 - Added `configs/craftax_prompt_opt_qwen35_4b_codex_todo_string_fix_e2e.yaml` and the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e/`.
 - Comparison evidence recorded in the candidate bundle: `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline/metrics.json` shows `bootstrap_score=0.6` and `primary_score=0.35`, which supports choosing another narrow prompt-only correction over a harness edit.
 - `uv run pytest ...` with the default project environment is currently blocked in this workspace because `uv.lock` resolves the optional `synth-ai` dependency to a missing local path (`../synth-ai` / `/Users/joshpurtell/Documents/GitHub/synth-ai`); use `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml ...` as the current reproducible workaround for focused local validation.
+- Focused validation on 2026-04-08 passed with the workaround: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_todo_string_fix_e2e_candidate.py` and `PYTHONPATH=/workspace/src uv run --no-project --with pyyaml python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e`.
+- Review artifact: `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e/verifier_review.md` records a no-findings verifier pass plus the remaining tactical-overconstraint risk to measure later.
 
 2026-04-08 - Craftax todo string Fix E2E
 - Kept the new change set to `src/nanohorizon/baselines/prompt_opt.py` plus the focused regression test in `tests/test_codex_todo_refresh_gate_candidate.py`; protected Craftax harness files remained untouched.

@@ -1,70 +1,63 @@
-# Craftax Todo String Fix E2E
+# Craftax Todo String Fix E2E Candidate
 
 ## Context & objective
 
-Implement the smallest honest NanoHorizon change for the Craftax todo-tool strategy without editing the protected shared harness surfaces. The target for this run was the `_string Fix E2E` candidate: make the compact private todo/scratchpad contract survive the full prompt-optimization path, not just the reflection instructions.
-
-The required external task doc path `/Users/joshpurtell/Documents/GitHub/nanohorizon/docs/task-craftax.md` was not mounted in this workspace. I used the in-repo [`docs/task-craftax.md`](../docs/task-craftax.md) plus direct source inspection and record this as an environment caveat rather than pretending the read succeeded.
+Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while tightening the prompt-opt todo contract so GEPA reflection preserves compact todo items and one end-to-end action batch.
 
 ## Experiments cited
 
-1. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does the prompt-opt runtime actually enforce the todo scratchpad string end-to-end?
+1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
+   - Question: is a narrow prompt-only intervention safer than a harness change?
    - Outcome: supporting.
-   - Evidence: added `enforce_todo_scratchpad_contract(...)` and applied it to the seed prompt, the prompt passed into rollout evaluation, and the persisted best candidate.
+   - Evidence: the prior prompt-opt record documents a regression from `bootstrap_score=0.6` to `primary_score=0.35`, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
 
-2. `tests/test_codex_todo_refresh_gate_candidate.py`
-   - Question: is the string-preservation fix anchored by a focused regression test?
+2. `src/nanohorizon/baselines/prompt_opt.py`
+   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
    - Outcome: supporting.
-   - Evidence: the test now checks that the source contains the canonical todo contract helper and that the evaluation and seed-prompt paths call it.
+   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS`, including short-string todo items and one end-to-end action batch aligned to the first todo item, and reuses them in reflection instructions and rollout feedback.
 
-3. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: does the pre-existing candidate bundle still validate after the code-side E2E fix?
-   - Outcome: supporting for packaging.
-   - Evidence: record validation succeeded with no warnings.
+3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_string_fix_e2e.yaml`
+   - Question: does the candidate add a compact but stricter todo-string / end-to-end batch variant?
+   - Outcome: supporting.
+   - Evidence: the prompt now keeps each todo item as a short string fragment, refreshes todo items every turn, replaces stale targets after no-progress loops, and asks for one short end-to-end action batch aligned to the current first todo item.
 
-4. Verifier-style checks on the current diff
-   - Question: is the narrow diff structurally sound?
-   - Outcome: mixed.
-   - Evidence:
-     - `git diff --check -- src/nanohorizon/baselines/prompt_opt.py tests/test_codex_todo_refresh_gate_candidate.py` passed.
-     - `uv tool run --with ruff ruff check src/nanohorizon/baselines/prompt_opt.py tests/test_codex_todo_refresh_gate_candidate.py` reported pre-existing import-order / duplicate-import issues in `src/nanohorizon/baselines/prompt_opt.py`.
+4. `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e`
+   - Question: is the candidate packaged reproducibly?
+   - Outcome: supporting for packaging, inconclusive for reward.
+   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, `command.txt`, and `verifier_review.md`.
 
 ## Insights
 
-1. The prior todo-refresh candidate relied on reflection instructions to preserve the private todo contract, but the runtime still evaluated and persisted raw candidate strings. This was the actual end-to-end gap.
-2. The smallest reviewable fix is to normalize prompts at the prompt-opt boundary, not to edit the Craftax runtime or model-eval harness.
-3. This fix strengthens the GEPA-style posture by preserving the intended prompt contract during candidate evolution, while staying entirely inside the prompt-opt baseline.
-4. Reward impact is still unmeasured. The evidence from this run is structural and reproducible, not leaderboard performance.
+1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
+2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
+3. The smallest remaining todo-only gap after the refresh-gate candidate was prompt compactness: keeping todo items as short strings reduces the chance that private planning drifts into verbose prose.
+4. Asking for one end-to-end batch aligned to the first todo item is a reviewable extension of the refresh-gate idea, but reward impact is still unmeasured because this task only performed structural validation.
 
 ## Research artifacts produced
 
 - Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Regression test update: `tests/test_codex_todo_refresh_gate_candidate.py`
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_string_fix_e2e.yaml`
+- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e/`
+- Structural regression test: `tests/test_codex_todo_string_fix_e2e_candidate.py`
 - Repo handoff: `findings.txt`
 
 ## Quality & validation
 
-- Executed:
-  `PYTHONPATH=/workspace/src uv tool run --with pytest --with pyyaml pytest tests/test_codex_todo_refresh_gate_candidate.py`
-  Result: `3 passed`.
-- Executed:
-  `PYTHONPATH=/workspace/src uv tool run --with pyyaml python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-  Result: `{ "ok": true, "warnings": [] }`.
-- Executed:
-  `git diff --check -- src/nanohorizon/baselines/prompt_opt.py tests/test_codex_todo_refresh_gate_candidate.py`
-  Result: passed.
-- Verifier-style feedback:
-  `uv tool run --with ruff ruff check src/nanohorizon/baselines/prompt_opt.py tests/test_codex_todo_refresh_gate_candidate.py`
-  Result: failed on pre-existing `prompt_opt.py` import-layout / duplicate-import issues outside this narrow fix.
-- Not validated:
-  live Craftax reward, GEPA search output quality, Modal runtime behavior, or leaderboard score.
+- Executed: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_todo_string_fix_e2e_candidate.py`
+- Result: 3 tests passed.
+- Executed: `PYTHONPATH=/workspace/src uv run --no-project --with pyyaml python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e`
+- Result: `{ "ok": true, "warnings": [] }`
+- Verifier review: `records/prompt_opt_1usd_gpt54_family/2026-04-08_codex_todo_string_fix_e2e/verifier_review.md`
+- Verifier result: no blocking findings after diff inspection, scope checks, and `git diff --check`.
+- Default `uv run ...` project sync is blocked here because `uv.lock` resolves `synth-ai` to a missing local path (`../synth-ai`).
+- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
 
 ## Reproduction & handoff
 
-- Change intent: ensure the canonical todo scratchpad requirements survive seed prompt creation, candidate evaluation, and persisted best-prompt output.
-- Workspace caveat: plain `uv run ...` is blocked here by the unresolved local dependency `synth-ai @ file:///Users/joshpurtell/Documents/GitHub/synth-ai` in [`pyproject.toml`](../pyproject.toml); used `uv tool run` for targeted reproducible verification instead.
-- Review focus:
-  - confirm the E2E helper is only applied to the prompt-opt `system_prompt` path
-  - confirm the helper does not duplicate the contract when the candidate already preserves it
-  - run a real prompt-opt comparison against the reference baseline when the full environment is available
+- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_string_fix_e2e.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
+- Main risk: the stronger short-string and end-to-end wording could overconstrain otherwise good short tactical action batches.
+- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
+- Recommended verifier focus:
+  - confirm the centralized todo contract remains present in reflection instructions
+  - inspect whether the short-string wording reduces prompt drift without under-specifying state
+  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
