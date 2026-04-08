@@ -75,5 +75,5 @@ That verifier guidance is consistent with the prompt update: the new wording exp
 
 ## Git / review
 
-- Commit: pending
-- PR: pending
+- Commit: `ba2632a62c00eba48e45467df9f1f38b3cc2342b`
+- PR: `https://github.com/synth-laboratories/nanohorizon/pull/4`
