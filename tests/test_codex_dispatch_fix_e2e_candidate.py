@@ -23,6 +23,7 @@ def test_candidate_config_adds_end_to_end_dispatch_rule() -> None:
 
     assert "tiny private" in seed_prompt
     assert "todo list with exactly three items" in seed_prompt
+    assert "compact internal todo list or scratchpad" in seed_prompt
     assert "Dispatch the 3 or 4 action batch" in seed_prompt
     assert "until it is satisfied, blocked, or" in seed_prompt
     assert "remaining actions on item two or the fallback" in seed_prompt
@@ -33,6 +34,8 @@ def test_prompt_opt_source_centralizes_dispatch_rule() -> None:
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "TODO_SCRATCHPAD_REQUIREMENTS" in source
+    assert "compact internal todo list or scratchpad" in source
+    assert "danger, target resource, and loop-avoidance fallback" in source
     assert "Dispatch the 3-4 action batch end-to-end from the current first todo item" in source
     assert "preserve this todo-tool contract" in source
 
