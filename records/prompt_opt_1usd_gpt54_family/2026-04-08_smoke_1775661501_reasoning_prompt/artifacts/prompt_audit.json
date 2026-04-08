@@ -1,0 +1,25 @@
+{
+  "audit_name": "craftax_prompt_reasoning_contract",
+  "baseline": {
+    "explicit_reasoning_before_action": false,
+    "private_reasoning_instruction": false,
+    "grounding_in_state_instruction": false,
+    "single_tool_call_final_answer": true,
+    "no_json_plain_text_output": true,
+    "action_count_constraint": true
+  },
+  "candidate": {
+    "explicit_reasoning_before_action": true,
+    "private_reasoning_instruction": true,
+    "grounding_in_state_instruction": true,
+    "single_tool_call_final_answer": true,
+    "no_json_plain_text_output": true,
+    "action_count_constraint": true
+  },
+  "verifier_feedback": [
+    "Baseline prompt keeps the tool-call contract but does not explicitly say reasoning should happen before choosing the action array.",
+    "Baseline prompt does not distinguish private reasoning from the final output surface.",
+    "Baseline prompt does not explicitly ground the reasoning in the visible state, nearby resources, and recent action history.",
+    "Candidate prompt addresses all three gaps while preserving the no-JSON and single-tool-call contract."
+  ]
+}

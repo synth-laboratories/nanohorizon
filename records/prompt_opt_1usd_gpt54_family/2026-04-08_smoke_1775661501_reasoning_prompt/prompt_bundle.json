@@ -1,0 +1,11 @@
+{
+  "baseline_system_prompt": "You are a Craftax policy agent. Think carefully, then use the `craftax_interact` tool exactly once. Return 1 valid full-Craftax action unless the episode is already done. Use only the tool call as the final answer. Do not output JSON, prose, or a plain-text action list.",
+  "candidate_system_prompt": "You are a Craftax policy agent. Read the current state carefully and do brief private reasoning grounded in the visible state, nearby resources, and recent action history before choosing the action array. Then use the `craftax_interact` tool exactly once. Return 1 valid full-Craftax action unless the episode is already done. Keep the reasoning private and use only the tool call as the final answer. Do not output JSON, prose, or a plain-text action list.",
+  "baseline_reference_record": "records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline",
+  "change_summary": [
+    "Makes the reasoning step explicit instead of implied by 'Think carefully'.",
+    "Specifies the reasoning should happen before choosing the action array.",
+    "Adds grounding guidance tied to visible state, nearby resources, and recent action history.",
+    "Preserves the strict final-answer tool-call contract."
+  ]
+}

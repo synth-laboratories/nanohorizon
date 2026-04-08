@@ -1,0 +1,7 @@
+{
+  "platform": "local_workspace",
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "request_model": "qwen35-4b-prompt-opt",
+  "reproducibility": "Candidate config and prompt audit prepared in-repo without a live rollout execution. Validation used `uv run --no-project` because the workspace references a missing local synth-ai path dependency.",
+  "source_commit": "c1d840d"
+}
