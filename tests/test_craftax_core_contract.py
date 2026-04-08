@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from typing import Any
 
 from nanohorizon.craftax_core.http_shim import create_app
 from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
@@ -206,3 +207,97 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_rollout_includes_private_todo_scratchpad_and_refreshes_on_stagnation(monkeypatch):
+    import nanohorizon.craftax_core.rollout as rollout
+
+    captured_messages: list[list[dict[str, Any]]] = []
+
+    class FakeRender:
+        text = "obs"
+        pixels = None
+
+    class FakeStep:
+        def __init__(self, *, done: bool, reward: float = 0.0):
+            self.done = done
+            self.reward = reward
+            self.render = FakeRender()
+
+    class FakeRunner:
+        def __init__(self) -> None:
+            self.state = object()
+            self.action_history: list[int] = []
+
+        def reset(self):
+            return FakeStep(done=False)
+
+        def step_many(self, actions):
+            self.action_history.extend(actions)
+            return [FakeStep(done=False)]
+
+    payloads = iter(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_right", "move_left"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_right", "move_left"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+        ]
+    )
+
+    def fake_chat_completion(**kwargs: Any) -> dict[str, Any]:  # type: ignore[no-untyped-def]
+        captured_messages.append(list(kwargs["messages"]))
+        return next(payloads)
+
+    monkeypatch.setattr(rollout, "make_runner", lambda **kwargs: FakeRunner())
+    monkeypatch.setattr(rollout, "_chat_completion", fake_chat_completion)
+    monkeypatch.setattr(rollout, "achievement_names_from_state", lambda state: [])
+
+    result = rollout.run_rollout(
+        inference_url="http://example.test/v1/chat/completions",
+        model="demo",
+        api_key="",
+        seed=0,
+        max_steps=2,
+        trace_correlation_id="trace",
+        system_prompt="system",
+        target_action_batch_size=2,
+        min_action_batch_size=2,
+        request_logprobs=False,
+    )
+
+    assert len(captured_messages) == 2
+    first_user = str(captured_messages[0][1].get("content"))
+    assert "Private todo scratchpad (do not reveal):" in first_user
+    turns = result["trace"]["inference"]["turns"]
+    assert len(turns) == 2
+    assert turns[0]["todo_scratchpad"][0] == "danger: no immediate high-risk blocker, continue toward the best goal"
+    assert turns[1]["todo_scratchpad"][1].startswith("target: replace stale target before acting")

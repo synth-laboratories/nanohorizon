@@ -1,62 +1,63 @@
-# Craftax Todo Refresh Gate Candidate
+# Final report: Craftax Spark v4 E2E
 
 ## Context & objective
-
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+- Implement a compact TODO/scratchpad mechanism for Craftax subgoal tracking (`Spark v4 E2E`) with minimal surface changes.
+- Preserve shared harness surfaces unless required; implement rollout-side scratchpad support and package a reproducible candidate record.
 
 ## Experiments cited
-
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
+1. `tests/test_codex_spark_v4_candidate.py::test_spark_v4_candidate_config_uses_compact_todo_scratchpad`
+   - Question: is the candidate prompt carrying private, compact todo constraints and no-op safety wording?
    - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+   - Evidence: `configs/craftax_prompt_opt_qwen35_4b_spark_v4_e2e.yaml`, `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/`.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. `tests/test_codex_spark_v4_candidate.py::test_rollout_source_tracks_todo_scratchpad_state`
+   - Question: does harness source expose scratchpad refresh/state support?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: `src/nanohorizon/craftax_core/rollout.py`.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. `tests/test_craftax_core_contract.py::test_rollout_includes_private_todo_scratchpad_and_refreshes_on_stagnation`
+   - Question: does rollout inject and track `todo_scratchpad` over turns under repeated no-progress paths?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+   - Evidence: synthetic turn-level assertions in the test plus updated rollout helper logic.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. `python -m pytest tests/test_craftax_core_contract.py tests/test_codex_spark_v4_candidate.py`
+   - Question: do related tests pass end-to-end and what is still blocking?
+   - Outcome: 9 passed, 1 failed.
+   - Evidence: test output from this run.
+   - Remaining failure: `test_http_shim_health_and_task_info` in `tests/test_craftax_core_contract.py` due missing local `craftax` dependency.
 
 ## Insights
-
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. Scratchpad tracking can be integrated in rollout generation without editing protected files (`http_shim.py`, `runner.py`, `metadata.py`, `scripts/run_craftax_model_eval.sh`, `docs/task-craftax.md`).
+2. Turn-level `todo_scratchpad` in trace enables explicit stagnation feedback and gives verifiable control over subgoal refresh behavior.
+3. Verifier-driven validation is currently constrained by environment dependencies; structure and prompt/rollout contracts are passing while runtime-shim health checks require install-time fixes.
 
 ## Research artifacts produced
-
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Environment
+  - Local regression verification via `python -m pytest` (direct Python path required because `uv run` in this workspace resolves to a stale local path and exits with "Distribution not found at: file:///Users/joshpurtell/Documents/GitHub/synth-ai").
+- Data
+  - No new training data created.
+- Candidate and model artifacts
+  - Candidate config: `configs/craftax_prompt_opt_qwen35_4b_spark_v4_e2e.yaml`
+  - Record bundle:
+    - `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/metadata.json`
+    - `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/metrics.json`
+    - `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/notes.md`
+    - `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/run_config.yaml`
+    - `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/command.txt`
+    - `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/system_info.json`
 
 ## Quality & validation
-
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Passed checks:
+  - `python -m pytest tests/test_craftax_core_contract.py -k "todo_scratchpad" tests/test_codex_spark_v4_candidate.py` -> 3 passed, 7 deselected.
+  - `python -m pytest tests/test_craftax_core_contract.py tests/test_codex_spark_v4_candidate.py` -> 9 passed, 1 failed.
+- Explicit blocker:
+  - `test_http_shim_health_and_task_info` still fails in this environment because importing `craftax` is unavailable.
 
 ## Reproduction & handoff
-
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Commit: `bd9c1b4c7ff682b7569c860ca97e94be9925c199`
+- Push branch: `spark-v4-e2e-todo-scratchpad`
+- PR: https://github.com/synth-laboratories/nanohorizon/pull/9
+- Candidate execution entrypoint retained as not-yet-run marker bundle for future scorer runs (status `not_run`).
+- Open risks:
+  - missing `craftax` package in the run environment can block `/health` contract verification and full rollout smoke tests;
+  - candidate leaderboard uplift is not yet measured in this run.
