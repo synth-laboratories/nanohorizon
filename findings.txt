@@ -17,3 +17,9 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+2026-04-08 - Spark v4 E2E candidate scratchpad integration
+- Added compact todo-scratchpad state tracking in `src/nanohorizon/craftax_core/rollout.py` (`_initial_todo_scratchpad`, `_sanitize_todo_item`, `_format_todo_scratchpad`, `_refresh_todo_scratchpad`) and passed `todo_scratchpad` through prompt and trace.
+- Added regression coverage: `tests/test_craftax_core_contract.py::test_rollout_includes_private_todo_scratchpad_and_refreshes_on_stagnation` and `tests/test_codex_spark_v4_candidate.py`.
+- Added candidate config `configs/craftax_prompt_opt_qwen35_4b_spark_v4_e2e.yaml` and record bundle `records/prompt_opt_1usd_gpt54_family/2026-04-08_spark_v4_e2e/`.
+- Verification run: `python -m pytest tests/test_craftax_core_contract.py -k "todo_scratchpad" tests/test_codex_spark_v4_candidate.py` (3 passed).
+- Full verification run: `python -m pytest tests/test_craftax_core_contract.py tests/test_codex_spark_v4_candidate.py` (10 collected, 9 passed, 1 failed in `test_http_shim_health_and_task_info` due missing `craftax` module in environment).

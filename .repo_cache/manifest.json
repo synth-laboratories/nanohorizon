@@ -1,0 +1,16 @@
+{
+  "built_at": "2026-04-08T20:40:58+00:00",
+  "primary_repo_name": "nanohorizon",
+  "repos": [
+    {
+      "archive_key": "smr-project-repos/00000000-0000-0000-0000-000000000001/9a2c0864-2f8d-4590-bddd-23cc783d6632/image-cache/repos/nanohorizon/a4868bd30ce0cdc8e8f03c9408f734b19ffe92ee.tar.gz",
+      "commit_sha": "a4868bd30ce0cdc8e8f03c9408f734b19ffe92ee",
+      "default_branch": null,
+      "name": "nanohorizon",
+      "role": "primary",
+      "size_bytes": 13144143,
+      "url": "https://github.com/synth-laboratories/nanohorizon.git"
+    }
+  ],
+  "schema_version": 1
+}

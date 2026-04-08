@@ -123,6 +123,49 @@ def _extract_tool_calls(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return parsed
 
 
+def _initial_todo_scratchpad() -> list[str]:
+    return [
+        "danger: check for immediate threats and avoid repeating a risky pattern",
+        "target: move toward a nearby resource that enables progress",
+        "fallback: if stuck, force a directional change and avoid no-op loops",
+    ]
+
+
+def _sanitize_todo_item(value: str) -> str:
+    normalized = re.sub(r"\s+", " ", str(value).strip())
+    if not normalized:
+        return ""
+    words = normalized.split()
+    return " ".join(words[:10])
+
+
+def _format_todo_scratchpad(todos: list[str]) -> str:
+    rows = [f"{idx + 1}. {_sanitize_todo_item(item)}" for idx, item in enumerate(todos[:3]) if str(item).strip()]
+    if not rows:
+        return ""
+    return "Private todo scratchpad (do not reveal):\n" + "\n".join(f"- {row}" for row in rows)
+
+
+def _refresh_todo_scratchpad(
+    scratchpad: list[str],
+    *,
+    turn_index: int,
+    invalid_parse: bool,
+    repeated_without_progress: bool,
+) -> list[str]:
+    items = list(scratchpad) if scratchpad else _initial_todo_scratchpad()
+    if len(items) < 3:
+        items = _initial_todo_scratchpad()
+    if invalid_parse:
+        items[2] = "fallback: parsing failed, try a short safe action that changes state"
+    if repeated_without_progress:
+        items[1] = "target: replace stale target before acting; do not keep the same pattern"
+        items[2] = "fallback: pivot movement or try `do` only when adjacent to useful target"
+    if turn_index % 2 == 0:
+        items[0] = "danger: no immediate high-risk blocker, continue toward the best goal"
+    return items[:3]
+
+
 def _extract_actions(payload: dict[str, Any]) -> list[str]:
     for tool_call in _extract_tool_calls(payload):
         arguments = tool_call.get("arguments", {})
@@ -247,13 +290,20 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    todo_scratchpad: list[str] | None = None,
+) -> str:
+    scratchpad = _format_todo_scratchpad(todo_scratchpad or _initial_todo_scratchpad())
     return (
         "Current Craftax long-horizon observation:\n"
         f"{observation_text}\n\n"
         "Plan a short useful macro-action. "
         f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
         f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
+        f"{scratchpad}\n"
         "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
     )
 
@@ -286,10 +336,14 @@ def run_rollout(
     unique_achievements: set[str] = set()
     total_reward = 0.0
     llm_call_count = 0
+    todo_scratchpad = _initial_todo_scratchpad()
     frames: list[Any] = []
     if current.render.pixels is not None:
         frames.append(current.render.pixels)
     turns: list[dict[str, Any]] = []
+    previous_turn_actions: list[str] = []
+    previous_unique_achievements = 0
+    non_progress_streak = 0
     for turn_index in range(max(1, int(max_steps))):
         if current.done:
             break
@@ -297,6 +351,7 @@ def run_rollout(
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            todo_scratchpad=todo_scratchpad,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -359,6 +414,24 @@ def run_rollout(
             frames.append(current.render.pixels)
         achievements = achievement_names_from_state(runner.state)
         unique_achievements.update(achievements)
+        repeated_without_progress = (
+            bool(previous_turn_actions)
+            and bool(previous_turn_actions == actions)
+            and not invalid_parse
+            and decision_reward <= 0.0
+            and len(unique_achievements) <= previous_unique_achievements
+        )
+        non_progress = not invalid_parse and len(unique_achievements) <= previous_unique_achievements and decision_reward <= 0.0
+        if non_progress:
+            non_progress_streak += 1
+        else:
+            non_progress_streak = 0
+        todo_scratchpad = _refresh_todo_scratchpad(
+            todo_scratchpad,
+            turn_index=turn_index,
+            invalid_parse=invalid_parse,
+            repeated_without_progress=repeated_without_progress and non_progress_streak > 1,
+        )
         turns.append(
             {
                 "turn_index": turn_index,
@@ -370,9 +443,12 @@ def run_rollout(
                 "return_to_go": float(len(unique_achievements)),
                 "trainable": not invalid_parse,
                 "invalid_parse": invalid_parse,
+                "todo_scratchpad": list(todo_scratchpad),
                 "behavior_sequence_logprob": _extract_sequence_logprob(payload) or 0.0,
             }
         )
+        previous_turn_actions = list(actions)
+        previous_unique_achievements = len(unique_achievements)
         if current.done:
             break
     media_payload: dict[str, Any] = {}
