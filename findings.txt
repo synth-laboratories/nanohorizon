@@ -25,3 +25,9 @@
 - Verifier feedback evidence: `artifacts/craftax_exploration_bonus_verifier_feedback.json` (single-turn smoke run with fake runner). Result shows outcome reward `2.7071067811865475` and turn exploration bonus matching positions `[(0,1), (1,1), (0,1)]` with terms `[1.0, 1.0, 1/sqrt(2)]`.
 - Command used for verification smoke: `cd /home/daytona/workspace && uv run --no-project --python 3.11 --with pyyaml --with numpy --with httpx --with fastapi python - <<'PY' ...` (inline script injecting fake runner/chat outputs).
 - Caveat: no full live Craftax environment/Modal/HTTP integration rollout run was executed in this task; verification is a controlled monkeypatched smoke for contract and bonus accounting.
+
+- 2026-04-09T00:00:00Z: Created commit 4e79bb3 on branch repo-task-1-craftax-exploration-bonus with files modified: src/nanohorizon/craftax_core/rollout.py, findings.txt, reports/final_report.md. Added count-based exploration bonus (1/sqrt(count) per-cell) and runner compatibility helper. Push to GitHub completed with remote https://github.com/synth-laboratories/nanohorizon.git (remote branch repo-task-1-craftax-exploration-bonus).
+- 2026-04-09T00:00:00Z: PR creation failed in current run due GitHub API 403 "Resource not accessible by integration" when calling mcp__codex_apps__github_create_pull_request; worker PR tool unavailable for this workspace. No PR URL could be created.
+
+- 2026-04-09T05:03:22+00:00: Branch repo-task-1-craftax-exploration-bonus (commit 4e79bb3) pushed to synth-laboratories/nanohorizon and is currently the only new remote artifact from this run.
+- 2026-04-09T05:03:22+00:00: PR creation not completed from tooling path used; codex GitHub create_pull_request returned 403 Resource not accessible by integration.
