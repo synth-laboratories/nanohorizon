@@ -17,3 +17,12 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-09 - PR preparation task (nhtx-craftax-pr)
+- Objective: prepare a reviewable branch and PR for the final candidate.
+- Created and checked out branch `task/nhtx-craftax-pr` from detached HEAD `a4868bd30ce0cdc8e8f03c9408f734b19ffe92ee`.
+- Local commit created with empty-trail marker due zero-diff workspace state: `abf927c` (`chore: prepare candidate branch for nhtx-craftax-pr`).
+- Branch push executed via scoped token and temporary `github-synth-laboratories-nanohorizon` remote; remote branch `task/nhtx-craftax-pr` was created on GitHub.
+- PR creation blocked: `create_pull_request` on `synth-laboratories/nanohorizon` returned 403 `Resource not accessible by integration`.
+- Push tooling blocker remains: `workspace_push` failed because no live worker session was available in this run.
+- Evidence trail now includes local branch/commit, remote push output, and this blocker log for orchestrator follow-up.
