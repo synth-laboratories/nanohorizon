@@ -49,7 +49,7 @@ Termination policy for this lane:
 The workspace contains:
 - `workspace/run_go_explore.py` — the main eval/optimization script
 - Access to nanohorizon Craftax rollout engine (installed via uv)
-- Gemini API via GEMINI_API_KEY in the environment
+- Groq/OpenAI-compatible access via `GROQ_API_KEY`, plus runtime metered inference env when available
 - `reference/nanolong/go_explore/...` — canonical Go-Explore code and notes
 - `reference/nanohorizon/...` — Craftax runtime/container/task context
 
@@ -103,11 +103,12 @@ Do not limit yourself to cosmetic prompt edits if a better archive/checkpoint/
 waypoint/search-loop improvement is available within the budget and task scope.
 
 CONSTRAINTS:
-- Use Gemini 2.5 Flash Lite as the LLM (--base-url https://generativelanguage.googleapis.com/v1beta/openai --model gemini-2.5-flash-lite)
-- GEMINI_API_KEY is in the environment. Set OPENAI_API_KEY=$GEMINI_API_KEY for the OpenAI-compat endpoint.
+- Use `openai/gpt-oss-20b` for this pass.
+- Prefer `SMR_METERED_INFERENCE_BASE_URL` when it is present in the runtime environment; otherwise use `https://api.groq.com/openai/v1`.
+- `GROQ_API_KEY` is available for direct OpenAI-compatible calls. If you bypass the metered runtime endpoint, set `OPENAI_API_KEY=$GROQ_API_KEY`.
 - Each rollout = 10 LLM calls (max_steps=10)
 - Budget: no more than 500 training rollouts total
-- Held-out evaluation: 10 seeds (seeds 41-50), 10 LLM calls each
+- Held-out evaluation: use the eval20 split from `data/craftax/craftax_prompt_opt_eval20_seeds.json` with 20 held-out seeds
 - Parallelize where possible (use asyncio concurrency for rollouts)
 - Pause search after 45 minutes of wall-clock time, then write the best-so-far report instead of starting more rollouts
 - Stop search early if total run cost reaches $5.00
@@ -118,7 +119,7 @@ Steps:
    `uv pip install "craftax>=1.5" "jax>=0.5" httpx`
 
 2. Run the Go-Explore optimization script:
-   `OPENAI_API_KEY=$GEMINI_API_KEY python3 workspace/run_go_explore.py --output-dir artifacts`
+   `python3 workspace/run_go_explore.py --output-dir artifacts --model openai/gpt-oss-20b`
 
    This script implements Go-Explore prompt search:
    a. Start with a baseline system prompt

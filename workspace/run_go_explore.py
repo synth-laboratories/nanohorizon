@@ -26,6 +26,12 @@ from urllib.parse import urlparse
 
 import httpx
 
+os.environ.setdefault("JAX_PLATFORM_NAME", "cpu")
+os.environ.setdefault("JAX_DISABLE_JIT", "true")
+os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+os.environ.setdefault("XLA_PYTHON_CLIENT_MEM_FRACTION", "0.25")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "1")
+
 # ---------------------------------------------------------------------------
 # Craftax environment setup (inlined from nanohorizon.craftax_core)
 # ---------------------------------------------------------------------------
@@ -48,6 +54,13 @@ FULL_ACTIONS = {
     "enchant_bow": 42,
 }
 ACTION_NAMES = sorted(FULL_ACTIONS.keys())
+
+DEFAULT_SEED_SPLIT = Path("data/craftax/craftax_prompt_opt_eval20_seeds.json")
+TRAINING_SEED_COUNT = 6
+HOLDOUT_SEED_COUNT = 20
+DEFAULT_VARIANTS_PER_ITERATION = 2
+DEFAULT_MAX_TURNS = 10
+TARGET_ACTION_BATCH_SIZE = 1
 
 FULL_ACHIEVEMENTS = {
     0: "collect_wood", 1: "place_table", 2: "eat_cow", 3: "collect_sapling",
@@ -102,6 +115,16 @@ def _render_text(state) -> str:
     return "\n".join(lines)
 
 
+def _load_seed_split(base_dir: Path) -> tuple[list[int], list[int]]:
+    seed_file = (base_dir / DEFAULT_SEED_SPLIT).resolve()
+    payload = json.loads(seed_file.read_text(encoding="utf-8"))
+    train_seeds = [int(item) for item in payload.get("train_seeds", [])[:TRAINING_SEED_COUNT]]
+    eval_seeds = [int(item) for item in payload.get("eval_seeds", [])[:HOLDOUT_SEED_COUNT]]
+    if len(train_seeds) < TRAINING_SEED_COUNT or len(eval_seeds) < HOLDOUT_SEED_COUNT:
+        raise RuntimeError(f"seed split in {seed_file} is too small for the task")
+    return train_seeds, eval_seeds
+
+
 # ---------------------------------------------------------------------------
 # LLM interaction
 # ---------------------------------------------------------------------------
@@ -118,7 +141,8 @@ def _tool_schema() -> list[dict[str, Any]]:
                     "actions_list": {
                         "type": "array",
                         "items": {"type": "string", "enum": ACTION_NAMES},
-                        "minItems": 1, "maxItems": 10,
+                        "minItems": TARGET_ACTION_BATCH_SIZE,
+                        "maxItems": TARGET_ACTION_BATCH_SIZE,
                     }
                 },
                 "required": ["actions_list"],
@@ -211,7 +235,7 @@ def _chat_completion(
 def run_rollout(
     *, inference_url: str, model: str, api_key: str,
     seed: int, max_steps: int, system_prompt: str,
-    target_action_batch_size: int = 8,
+    target_action_batch_size: int = TARGET_ACTION_BATCH_SIZE,
 ) -> dict[str, Any]:
     """Run one Craftax episode with an LLM agent. Returns reward info."""
     import jax
@@ -295,9 +319,10 @@ def evaluate_prompt(
 # ---------------------------------------------------------------------------
 
 BASELINE_PROMPT = (
-    "You are playing Craftax, a survival game. "
-    "Collect resources, craft tools, and survive as long as possible. "
-    "Prioritize gathering wood and stone early, craft a pickaxe, then explore."
+    "You are a Craftax policy agent. Think carefully, then use the "
+    "`craftax_interact` tool exactly once. Return 1 valid full-Craftax action "
+    "unless the episode is already done. Use only the tool call as the final "
+    "answer. Do not output JSON, prose, or a plain-text action list."
 )
 
 MUTATION_SEEDS = [
@@ -363,7 +388,7 @@ def run_go_explore(
     _print(f"[go-explore] Budget: {max_training_rollouts} rollouts, {len(training_seeds)} train seeds, {len(heldout_seeds)} heldout seeds")
 
     # Phase 1: Baseline
-    eval_subset = rng.sample(training_seeds, min(5, len(training_seeds)))
+    eval_subset = rng.sample(training_seeds, min(TRAINING_SEED_COUNT, len(training_seeds)))
     _print(f"[go-explore] Phase 1: Baseline on {len(eval_subset)} seeds...")
     baseline_results = evaluate_prompt(
         prompt=BASELINE_PROMPT, seeds=eval_subset, max_steps=max_steps,
@@ -483,24 +508,42 @@ def run_go_explore(
 
 
 def parse_args() -> argparse.Namespace:
+    default_base_url = (
+        os.environ.get("SMR_METERED_INFERENCE_BASE_URL")
+        or os.environ.get("NANOHORIZON_PROMPT_OPT_INFERENCE_BASE_URL")
+        or "https://api.groq.com/openai/v1"
+    )
+    default_model = (
+        os.environ.get("NANOHORIZON_PROMPT_OPT_MODEL")
+        or os.environ.get("SMR_METERED_INFERENCE_MODEL")
+        or "openai/gpt-oss-20b"
+    )
     parser = argparse.ArgumentParser(description="Go-Explore prompt optimization for Craftax")
     parser.add_argument("--output-dir", default="artifacts")
-    parser.add_argument("--model", default="gemini-2.5-flash-lite")
-    parser.add_argument("--base-url", default="https://generativelanguage.googleapis.com/v1beta/openai")
+    parser.add_argument("--model", default=default_model)
+    parser.add_argument("--base-url", default=default_base_url)
     parser.add_argument("--max-training-rollouts", type=int, default=500)
-    parser.add_argument("--max-steps", type=int, default=10)
+    parser.add_argument("--max-steps", type=int, default=DEFAULT_MAX_TURNS)
     parser.add_argument("--concurrency", type=int, default=5)
-    parser.add_argument("--variants-per-iteration", type=int, default=4)
+    parser.add_argument("--variants-per-iteration", type=int, default=DEFAULT_VARIANTS_PER_ITERATION)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    api_key = (os.environ.get("OPENAI_API_KEY") or os.environ.get("GEMINI_API_KEY") or "").strip()
+    api_key = (
+        os.environ.get("SYNTH_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("GROQ_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or ""
+    ).strip()
     if not api_key:
-        raise SystemExit("OPENAI_API_KEY or GEMINI_API_KEY required")
+        raise SystemExit("SYNTH_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, or GEMINI_API_KEY required")
 
     output_dir = Path(args.output_dir).resolve()
+    repo_root = output_dir.parent
+    training_seeds, heldout_seeds = _load_seed_split(repo_root)
     started = time.time()
     result = run_go_explore(
         output_dir=output_dir,
@@ -508,8 +551,8 @@ def main() -> int:
         model=args.model,
         api_key=api_key,
         max_training_rollouts=args.max_training_rollouts,
-        training_seeds=list(range(11, 26)),  # 15 training seeds
-        heldout_seeds=list(range(41, 51)),   # 10 held-out seeds
+        training_seeds=training_seeds,
+        heldout_seeds=heldout_seeds,
         max_steps=args.max_steps,
         concurrency=args.concurrency,
         variants_per_iteration=args.variants_per_iteration,
