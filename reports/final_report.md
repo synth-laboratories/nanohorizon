@@ -1,62 +1,55 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Smoke Test B Candidate (GEPA)
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+Implement the smallest honest Craftax leaderboard candidate improvement under Smoke Test B by adding a focused prompt-optimization configuration and a reproducible record bundle, while preserving all shared harness surfaces.
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+1. `configs/craftax_prompt_opt_qwen35_4b_smoke_test_b.yaml`
+   - Question: can a Smoke Test B candidate be introduced without touching shared runtime surfaces?
+   - Outcome: supporting for candidate packaging.
+   - Evidence: the new config changes only prompt optimization parameters and prompt text.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b`
+   - Question: is the candidate bundle complete and valid for leaderboard tooling?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: required `metadata.json`, `run_config.yaml`, `metrics.json`, `system_info.json`, and `command.txt` were created and aligned with the config.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. `src/nanohorizon/baselines/prompt_opt.py`
+   - Question: is this candidate compatible with the existing GEPA-based prompt optimization/reflection flow?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+   - Evidence: no baseline code changes were required; the candidate follows existing GEPA `optimizer`/verifier contract.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b`
+   - Question: does validator feedback confirm the new record structure?
+   - Outcome: supporting.
+   - Evidence: `{"ok": true, "warnings": []}`.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The highest-leverage change for this smoke cycle is config-level prompt shaping plus anti-loop language, not harness edits.
+2. The candidate remains GEPA-aligned by design and therefore satisfies the optimization-posture requirement.
+3. The candidate is explicitly labeled as `Smoke Test B` in `metadata.json` to preserve leaderboard traceability.
+4. Reward impact is not measured in this task because execution was kept smoke-scoped.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_smoke_test_b.yaml`
+- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b/`
+- Verifier invocation command and result: `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b`
+- Repo handoff notes: `findings.txt`
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Attempted: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b`
+- Result: failed due local `pyproject.toml` cloud dependency path resolution (`file:///Users/joshpurtell/Documents/GitHub/synth-ai` not present in this environment).
+- Executed verifier fallback: `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b`
+- Result: `{"ok": true, "warnings": []}`.
+- Not validated: live rollout score uplift, Modal runtime contract, and GEPA optimization trajectory.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_smoke_test_b.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
+- Candidate label: `Smoke Test B` (from `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b/metadata.json`).
+- Main follow-up: launch the entrypoint and collect a scored `best_eval` if leaderboard lift is needed.
