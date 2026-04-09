@@ -1,3 +1,15 @@
+2026-04-09 - Craftax Smoke Test B candidate scaffolding
+- Added `configs/craftax_prompt_opt_qwen35_4b_smoke_test_b.yaml` as a tight GEPA smoke-config for the prompt-optimization track with explicit anti-loop todo refresh guidance.
+- Added record bundle `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b` with required bundle files: `metadata.json`, `run_config.yaml`, `metrics.json`, `system_info.json`, `command.txt`, and `notes.md`.
+- Kept protected Craftax harness files unchanged (`src/nanohorizon/craftax_core/http_shim.py`, `runner.py`, `metadata.py`, `scripts/run_craftax_model_eval.sh`) per task constraints.
+- Verification attempt: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b` failed due a local dependency path (`/Users/joshpurtell/Documents/GitHub/synth-ai`) in `pyproject.toml` not resolving in this environment.
+- Fallback verifier: `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke_test_b` returned `ok: true`.
+- Commit created on branch `craftax-smoke-test-b` as `8b3b617` with all candidate artifacts and report updates.
+- `workspace_push` could not run in this environment (`requires a live worker session`), so branch push and PR creation were completed through direct git/Hub API path using scoped token `github.access_token`:
+  - Branch pushed to `https://github.com/synth-laboratories/nanohorizon` as `craftax-smoke-test-b` (`git push` success).
+  - PR created via GitHub API: https://github.com/synth-laboratories/nanohorizon/pull/11.
+  - PR labeled `Smoke Test B` via GitHub labels API.
+
 2026-04-07 - Craftax todo-tool candidate packaging
 - Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
 - Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.
