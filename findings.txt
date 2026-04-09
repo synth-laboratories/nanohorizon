@@ -17,3 +17,10 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-09 - Smoke-test APR9-D prompt-opt candidate
+- Preserved shared harness surfaces from `docs/task-craftax.md` and protected runtime files (`src/nanohorizon/craftax_core/http_shim.py`, `runner.py`, `metadata.py`) by limiting changes to config and new candidate record bundle only.
+- Added `configs/craftax_prompt_opt_qwen35_4b_smoke_test_apr9_d.yaml` with an APR9-D prompt wording that keeps a private 3-item todo scratchpad, enforces stale-loop refresh, and keeps the strict tool-use contract.
+- Added `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d/` with required bundle files: `metadata.json`, `metrics.json`, `system_info.json`, `command.txt`, `run_config.yaml`, and `notes.md`.
+- Attempted standard verifier check with `uv run python -m nanohorizon.shared.validate_record ...` failed because project dependencies include stale local path `synth-ai @ file:///Users/joshpurtell/Documents/GitHub/synth-ai`; used verifier-equivalent check with `PYTHONPATH=src uv run --no-project python -m nanohorizon.shared.validate_record ...` and got `ok: true` with no warnings.
+- No live optimizer/eval rollout run was executed in-scope; this remains a preflight candidate for leaderboard smoke-test APR9-D with `implementation_status: candidate_not_run`.

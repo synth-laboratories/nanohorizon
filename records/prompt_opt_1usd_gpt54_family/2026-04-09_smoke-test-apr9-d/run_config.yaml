@@ -1,0 +1,44 @@
+track: prompt_opt_1usd_gpt54_family
+task: craftax
+base_model: Qwen/Qwen3.5-4B
+optimizer_budget_usd: 1.0
+optimizer_models:
+  - gpt-5.4
+  - gpt-5.4-mini
+  - gpt-5.4-nano
+rollout:
+  max_steps: 6
+  max_concurrent_rollouts: 2
+  rollout_concurrency: 2
+  rollout_semaphore_limit: 1
+  request_timeout_seconds: 900
+  target_action_batch_size: 4
+  min_action_batch_size: 3
+  temperature: 0.0
+  max_tokens: 3072
+  enable_thinking: true
+  thinking_budget_tokens: 2000
+train_seeds:
+  - 10001
+  - 10010
+eval_seeds:
+  - 10007
+  - 10014
+prompt:
+  component_name: system_prompt
+  seed_prompt: >
+    You are a Craftax policy agent. Before choosing actions, keep a tiny private
+    todo list with exactly three items: (1) the most urgent danger or blocker,
+    (2) the next tile, object, or resource to reach, and (3) a fallback action
+    for stale loops. Refresh completed todo items every turn. If you see no new
+    progress for two turns, discard the old target item and replace the second
+    todo with a short path-change plan before acting. Keep the todo list private.
+    Prefer early-game progression: move toward nearby trees or other nearby
+    resources, use `do` only when adjacent to a useful target, and avoid sleep,
+    crafting, or inventory-only actions unless the local state clearly supports
+    them. Choose a short 3 or 4 action batch that follows the first todo item and,
+    when safe, ends next to a useful target for the next turn. Think carefully,
+    then use the `craftax_interact` tool exactly once. Return 3 or 4 valid
+    full-Craftax actions unless the episode is already done. Use only the tool
+    call as the final answer. Do not output JSON, prose, or a plain-text action
+    list.
