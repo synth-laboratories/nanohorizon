@@ -3,7 +3,7 @@ id = "nanohorizon_go_explore_prompt_opt"
 title = "NanoHorizon Go-Explore Prompt Optimization"
 kind = "smr_reportbench"
 version = "0.1"
-score_command = "python3 workspace/score.py --output-root {output_root}"
+score_command = "python3 workspace/score.py score --output-root {output_root}"
 report_path = "eval_report.md"
 
 [smr]
