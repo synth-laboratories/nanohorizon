@@ -1,63 +1,205 @@
 [task]
-id = "actorbench_nh__craftax_hello_world__worker_v1"
-title = "ActorBench NanoHorizon Craftax Hello World Worker"
+id = "nanohorizon_go_explore_prompt_opt"
+title = "NanoHorizon Go-Explore Prompt Optimization"
 kind = "smr_reportbench"
 version = "0.1"
-runner = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
-default_command = "python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root {output_root}"
-score_command = "python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root {output_root} --verifier-mode precheck"
-report_path = "reports/reproduction.md"
-contract_path = "task_contract.json"
+score_command = "python3 workspace/score.py --output-root {output_root}"
+report_path = "eval_report.md"
 
 [smr]
 execution_mode = "host_local_runner"
 pool_strategy = "local_workspace_only"
-work_mode = "directed_effort"
+work_mode = "open_ended_discovery"
+
+[smr.key_policy]
+mode = "synth_only"
 
 [smr.runtime]
 runtime_kind = "sandbox_agent"
 environment_kind = "harbor"
 
+# To use a pre-built Craftax image, set sandbox.image or sandbox.snapshot:
+# [smr.runtime.sandbox]
+# image = "ghcr.io/synth-laboratories/nanohorizon-craftax:latest"
+# snapshot = "nanohorizon-craftax-v1"
+
 [smr.project]
-name = "ActorBench NanoHorizon Craftax Hello World Worker {nick}-{timestamp}"
+name = "NanoHorizon Go-Explore Prompt Opt {nick}-{timestamp}"
 timezone = "UTC"
 notes = """
-ACTORBENCH - single worker NanoHorizon Craftax hello-world.
+NANOHORIZON GO-EXPLORE — Prompt optimization for Craftax via Go-Explore.
 
-The actor under test is the worker. The worker should execute the staged
-hello-world runner, keep outputs inside the workspace root, and then score the
-bundle through the actorbench wrapper.
+Read the staged README, task.toml, verifier rubric, and reference packet before
+starting. This lane is supposed to use the real NanoLong Go-Explore code and
+the NanoHorizon Craftax runtime/container context, not just the toy starter
+script in `workspace/`.
+
+Goal: find a system prompt that noticeably increases average reward on Craftax
+across 20 held-out seeds (10 LLM calls per rollout), using no more than 500
+training rollouts total. Parallelize evaluation where possible.
+
+Termination policy for this lane:
+- Pause optimization after 45 minutes of wall-clock time and use the remaining
+  run budget to write out the best-so-far report and artifacts.
+- Stop launching new rollouts if total run spend reaches the configured run
+  budget.
+- Stop launching new rollouts if estimated LLM inference spend reaches the
+  configured inference budget.
+
+The workspace contains:
+- `workspace/run_go_explore.py` — the main eval/optimization script
+- Access to nanohorizon Craftax rollout engine (installed via uv)
+- Gemini API via GEMINI_API_KEY in the environment
+- `reference/nanolong/go_explore/...` — canonical Go-Explore code and notes
+- `reference/nanohorizon/...` — Craftax runtime/container/task context
+
+The sibling repos are also available locally if you need deeper context:
+- `/Users/joshpurtell/Documents/GitHub/nanolong`
+- `/Users/joshpurtell/Documents/GitHub/nanohorizon`
+
+The worker has access to the `append_experiment_log_entry` MCP tool for
+registering experiment results in the backend's structured experiment log.
+After each optimization iteration, the worker MUST call this tool with the
+iteration results.
+
+Execution-routing requirement for every planned repo task:
+- Every task you create with `plan_tasks` MUST include
+  `task_dispatch={{"execution_owner":"worker_host","worker_pool":"{worker_pool_id}","target_kind":"repo","task_affinity_key":"nanohorizon-go-explore"}}`
+- The only valid execution owner is exactly `"worker_host"`.
+
+Git routing:
+- Use the `workspace_push` tool (not raw git commands).
+- After push succeeds, call `set_task_state` with state `done`.
 """
 
 [smr.research]
-scenario = "actorbench-nh-craftax-hello-world-worker"
+scenario = "reportbench-{task_id}-go-explore-prompt-opt"
 repo_url = "https://github.com/synth-laboratories/nanohorizon.git"
 
 [[smr.research.tasks]]
-task_key = "run_actorbench_nh_craftax_hello_world"
+task_key = "run_go_explore_prompt_opt"
 kind = "repo_task"
-worker_pool = "{worker_pool_id}"
 instructions = """
-Read `{dataset_ref}/README.md`, `{dataset_ref}/task.toml`,
-`{dataset_ref}/task_contract.json`, `{dataset_ref}/VERIFIER_RUBRIC.md`, and
-the workspace runner files before you start.
+Run Go-Explore prompt optimization for Craftax and produce a scored report.
 
-From the current workspace root run:
+Before you start, read:
+- `{dataset_ref}/README.md`
+- `{dataset_ref}/task.toml`
+- `{dataset_ref}/VERIFIER_RUBRIC.md`
+- the `reference/nanolong/go_explore/...` files in `{dataset_ref}`
+- the `reference/nanohorizon/...` files in `{dataset_ref}`
 
-`python3 {dataset_ref}/workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root .`
+Treat the NanoLong Go-Explore code as the canonical algorithm baseline.
+Treat the NanoHorizon Craftax Docker/runtime files as the canonical environment
+setup reference.
 
-Then score the bundle:
+You are working inside a cloned `nanohorizon` repo checkout for this task, so
+the whole NanoHorizon tree is available in the writable workspace in addition
+to the staged reference packet.
 
-`python3 {dataset_ref}/workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root . --verifier-mode precheck`
+You are allowed to use `workspace/run_go_explore.py` as the active harness, but
+you should improve it using the actual NanoLong/NanoHorizon implementation ideas.
+Do not limit yourself to cosmetic prompt edits if a better archive/checkpoint/
+waypoint/search-loop improvement is available within the budget and task scope.
+
+CONSTRAINTS:
+- Use Gemini 2.5 Flash Lite as the LLM (--base-url https://generativelanguage.googleapis.com/v1beta/openai --model gemini-2.5-flash-lite)
+- GEMINI_API_KEY is in the environment. Set OPENAI_API_KEY=$GEMINI_API_KEY for the OpenAI-compat endpoint.
+- Each rollout = 10 LLM calls (max_steps=10)
+- Budget: no more than 500 training rollouts total
+- Held-out evaluation: 10 seeds (seeds 41-50), 10 LLM calls each
+- Parallelize where possible (use asyncio concurrency for rollouts)
+- Pause search after 45 minutes of wall-clock time, then write the best-so-far report instead of starting more rollouts
+- Stop search early if total run cost reaches $5.00
+- Stop search early if estimated LLM inference cost reaches $3.00
+
+Steps:
+1. Install dependencies:
+   `uv pip install "craftax>=1.5" "jax>=0.5" httpx`
+
+2. Run the Go-Explore optimization script:
+   `OPENAI_API_KEY=$GEMINI_API_KEY python3 workspace/run_go_explore.py --output-dir artifacts`
+
+   This script implements Go-Explore prompt search:
+   a. Start with a baseline system prompt
+   b. For each iteration (budget permitting):
+      - Propose N prompt variants (mutate/recombine from archive)
+      - Evaluate each variant on a subset of training seeds
+      - Keep variants that improve on the archive
+      - Log iteration results
+      - Before launching another batch, check elapsed wall time and the
+        tracked/estimated inference spend; if any limit is hit, stop searching
+        and move to final evaluation/reporting with the best prompt found so far
+   c. After search budget exhausted:
+      - Evaluate the best prompt on ALL 20 held-out seeds
+      - Evaluate the baseline on ALL 20 held-out seeds
+      - Compare and report uplift
+
+3. Read `artifacts/go_explore_result.json` and extract results.
+
+4. Write `eval_report.md` with:
+   - Baseline prompt and its held-out mean reward
+   - Best discovered prompt and its held-out mean reward
+   - Absolute and relative uplift
+   - Uplift per minute of Go-Explore runtime
+   - Baseline and best mean achievements on held-out seeds
+   - Achievement uplift
+   - Training rollout budget used (must be <= 500)
+   - Per-seed reward comparison table
+   - Per-seed achievement comparison table
+   - Top 3-5 prompts from the archive with their training rewards
+   - Iteration-by-iteration improvement log
+   - A short note on what changed in the final Go-Explore code or prompt search behavior
+
+5. Write `artifacts/experiment_summary.json` with:
+   - experiment_id, model, baseline_reward, best_reward, uplift
+   - baseline_mean_achievements, best_mean_achievements, achievement_uplift
+   - training_rollouts_used, held_out_seeds, held_out_rollout_steps
+   - archive_size, iterations_completed
+   - elapsed_seconds, uplift_per_minute, total_cost_usd, estimated_inference_cost_usd
+   - termination_reason
+   - best_prompt_text
+
+6. Call the `append_experiment_log_entry` MCP tool to register the experiment:
+   - entry_text = JSON contents of experiment_summary.json
+   - mode = "open_ended_discovery"
+
+7. Use `workspace_push` with:
+   - commit_message = "Go-Explore prompt opt: baseline={baseline_reward} best={best_reward} uplift={uplift}"
+   - push_branch = "main"
+
+8. Call `set_task_state` for this task with state `done`.
+
+Required workspace artifacts:
+- `eval_report.md` — human-readable report with proof of improvement
+- `artifacts/go_explore_result.json` — raw optimization output
+- `artifacts/experiment_summary.json` — structured experiment metadata
+
+IMPORTANT: The eval_report.md MUST include per-seed reward tables for both
+baseline and best prompt on the held-out set as proof of improvement.
+The report MUST also state whether the run stopped because of rollout budget,
+45-minute pause condition, total cost limit, or inference-cost limit.
+The final bundle MUST give the verifier enough evidence to judge:
+- whether the final Go-Explore code and search behavior were meaningfully exercised
+- whether held-out reward improved
+- whether held-out achievements improved
+- whether the improvement rate per minute justifies calling the run a success
 """
 acceptance_criteria = [
-  "The workspace root contains eval_summary, rollouts, result_manifest, reportbench_output, actorbench_output, and reproduction report artifacts.",
-  "The eval summary reports the 10-rollout hello-world contract.",
-  "The actorbench score is grounded in the concrete worker-produced artifacts."
+  "The optimization used no more than 500 training rollouts",
+  "artifacts/go_explore_result.json exists with optimization results",
+  "artifacts/experiment_summary.json exists with structured metadata",
+  "append_experiment_log_entry was called to register the experiment",
+  "eval_report.md shows per-seed held-out comparison as proof of uplift",
+  "eval_report.md includes per-seed achievement comparison plus uplift-per-minute",
+  "eval_report.md states the termination reason and reports elapsed time plus cost usage",
+  "The final bundle gives a verifier enough evidence to judge code changes, reward uplift, achievement uplift, and minimum Go-Explore runtime/search effort",
+  "The best prompt shows noticeable improvement over baseline on held-out seeds",
+  "All artifacts are committed and pushed",
 ]
 
 [smr.pools]
-worker_pool_id = "default"
+worker_pool_id = "{nick}"
 require_pool_target = true
 allow_container_url_fallback = false
 allow_local_bootstrap = true
@@ -80,41 +222,118 @@ path = "VERIFIER_RUBRIC.md"
 content_type = "text/markdown"
 
 [[smr.workspace_inputs.files]]
-local = "task_contract.json"
-path = "task_contract.json"
-content_type = "application/json"
-
-[[smr.workspace_inputs.files]]
-local = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
-path = "workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py"
+local = "workspace/run_go_explore.py"
+path = "workspace/run_go_explore.py"
 content_type = "text/plain"
 
 [[smr.workspace_inputs.files]]
-local = "../../shared/actorbench_parent_lane.py"
-path = "workspace/actorbench_parent_lane.py"
+local = "workspace/score.py"
+path = "workspace/score.py"
 content_type = "text/plain"
 
 [[smr.workspace_inputs.files]]
-local = "../../../reportbench/lanes/nanohorizon_craftax_hello_world/workspace/run_nanohorizon_craftax_hello_world_task.py"
-path = "workspace/parent_runner.py"
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/README.md"
+path = "reference/nanolong/README.md"
+content_type = "text/markdown"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/README.md"
+path = "reference/nanolong/go_explore/README.md"
+content_type = "text/markdown"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/run_full_go_explore.py"
+path = "reference/nanolong/go_explore/run_full_go_explore.py"
 content_type = "text/plain"
 
 [[smr.workspace_inputs.files]]
-local = "../../../reportbench/lanes/nanohorizon_craftax_hello_world/workspace/nanohorizon_craftax_hello_world_worker.py"
-path = "workspace/nanohorizon_craftax_hello_world_worker.py"
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/full_service.py"
+path = "reference/nanolong/go_explore/full_service.py"
 content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/full_runtime.py"
+path = "reference/nanolong/go_explore/full_runtime.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/full_config.py"
+path = "reference/nanolong/go_explore/full_config.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/storage.py"
+path = "reference/nanolong/go_explore/storage.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/real_crafter.py"
+path = "reference/nanolong/go_explore/real_crafter.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/legacy/optimizer.py"
+path = "reference/nanolong/go_explore/legacy/optimizer.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/legacy/search/archive.py"
+path = "reference/nanolong/go_explore/legacy/search/archive.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/legacy/algorithm_dev/pseudocode_summary.txt"
+path = "reference/nanolong/go_explore/legacy/algorithm_dev/pseudocode_summary.txt"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/go_explore/legacy/waypoint_operationalization_notes.txt"
+path = "reference/nanolong/go_explore/legacy/waypoint_operationalization_notes.txt"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanolong/examples/go_explore_crafter/README.md"
+path = "reference/nanolong/examples/go_explore_crafter/README.md"
+content_type = "text/markdown"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/README.md"
+path = "reference/nanohorizon/README.md"
+content_type = "text/markdown"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/docker/craftax_go_explore.Dockerfile"
+path = "reference/nanohorizon/docker/craftax_go_explore.Dockerfile"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/craftax_core/runner.py"
+path = "reference/nanohorizon/src/nanohorizon/craftax_core/runner.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/baselines/prompt_opt.py"
+path = "reference/nanohorizon/src/nanohorizon/baselines/prompt_opt.py"
+content_type = "text/plain"
+
+[[smr.workspace_inputs.files]]
+local = "/Users/joshpurtell/Documents/GitHub/nanohorizon/docs/task-craftax.md"
+path = "reference/nanohorizon/docs/task-craftax.md"
+content_type = "text/markdown"
 
 [smr.roles.orchestrator]
 profile_id = "codex_gpt_5_4_mini_medium"
 agent_kind = "codex"
 model = "gpt-5.4-mini"
 model_params = { reasoning_effort = "medium" }
+purpose = "Plan the Go-Explore optimization task and coordinate execution"
 
 [smr.roles.worker]
 profile_id = "codex_gpt_5_4_mini_medium"
 agent_kind = "codex"
 model = "gpt-5.4-mini"
 model_params = { reasoning_effort = "medium" }
+purpose = "Execute Go-Explore prompt search, evaluate results, write report"
 
 [smr.roles.verifier]
 provider = "openai"
@@ -123,60 +342,80 @@ temperature = 0.0
 seed = 0
 api_key_env = "OPENAI_API_KEY"
 
+[smr.metered_infra.inference]
+enabled = true
+provider = "google"
+model = "gemini-2.5-flash-lite"
+actor_id = "worker"
+
 [limits]
-time_budget_seconds = 1800
-cost_budget_usd = 3.0
+time_budget_seconds = 2700
+cost_budget_usd = 5.0
 monthly_cost_budget_usd = 15.0
 
 [smr.submission]
 scoring_mode = "score_command"
 
 [[smr.submission.artifacts]]
-artifact_type = "report_md"
-path = "reports/reproduction.md"
+artifact_type = "eval_report"
+path = "eval_report.md"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "eval_summary"
-path = "artifacts/eval_summary.json"
+artifact_type = "go_explore_result"
+path = "artifacts/go_explore_result.json"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "rollouts"
-path = "artifacts/rollouts.jsonl"
+artifact_type = "experiment_summary"
+path = "artifacts/experiment_summary.json"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "result_manifest"
-path = "artifacts/result_manifest.json"
+artifact_type = "reportbench_output"
+path = "artifacts/reportbench_output.json"
 required = true
 
 [[smr.submission.artifacts]]
-artifact_type = "actorbench_output"
-path = "artifacts/actorbench_output.json"
-required = true
-
-[[smr.submission.artifacts]]
-artifact_type = "actorbench_verifier_review"
-path = "artifacts/actorbench_verifier_review.json"
-required = true
+artifact_type = "verifier_review"
+path = "artifacts/verifier_review.json"
+required = false
 
 [reward]
-mode = "artifact_json_path"
-primary_metric = "actor_score"
-source_artifact = "artifacts/actorbench_output.json"
-source_json_path = "actor_score"
+mode = "verifier_score"
+primary_metric = "rubric_reward"
+source_artifact = "artifacts/verifier_review.json"
+source_json_path = "score"
+rollout_source_artifact = "artifacts/reportbench_output.json"
 
 [verifier]
 enabled = true
 rubric_path = "VERIFIER_RUBRIC.md"
-report_path = "reports/reproduction.md"
+report_path = "eval_report.md"
 artifact_paths = [
-  "artifacts/eval_summary.json",
-  "artifacts/result_manifest.json",
-  "artifacts/reportbench_output.json"
+  "artifacts/go_explore_result.json",
+  "artifacts/experiment_summary.json",
+  "artifacts/reportbench_output.json",
+  "workspace/run_go_explore.py",
 ]
-output_path = "artifacts/actorbench_verifier_review.json"
+output_path = "artifacts/verifier_review.json"
 
-[output]
-canonical_json_path = "artifacts/actorbench_output.json"
+# ReportBench taxonomy — see evals/reportbench/metadata_schema.py and evals/reportbench/metadata.txt
+
+[reportbench.metadata]
+schema_version = 1
+task_type = "optimization"
+call_budget = "long"
+mode = "openended"
+difficulty = "medium"
+duration = "45_mins"
+
+quality = "high"
+maturity = "medium"
+[reportbench.metadata.method]
+family = "continual"
+name = "mipro"
+
+[reportbench.metadata.optimized_model]
+size = "small"
+modality = "text_only"

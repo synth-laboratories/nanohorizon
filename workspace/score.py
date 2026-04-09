@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score the NanoHorizon unique-achievement GEPA bundle."""
+"""Score the Go-Explore prompt optimization results."""
 
 from __future__ import annotations
 
@@ -9,43 +9,15 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-TASK_ID = "nanohorizon_unique_achievement_gepa_oe"
+TASK_ID = "nanohorizon_go_explore_prompt_opt"
 ROOT = Path(__file__).resolve().parent.parent
 
 ARTIFACTS = {
     "eval_report": "eval_report.md",
-    "baseline": "artifacts/unique_achievement_baseline.json",
-    "result": "artifacts/unique_achievement_gepa_result.json",
-    "summary": "artifacts/unique_achievement_summary.json",
+    "go_explore_result": "artifacts/go_explore_result.json",
+    "experiment_summary": "artifacts/experiment_summary.json",
     "reportbench_output": "artifacts/reportbench_output.json",
 }
-
-PROMPT_OPT_TRACK_ID = "prompt_opt_local_gemini25_flash_lite"
-REQUIRED_BASELINE_SCRIPT = "run_craftax_prompt_opt_gemini25_flash_lite_local.sh"
-REQUIRED_BASELINE_CONFIG = "craftax_prompt_opt_gemini25_flash_lite_local_eval20.yaml"
-INVALID_BASELINE_PATH_MARKERS = ("offline_", "rlvr_")
-INVALID_SALVAGE_TEXT_MARKERS = (
-    "manual probe",
-    "manual_probe",
-    "prior-run surrogate",
-    "copied result",
-    "borrowed",
-    "/synth/state/.out/smr/projects/",
-    "checked-in reference",
-    "checked_in_reference",
-    "no fresh live rerun was possible",
-)
-MIN_MEANINGFUL_TRAINING_ROLLOUTS = 100
-
-
-def _contains_invalid_baseline_marker(value: Any) -> bool:
-    text = str(value or "")
-    return any(marker in text for marker in INVALID_BASELINE_PATH_MARKERS) or "reference_baseline" in text
-
-
-def _contains_invalid_salvage_marker(value: Any) -> bool:
-    text = str(value or "").lower()
-    return any(marker in text for marker in INVALID_SALVAGE_TEXT_MARKERS)
 
 
 def _resolve_output_root(raw: str | None) -> Path:
@@ -71,123 +43,54 @@ def _criterion(*, criterion_id: str, passed: bool, weight: float) -> dict[str, A
 
 
 def cmd_score(output_root: Path, verifier_mode: str) -> int:
-    source = ROOT / "task.toml"
-    if source.exists():
-        dest = output_root / "task.toml"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, dest)
+    for rel in ("task.toml",):
+        source = ROOT / rel
+        if source.exists():
+            dest = output_root / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, dest)
 
     report_path = output_root / ARTIFACTS["eval_report"]
-    baseline_path = output_root / ARTIFACTS["baseline"]
-    result_path = output_root / ARTIFACTS["result"]
-    summary_path = output_root / ARTIFACTS["summary"]
+    result_path = output_root / ARTIFACTS["go_explore_result"]
+    summary_path = output_root / ARTIFACTS["experiment_summary"]
     output_path = output_root / ARTIFACTS["reportbench_output"]
 
-    for required in (report_path, baseline_path, result_path, summary_path):
-        if not required.exists():
-            raise RuntimeError(f"missing required artifact: {required}")
+    if not report_path.exists():
+        raise RuntimeError(f"missing report artifact: {report_path}")
+    if not result_path.exists():
+        raise RuntimeError(f"missing go_explore_result artifact: {result_path}")
+    if not summary_path.exists():
+        raise RuntimeError(f"missing experiment_summary artifact: {summary_path}")
 
-    summary = _load_json(summary_path)
-    baseline = _load_json(baseline_path)
     result = _load_json(result_path)
-    report_text = report_path.read_text(encoding="utf-8")
-    baseline_text = json.dumps(baseline, sort_keys=True)
-    result_text = json.dumps(result, sort_keys=True)
-    summary_text = json.dumps(summary, sort_keys=True)
+    summary = _load_json(summary_path)
 
-    baseline_unique = summary.get("baseline_unique_achievement_score")
-    optimized_unique = summary.get("optimized_unique_achievement_score")
-    uplift = summary.get("unique_achievement_uplift")
-    rollouts = summary.get("training_rollouts_used")
-    termination_reason = (
-        summary.get("termination_reason")
-        or result.get("termination_reason")
-        or baseline.get("termination_reason")
+    baseline_reward = summary.get("baseline_reward")
+    best_reward = summary.get("best_reward")
+    uplift = summary.get("uplift")
+    training_rollouts = summary.get("training_rollouts_used")
+    report_text = report_path.read_text(encoding="utf-8")
+
+    has_report = bool(report_text.strip())
+    has_results = baseline_reward is not None and best_reward is not None
+    has_uplift = isinstance(uplift, (int, float)) and uplift > 0
+    under_budget = isinstance(training_rollouts, (int, float)) and training_rollouts <= 500
+    achievement_evidence = (
+        summary.get("baseline_mean_achievements") is not None
+        and summary.get("best_mean_achievements") is not None
     )
-    baseline_track_id = (
-        baseline.get("baseline_track_id")
-        or summary.get("baseline_track_id")
-        or result.get("baseline_track_id")
-    )
-    baseline_record_path = (
-        baseline.get("baseline_record_path")
-        or result.get("baseline_record_path")
-        or summary.get("baseline_record_path")
-    )
-    baseline_script_path = (
-        baseline.get("baseline_script_path")
-        or result.get("baseline_script_path")
-        or summary.get("baseline_script_path")
-    )
-    baseline_config_path = (
-        baseline.get("baseline_config_path")
-        or result.get("baseline_config_path")
-        or summary.get("baseline_config_path")
-    )
-    baseline_is_prompt_opt = (
-        baseline_track_id == PROMPT_OPT_TRACK_ID
-        and not _contains_invalid_baseline_marker(baseline_record_path)
-        and not _contains_invalid_baseline_marker(baseline_script_path)
-        and not _contains_invalid_baseline_marker(baseline_config_path)
-        and REQUIRED_BASELINE_SCRIPT in str(baseline_script_path or "")
-        and REQUIRED_BASELINE_CONFIG in str(baseline_config_path or "")
-        and str(baseline.get("baseline_source_kind") or "").strip() not in {"checked_in_reference_bundle", ""}
-        and str(result.get("result_source_kind") or "").strip() not in {"checked_in_reference_gepa_result"}
-    )
-    no_salvage_artifacts = not any(
-        _contains_invalid_salvage_marker(value)
-        for value in (
-            report_text,
-            baseline_text,
-            result_text,
-            summary_text,
-        )
-    )
-    meaningful_budget_use = isinstance(rollouts, (int, float)) and rollouts <= 500 and (
-        rollouts >= MIN_MEANINGFUL_TRAINING_ROLLOUTS or bool(str(termination_reason or "").strip())
-    )
+    uplift_per_minute = summary.get("uplift_per_minute")
+    has_uplift_rate = isinstance(uplift_per_minute, (int, float))
+    has_proof = "seed" in report_text.lower() and ("|" in report_text or "seed" in report_text)
 
     criteria = [
-        _criterion(
-            criterion_id="baseline_present",
-            passed=baseline_unique is not None,
-            weight=0.15,
-        ),
-        _criterion(
-            criterion_id="baseline_is_prompt_opt",
-            passed=baseline_is_prompt_opt,
-            weight=0.20,
-        ),
-        _criterion(
-            criterion_id="optimized_present",
-            passed=optimized_unique is not None,
-            weight=0.15,
-        ),
-        _criterion(
-            criterion_id="positive_uplift",
-            passed=isinstance(uplift, (int, float)) and uplift > 0,
-            weight=0.20,
-        ),
-        _criterion(
-            criterion_id="meaningful_budget_accounting",
-            passed=meaningful_budget_use,
-            weight=0.15,
-        ),
-        _criterion(
-            criterion_id="fresh_run_no_salvage",
-            passed=no_salvage_artifacts,
-            weight=0.10,
-        ),
-        _criterion(
-            criterion_id="report_mentions_unique_achievements",
-            passed="unique" in report_text.lower() and "achievement" in report_text.lower(),
-            weight=0.10,
-        ),
-        _criterion(
-            criterion_id="report_mentions_throughput",
-            passed="500" in report_text and ("minute" in report_text.lower() or "throughput" in report_text.lower()),
-            weight=0.10,
-        ),
+        _criterion(criterion_id="report_present", passed=has_report, weight=0.15),
+        _criterion(criterion_id="results_present", passed=has_results, weight=0.15),
+        _criterion(criterion_id="positive_uplift", passed=has_uplift, weight=0.30),
+        _criterion(criterion_id="under_budget", passed=under_budget, weight=0.15),
+        _criterion(criterion_id="achievement_evidence", passed=achievement_evidence, weight=0.10),
+        _criterion(criterion_id="uplift_per_minute_present", passed=has_uplift_rate, weight=0.05),
+        _criterion(criterion_id="proof_in_report", passed=has_proof, weight=0.10),
     ]
     verifier_score = round(sum(c["score"] * c["weight"] for c in criteria), 6)
 
@@ -196,42 +99,41 @@ def cmd_score(output_root: Path, verifier_mode: str) -> int:
         "state": "succeeded" if verifier_score >= 0.999999 else "failed",
         "artifacts": {k: v for k, v in ARTIFACTS.items() if k != "reportbench_output"},
         "reward": {
-            "value": optimized_unique,
-            "primary_metric": "heldout_unique_achievement_score",
-            "source_artifact": ARTIFACTS["summary"],
+            "value": best_reward,
+            "primary_metric": "heldout_mean_reward",
+            "source_artifact": ARTIFACTS["experiment_summary"],
             "info": {
-                "baseline_unique_achievement_score": baseline_unique,
-                "optimized_unique_achievement_score": optimized_unique,
-                "unique_achievement_uplift": uplift,
-                "training_rollouts_used": rollouts,
-                "termination_reason": termination_reason,
-                "elapsed_seconds": summary.get("elapsed_seconds"),
-                "baseline_track_id": baseline_track_id,
-                "baseline_record_path": baseline_record_path,
+                "baseline_reward": baseline_reward,
+                "best_reward": best_reward,
+                "uplift": uplift,
+                "training_rollouts_used": training_rollouts,
+                "baseline_mean_achievements": summary.get("baseline_mean_achievements"),
+                "best_mean_achievements": summary.get("best_mean_achievements"),
+                "achievement_uplift": summary.get("achievement_uplift"),
+                "uplift_per_minute": uplift_per_minute,
             },
+        },
+        "runtime": {
+            "elapsed_seconds": summary.get("elapsed_seconds"),
+            "model": summary.get("model"),
         },
         "verifier": {
             "score": verifier_score,
-            "summary": "Unique-achievement GEPA bundle scored from submitted artifacts.",
+            "summary": "Go-Explore prompt optimization scored from submitted artifacts.",
             "criteria": criteria,
             "latest_state": "done" if verifier_score >= 0.999999 else "failed",
             "verifier_mode": verifier_mode,
         },
     }
     _write_json(output_path, payload)
-    print(
-        json.dumps(
-            {
-                "score": verifier_score,
-                "baseline_unique_achievement_score": baseline_unique,
-                "optimized_unique_achievement_score": optimized_unique,
-                "unique_achievement_uplift": uplift,
-                "state": payload["state"],
-            },
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    print(json.dumps({
+        "score": verifier_score,
+        "baseline_reward": baseline_reward,
+        "best_reward": best_reward,
+        "uplift": uplift,
+        "training_rollouts": training_rollouts,
+        "state": payload["state"],
+    }, indent=2, sort_keys=True))
     return 0
 
 

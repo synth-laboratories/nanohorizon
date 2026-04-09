@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 import argparse
 import asyncio
 import json
 import math
 import os
 import platform
+import re
 import shlex
 import subprocess
 import sys
@@ -21,6 +20,7 @@ import modal
 import yaml
 from gepa import EvaluationBatch, GEPAAdapter, optimize
 
+from nanohorizon.craftax_core.rollout import run_rollout_request
 from nanohorizon.craftax_core.metadata import PRIMARY_TOOL_NAME
 from nanohorizon.custom_vllm.runtime import build_thinking_budget_request_overrides
 from nanohorizon.shared.craftax_data import summarize_achievement_frequencies
@@ -290,6 +290,121 @@ async def collect_rollouts_concurrently_with_summary(
     rollout_concurrency: int | None = None,
     rollout_semaphore_limit: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    normalized_container_url = str(container_url or "").strip()
+    if not normalized_container_url or normalized_container_url.lower().startswith("direct://"):
+        worker_count = max(
+            1,
+            int(rollout_concurrency if rollout_concurrency is not None else max_concurrent_rollouts),
+        )
+        permit_limit = max(
+            1,
+            int(rollout_semaphore_limit if rollout_semaphore_limit is not None else max_concurrent_rollouts),
+        )
+        semaphore = asyncio.Semaphore(permit_limit)
+        rollout_queue: asyncio.Queue[tuple[int, int] | None] = asyncio.Queue()
+        for index, seed in enumerate(seeds):
+            rollout_queue.put_nowait((index, int(seed)))
+        results: list[dict[str, Any] | None] = [None] * len(seeds)
+        request_latencies_s: list[float] = []
+        active_rollouts = 0
+        high_watermark = 0
+        requests_started = 0
+        requests_finished = 0
+        started_at = time.perf_counter()
+
+        async def _run_one_direct(seed: int, index: int) -> dict[str, Any]:
+            request_body = build_rollout_request(
+                inference_url=inference_url,
+                model=model,
+                api_key=api_key,
+                seed=seed,
+                max_steps=max_steps,
+                trace_correlation_id=f"{trace_prefix}_{index:05d}_{seed}",
+                system_prompt=system_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                enable_thinking=enable_thinking,
+                thinking_budget_tokens=thinking_budget_tokens,
+                policy_version=policy_version,
+                target_action_batch_size=target_action_batch_size,
+                min_action_batch_size=min_action_batch_size,
+                timeout_s=max(1, math.ceil(request_timeout_seconds)),
+            )
+            try:
+                payload = await asyncio.to_thread(run_rollout_request, request_body)
+                if isinstance(payload, dict):
+                    payload.setdefault("trace_correlation_id", request_body["trace_correlation_id"])
+                    payload.setdefault("trial_id", request_body["trial_id"])
+                    payload.setdefault("_request_seed", seed)
+                    return payload
+                return {
+                    "error": "rollout response was not an object",
+                    "seed": seed,
+                    "trace_correlation_id": request_body["trace_correlation_id"],
+                }
+            except Exception as exc:
+                error_text = str(exc).strip() or f"{type(exc).__name__}: no detail"
+                return {
+                    "error": error_text,
+                    "seed": seed,
+                    "trace_correlation_id": request_body["trace_correlation_id"],
+                }
+
+        async def _worker_direct() -> None:
+            nonlocal active_rollouts, high_watermark, requests_started, requests_finished
+            while True:
+                item = await rollout_queue.get()
+                if item is None:
+                    rollout_queue.task_done()
+                    return
+                index, seed = item
+                async with semaphore:
+                    active_rollouts += 1
+                    high_watermark = max(high_watermark, active_rollouts)
+                    requests_started += 1
+                    request_started_at = time.perf_counter()
+                    try:
+                        results[index] = await _run_one_direct(seed, index)
+                    finally:
+                        request_latencies_s.append(time.perf_counter() - request_started_at)
+                        requests_finished += 1
+                        active_rollouts -= 1
+                rollout_queue.task_done()
+
+        workers = [asyncio.create_task(_worker_direct()) for _ in range(worker_count)]
+        await rollout_queue.join()
+        for _worker_task in workers:
+            rollout_queue.put_nowait(None)
+        await asyncio.gather(*workers)
+
+        completed_rollouts = [item for item in results if isinstance(item, dict)]
+        valid_rollouts = [
+            item for item in completed_rollouts if not item.get("error") and is_rollout_payload(item)
+        ]
+        rewards = [rollout_outcome_reward(item) for item in valid_rollouts]
+        elapsed_s = max(time.perf_counter() - started_at, 1e-9)
+        summary = {
+            "requested_rollouts": len(seeds),
+            "completed_rollouts": len(completed_rollouts),
+            "num_errors": len(completed_rollouts) - len(valid_rollouts),
+            "num_structured_rollouts": len(valid_rollouts),
+            "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+            "max_outcome_reward": max(rewards) if rewards else 0.0,
+            "elapsed_s": elapsed_s,
+            "rollouts_per_minute": len(valid_rollouts) / (elapsed_s / 60.0),
+            "rollout_concurrency": worker_count,
+            "rollout_semaphore_limit": permit_limit,
+            "rollout_requests_started": requests_started,
+            "rollout_requests_finished": requests_finished,
+            "active_rollout_high_watermark": high_watermark,
+            "mean_request_latency_s": mean(request_latencies_s) if request_latencies_s else 0.0,
+            "max_request_latency_s": max(request_latencies_s) if request_latencies_s else 0.0,
+        }
+        normalized_results = [
+            item if isinstance(item, dict) else {"error": "missing rollout result"} for item in results
+        ]
+        return normalized_results, summary
+
     worker_count = max(
         1,
         int(rollout_concurrency if rollout_concurrency is not None else max_concurrent_rollouts),
@@ -300,7 +415,7 @@ async def collect_rollouts_concurrently_with_summary(
     )
     semaphore = asyncio.Semaphore(permit_limit)
     timeout = httpx.Timeout(float(request_timeout_seconds), connect=min(30.0, float(request_timeout_seconds)))
-    container_base = str(container_url).rstrip("/")
+    container_base = normalized_container_url.rstrip("/")
     headers = _container_headers(
         container_url=container_base,
         container_worker_token=container_worker_token,
@@ -449,7 +564,20 @@ async def collect_rollouts_concurrently_with_summary(
     return normalized_results, summary
 
 TRACK_ID = "prompt_opt_1usd_gpt54_family"
-REFLECTION_PROMPT_TEMPLATE = """I provided an assistant with the following Craftax system prompt:
+TODO_SCRATCHPAD_REQUIREMENTS = [
+    "Keep a tiny private todo list with exactly three items before the tool call.",
+    "The three items must track (1) the immediate danger or blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
+    "Refresh completed todo items every turn.",
+    "If the policy repeats the same movement pattern without progress or new information, replace the stale target item instead of continuing the loop.",
+    "Do not reveal the todo list or scratchpad in the final answer.",
+]
+
+
+def todo_scratchpad_directive() -> str:
+    return " ".join(TODO_SCRATCHPAD_REQUIREMENTS)
+
+
+REFLECTION_PROMPT_TEMPLATE = f"""I provided an assistant with the following Craftax system prompt:
 ```
 <curr_param>
 ```
@@ -464,7 +592,8 @@ Write a revised Craftax system prompt.
 Hard requirements you must preserve:
 - The policy must think if needed, then use the `craftax_interact` tool exactly once.
 - The final answer must not be plain text actions, JSON, or prose outside the tool call.
-- The prompt should ask for 5-10 valid full-Craftax actions unless the episode is already done.
+- The prompt must preserve this todo-tool contract: {todo_scratchpad_directive()}.
+- The prompt should ask for a short valid full-Craftax action batch unless the episode is already done.
 - The prompt should prioritize early-game resource gathering and avoid repeated movement loops.
 
 Return only the revised system prompt inside ``` blocks."""
@@ -482,7 +611,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="")
     parser.add_argument("--container-url", default=os.getenv("NANOHORIZON_PROMPT_OPT_CONTAINER_URL", "direct://local"))
     parser.add_argument("--inference-url", required=True)
-    parser.add_argument("--inference-api-key", default="")
+    parser.add_argument(
+        "--inference-api-key",
+        default=(
+            os.getenv("NANOHORIZON_INFERENCE_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or ""
+        ),
+    )
     parser.add_argument("--request-model", required=True)
     return parser.parse_args()
 
@@ -581,7 +717,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
         if action_summary:
             parts.append(f"Observed action sequence: {action_summary}.")
         parts.append(
-            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with 5-10 valid full-Craftax actions. Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
+            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this todo-tool contract: {todo_scratchpad_directive()} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
         )
         return " ".join(parts)
     parts = [f"This rollout achieved reward {score:.2f} and failed to make progress."]
@@ -596,9 +732,19 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
     if action_summary:
         parts.append(f"Observed action sequence: {action_summary}.")
     parts.append(
-        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
+        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. Add this todo-tool contract before the final action choice: {todo_scratchpad_directive()} The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
     )
     return " ".join(parts)
+
+
+def build_reflection_system_directive() -> str:
+    return (
+        "You rewrite Craftax system prompts for a tool-calling policy. "
+        f"Preserve these hard requirements: the policy must use the `{PRIMARY_TOOL_NAME}` "
+        "tool exactly once, must not answer with JSON or a plain-text action list, and must "
+        f"preserve this todo-tool contract: {todo_scratchpad_directive()} Return only the "
+        "revised prompt text."
+    )
 
 
 def _resource_progress_bonus(rollout: dict[str, Any]) -> float:
@@ -831,14 +977,7 @@ def _build_reflection_lm(
         messages: list[dict[str, str]] = [
             {
                 "role": "system",
-                "content": (
-                    "You rewrite Craftax system prompts for a tool-calling policy. "
-                    "Preserve these hard requirements: the policy must use the "
-                    f"`{PRIMARY_TOOL_NAME}` tool exactly once, must not answer with JSON "
-                    "or a plain-text action list, and should usually request exactly "
-                    "4 valid full-Craftax actions unless the episode is already done. "
-                    "Return only the revised prompt text."
-                ),
+                "content": build_reflection_system_directive(),
             }
         ]
         if isinstance(prompt, str):
@@ -935,6 +1074,20 @@ def _summarize_eval(
     return summary
 
 
+def _chat_base_url_from_rollout_inference_url(url: str) -> str:
+    normalized = str(url or "").strip()
+    suffix = "/chat/completions"
+    if normalized.endswith(suffix):
+        return normalized[: -len(suffix)]
+    return normalized
+
+
+
+
+# Reflexion baseline implementation moved to `nanohorizon.baselines.reflexion`.
+
+
+
 def run_training(
     *,
     config_path: Path,
@@ -953,6 +1106,31 @@ def run_training(
     seed_prompt = str(config["prompt"]["seed_prompt"]).strip()
     component_name = str(config["prompt"].get("component_name", "system_prompt")).strip() or "system_prompt"
     seed_candidate = {component_name: seed_prompt}
+    adapter = CraftaxPromptOptAdapter(
+        container_url=container_url,
+        inference_url=rollout_inference_url,
+        inference_api_key=inference_api_key,
+        request_model=request_model,
+        rollout_cfg=rollout_cfg,
+    )
+    algorithm = str(config.get("optimizer", {}).get("algorithm", "gepa")).strip().lower() or "gepa"
+    if algorithm == "reflexion":
+        from nanohorizon.baselines.reflexion import run_reflexion_baseline
+
+        return run_reflexion_baseline(
+            config=config,
+            output_dir=output_dir,
+            timer=timer,
+            adapter=adapter,
+            rollout_cfg=rollout_cfg,
+            trainset=trainset,
+            valset=valset,
+            seed_prompt=seed_prompt,
+            component_name=component_name,
+            rollout_inference_url=rollout_inference_url,
+            inference_api_key=inference_api_key,
+            request_model=request_model,
+        )
     reflection_model = str(config["optimizer"]["proposer_model"]).strip()
     reflection_lm, reflection_backend = _build_reflection_lm(
         requested_model=reflection_model,
@@ -961,16 +1139,10 @@ def run_training(
         request_model=request_model,
         backend=str(config["optimizer"].get("reflection_backend", "auto")),
     )
+    search_cfg = cast(dict[str, Any], config.get("search") or {})
     selector = cast(
         Literal["pareto", "current_best", "epsilon_greedy", "top_k_pareto"],
-        str(config["search"].get("candidate_selection_strategy", "current_best")),
-    )
-    adapter = CraftaxPromptOptAdapter(
-        container_url=container_url,
-        inference_url=rollout_inference_url,
-        inference_api_key=inference_api_key,
-        request_model=request_model,
-        rollout_cfg=rollout_cfg,
+        str(search_cfg.get("candidate_selection_strategy", "current_best")),
     )
     run_dir = ensure_dir(output_dir / "gepa_run")
     result = optimize(
@@ -1097,12 +1269,15 @@ def main() -> None:
     base_dir = config_path.parent
     default_output_dir = resolve_path(str(config["output"]["root_dir"]), base_dir=base_dir)
     output_dir = ensure_dir(args.output_dir or default_output_dir)
+    inference_api_key = str(args.inference_api_key).strip() or str(
+        os.getenv("NANOHORIZON_INFERENCE_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
+    ).strip()
     result = run_training(
         config_path=config_path,
         output_dir=output_dir,
         container_url=str(args.container_url).strip(),
         inference_url=str(args.inference_url).strip(),
-        inference_api_key=str(args.inference_api_key).strip(),
+        inference_api_key=inference_api_key,
         request_model=str(args.request_model).strip(),
     )
     print(json.dumps(result, indent=2, sort_keys=True))

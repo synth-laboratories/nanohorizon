@@ -1,0 +1,49 @@
+Waypoint Operationalization Notes
+
+Reference
+- `references/myers_et_al_2025_horizon.pdf`
+- `references/myers_et_al_2025_horizon.txt`
+
+High-level takeaway
+- The paper studies long-horizon behavior through waypoint-conditioned competence rather than only end-goal success.
+- For our design, that is useful as evidence that intermediate structure matters, but we are not planning to expose waypoints to the agent as explicit subgoals.
+
+What "operationalizing waypoints" means in our variant
+- A waypoint is not just an intuitive subgoal description; it becomes an optimizer-side semantic label for post-hoc trace interpretation, archive organization, and rollout targeting.
+- The agent is still run on the original task or end-goal instruction plus normal runtime context. In v0, waypoints are not emitted as intermediate instructions.
+- This turns waypoint quality into something measurable through optimizer utility: do the waypoint labels improve checkpoint choice, frontier expansion, and reusable segment discovery?
+
+Useful concepts for our Python Go-Explore variant
+- Horizon generalization:
+  Competence on shorter-horizon verified transitions should transfer to longer-horizon tasks.
+- Waypoint-level evaluation:
+  The right score object is not only per-seed return; it is performance across waypoint/subskill slices computed from post-hoc labels.
+- Planning invariance from the paper is useful background:
+  it is evidence that decompositions matter, but it is not the primary evaluation setup for our v0 because we are not training a waypoint-conditioned policy.
+
+How this maps to our design
+- Ontology learning via Helix should produce candidate task decompositions:
+  skills, subtasks, entities, dependencies, and plausible waypoint chains.
+- Waypoints/cells/checkpoints should be first-class archive items:
+  `cell = checkpoint + ontology slice + waypoint labels + evidence`.
+- Candidate evaluation should be Pareto over waypoint metrics computed after the rollout, not just over seeds.
+- Checkpoint-targeted rollouts should be judged by whether they produce more verified progress, depth, frontier expansion, or reusable segments than fresh-start exploration.
+
+Practical metrics to track
+- waypoint completion rate
+- waypoint reachability from checkpoint
+- late-waypoint depth reached
+- checkpoint progress gain over fresh-start rollouts
+- subskill coverage across ontology-defined capability clusters
+- robustness of waypoint completion across multiple checkpoints, not just one seed
+
+Implication for first implementation
+- Start with a prompt-optimization overlay:
+  reuse GEPA-style candidate search, but replace seed-vector selection with waypoint-vector selection.
+- Keep the interfaces modular so later policy-improvement plugins can reuse the same archive:
+  online SFT, distillation, GRPO/Tinker, or other on-policy updates.
+
+Why this matters for long-horizon LLM agents
+- Seeds are often a poor summary for long-horizon competence because success is compositional.
+- Waypoints operationalize "what was learned" in a reusable form for the optimizer and archive.
+- Checkpoints make those waypoints actionable without exposing them to the agent: the optimizer can branch from them, test continuation policies, and gather targeted evidence.

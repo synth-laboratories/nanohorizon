@@ -1,0 +1,110 @@
+Go-Explore Prompt Baseline Pseudocode
+=====================================
+
+Purpose
+-------
+
+This note captures the current backend-native Go-Explore + Prompt baseline at a high level
+before deeper evaluation and tuning work.
+
+
+Top-level factorization
+-----------------------
+
+- proposer
+- search runtime + archive/data
+- prompt plugin
+
+Current v0 runtime target:
+
+- Crafter container
+- direct planner mode only
+- optimizer-side waypoints only
+
+
+Core loop
+---------
+
+```text
+initialize config
+initialize runtime
+initialize archive
+initialize scanner + verifier registry
+initialize proposer
+initialize prompt plugin frontier
+
+for each iteration:
+  build fresh-start queries from task-set seeds
+  run fresh rollouts
+  scan + verify fresh rollouts
+  ingest rollouts/checkpoints/labels/reports into archive
+
+  select branchable checkpoints from archive
+  build resumed queries from checkpoints
+  if local_trials_per_start_state > 1:
+    expand each selected checkpoint into a sibling cohort
+  proposer ranks bounded query pool
+  run resumed rollouts
+  scan + verify resumed rollouts
+  ingest resumed evidence into archive
+
+  refresh:
+    potential estimates
+    trajectory frontier
+    branch cohorts
+    comparative views
+
+  evaluate prompt candidates
+  proposer builds prompt-mutation briefs from archive evidence
+  prompt plugin mutates candidates
+  prompt plugin selects next frontier
+
+return:
+  best candidate
+  archive summary
+  checkpoint refs
+  trajectory frontier
+  comparative views
+  potential estimates
+```
+
+
+What is scored
+--------------
+
+Candidate frontier evaluation uses:
+
+- progress
+- novelty
+- learnability
+- checkpoint progress gain
+- frontier expansion
+- verified depth
+- cost penalty
+
+Checkpoint/query selection additionally uses:
+
+- checkpoint label bonuses
+- checkpoint reward bonuses
+- achieved vs potential gap
+- loop-risk penalties
+- comparative cohort evidence
+- trajectory frontier evidence
+
+All of those weights now live in the typed `scoring` config and can be overridden in the job
+request.
+
+
+Current evaluation reality
+--------------------------
+
+The system now works end to end:
+
+- local optimizer works
+- backend-owned experimental job works
+- model-backed Crafter inference works
+- checkpoint resume works
+- sibling cohort comparison works
+
+But the current model-backed Crafter runs are still weak on actual verified long-horizon
+progress. The next phase is evaluation and tuning, not plumbing.
