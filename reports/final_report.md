@@ -60,3 +60,56 @@ Implement the smallest honest Craftax candidate for the todo-tool idea without c
   - confirm the centralized todo contract remains present in reflection instructions
   - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
   - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+
+# Craftax smoke-test-apr9-d candidate
+
+## Context & objective
+
+Deliver a leaderboard-ready candidate labeled `smoke-test-apr9-d` on the
+`prompt_opt_1usd_gpt54_family` track using the existing Todo Tool strategy and
+without changing shared harness files.
+
+## Experiments cited
+
+1. `configs/craftax_prompt_opt_qwen35_4b_smoke_test_apr9_d.yaml`
+   - Question: does a tighter loop-refresh and first-item action anchoring contract improve
+     the scratchpad continuity while staying prompt-only?
+   - Outcome: candidate packaged successfully for reproducible execution.
+   - Evidence: config added with compact 3-item private todo contract and explicit loop-reset rule.
+
+2. `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d`
+   - Question: is the record bundle complete and schema-compatible?
+   - Outcome: uncertain.
+   - Evidence: full manifest present and verifier call attempted, but environment-level verifier execution is blocked.
+
+3. `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d`
+   - Question: does `validate_record` pass in this run environment?
+   - Outcome: negative (blocked).
+   - Evidence: `Distribution not found at: file:///Users/joshpurtell/Documents/GitHub/synth-ai`.
+
+## Insights
+
+1. A candidate can be made reviewable and leaderboard-ready from prompt/config only, which preserves the shared runtime contract.
+2. The compact scratchpad prompt remains the highest-leverage control; this candidate extends it with an explicit no-progress trigger and loop-break target replacement.
+3. Environment dependency pinning (`synth-ai` local path) currently blocks `uv` verification, so reward-surface claims are not empirically validated in this task.
+
+## Research artifacts produced
+
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_smoke_test_apr9_d.yaml`
+- Record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d/`
+- Optimizer notes / scratchpad: `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d/notes.md`
+- Repo handoff: `findings.txt`
+- Repro entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_smoke_test_apr9_d.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
+
+## Quality & validation
+
+- Structural verification attempted with `uv run python -m nanohorizon.shared.validate_record ...`; blocked by environment dependency resolution.
+- Structural regression test attempt: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`; same environment dependency error blocked execution.
+- No live GEPA rollout or leaderboard score was executed in this task.
+- Candidate remains at `implementation_status: candidate_not_run`.
+
+## Reproduction & handoff
+
+- Candidate score is still unmeasured and requires a run-capable environment.
+- Candidate labeling: `smoke-test-apr9-d`.
+- Known caveat: this task could not complete repository-wide verifier workflow due `uv` dependency resolution on a non-existent local path in environment.

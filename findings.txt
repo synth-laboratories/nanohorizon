@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-09 - Craftax leaderboard candidate smoke-test-apr9-d
+- Added new candidate config: `configs/craftax_prompt_opt_qwen35_4b_smoke_test_apr9_d.yaml` (private 3-item todo protocol + loop-refresh + first-item action anchoring).
+- Added matching record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d/` with required manifest files (`metadata.json`, `run_config.yaml`, `metrics.json`, `system_info.json`, `command.txt`) and `notes.md` for compact iteration tracking.
+- Verifier check `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-d` failed in this environment with: `Distribution not found at: file:///Users/joshpurtell/Documents/GitHub/synth-ai`.
+- Test check `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py` also failed with the same environment dependency error.
+- Candidate is candidate_only (`implementation_status: candidate_not_run`, `metrics.status: not_run`); no GEPA rollout execution or leaderboard score measured in this task.
+- Harness-safe scope check: no edits were made to protected files `docs/task-craftax.md`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/runner.py`, `src/nanohorizon/craftax_core/metadata.py`, or `scripts/run_craftax_model_eval.sh`.
