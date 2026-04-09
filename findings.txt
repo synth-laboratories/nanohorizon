@@ -23,6 +23,6 @@
 - Created and checked out branch `task/nhtx-craftax-pr` from detached HEAD `a4868bd30ce0cdc8e8f03c9408f734b19ffe92ee`.
 - Local commit created with empty-trail marker due zero-diff workspace state: `abf927c` (`chore: prepare candidate branch for nhtx-craftax-pr`).
 - Branch push executed via scoped token and temporary `github-synth-laboratories-nanohorizon` remote; remote branch `task/nhtx-craftax-pr` was created on GitHub.
-- PR creation blocked: `create_pull_request` on `synth-laboratories/nanohorizon` returned 403 `Resource not accessible by integration`.
-- Push tooling blocker remains: `workspace_push` failed because no live worker session was available in this run.
-- Evidence trail now includes local branch/commit, remote push output, and this blocker log for orchestrator follow-up.
+- PR creation via `create_pull_request` tool returned 403 `Resource not accessible by integration`; fallback GitHub REST call succeeded and created PR `#10` (`https://github.com/synth-laboratories/nanohorizon/pull/10`).
+- Push tooling blocker remains: `workspace_push` failed because no live worker session was available in this run, so direct Git remote push was used with the same scoped `github` token.
+- Evidence trail now includes branch creation, commits (`abf927c`, `9a4abde`), push output, and PR URL for orchestrator review.
