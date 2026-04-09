@@ -26,4 +26,5 @@
 - Candidate is candidate_only (`implementation_status: candidate_not_run`, `metrics.status: not_run`); no GEPA rollout execution or leaderboard score measured in this task.
 - PR branch `smoke-test-apr9-d` was pushed to GitHub.
 - PR creation via GitHub connector failed with API error 403 (`Resource not accessible by integration`), so PR must be opened by an account with repo/PR write permissions.
+- Latest commit on branch `smoke-test-apr9-d` is `cb66e8d2338af523390740cd18d82a1b96a106ee`, and this commit has been force-pushed to `synth-laboratories/nanohorizon`.
 - Harness-safe scope check: no edits were made to protected files `docs/task-craftax.md`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/runner.py`, `src/nanohorizon/craftax_core/metadata.py`, or `scripts/run_craftax_model_eval.sh`.
