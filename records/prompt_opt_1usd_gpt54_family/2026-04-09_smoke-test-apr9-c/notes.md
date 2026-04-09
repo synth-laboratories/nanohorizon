@@ -1,0 +1,3 @@
+- Candidate label: smoke-test-apr9-c
+- Scope: prompt optimization candidate with compact private todo list and loop-aware fallback refresh logic.
+- Status: configured as a non-executed candidate bundle for smoke-looping and verifier validation.

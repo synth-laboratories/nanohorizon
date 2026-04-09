@@ -17,3 +17,12 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-09 - craftax-smoke-test-apr9-c candidate
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_smoke_test_apr9_c.yaml` and record bundle `records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-c/*` with candidate label `smoke-test-apr9-c`.
+- Seed prompt and record `notes.md` explicitly enforce a compact private todo list/scratchpad (three items + loop-aware fallback refresh) and keep this as the optimization target; shared harness files (`docs/task-craftax.md`, `src/nanohorizon/craftax_core/{http_shim.py,runner.py,metadata.py}`, `scripts/run_craftax_model_eval.sh`) were not edited.
+- Run evidence captured:
+  - `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-09_smoke-test-apr9-c` → `ok: true`.
+  - `PYTHONPATH=src pytest -q tests/test_codex_todo_refresh_gate_candidate.py` → `3 passed`.
+  - `PYTHONPATH=src pytest -q tests/test_codex_durable_intent_candidate.py` → failed in pre-existing source compatibility (`"compact internal todo list or scratchpad"` assertion), not introduced by this candidate packaging.
+- Scope remains minimal: only one new prompt config + one new record directory.

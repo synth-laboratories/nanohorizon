@@ -1,0 +1,1 @@
+NANOHORIZON_RECORD_NAME=smoke-test-apr9-c NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_smoke_test_apr9_c.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh
