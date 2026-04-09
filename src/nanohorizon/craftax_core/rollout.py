@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 import uuid
@@ -25,6 +26,19 @@ from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
 
 ACTION_NAME_TO_INDEX = action_name_to_index()
+
+
+def _step_runner(runner: Any, action: int) -> Any:
+    """Run one environment step for runners exposing either `step` or `step_many`."""
+    if hasattr(runner, "step"):
+        return runner.step(int(action))
+    if hasattr(runner, "step_many"):
+        outputs = runner.step_many([int(action)])
+        if isinstance(outputs, list) and outputs:
+            return outputs[-1]
+    raise AttributeError(
+        f"Runner does not expose a callable `step` or non-empty `step_many` for action={action!r}"
+    )
 
 
 def _sanitize_actions(values: list[object]) -> list[str]:
@@ -134,6 +148,47 @@ def _extract_actions(payload: dict[str, Any]) -> list[str]:
             if actions:
                 return actions
     return []
+
+
+def _coerce_position(value: object) -> tuple[int, int] | None:
+    if isinstance(value, dict):
+        if (
+            "x" in value
+            and "y" in value
+            and value.get("x") is not None
+            and value.get("y") is not None
+        ):
+            return (int(value["x"]), int(value["y"]))
+        if (
+            "row" in value
+            and "col" in value
+            and value.get("row") is not None
+            and value.get("col") is not None
+        ):
+            return (int(value["row"]), int(value["col"]))
+    if isinstance(value, (list, tuple)) and len(value) >= 2:
+        return (int(value[0]), int(value[1]))
+    if hasattr(value, "x") and hasattr(value, "y"):
+        x = getattr(value, "x", None)
+        y = getattr(value, "y", None)
+        if x is not None and y is not None:
+            return (int(x), int(y))
+    return None
+
+
+def _extract_player_position(state: Any) -> tuple[int, int] | None:
+    if state is None:
+        return None
+    return (
+        _coerce_position(getattr(state, "player_position", None))
+        or _coerce_position(getattr(state, "position", None))
+        or _coerce_position(
+            {
+                "x": getattr(state, "x", None),
+                "y": getattr(state, "y", None),
+            }
+        )
+    )
 
 
 def _tool_schema() -> list[dict[str, Any]]:
@@ -285,7 +340,10 @@ def run_rollout(
     current = start
     unique_achievements: set[str] = set()
     total_reward = 0.0
+    total_exploration_bonus = 0.0
     llm_call_count = 0
+    exploration_bonus_per_turn: list[float] = []
+    visit_counts: dict[tuple[int, int], int] = {}
     frames: list[Any] = []
     if current.render.pixels is not None:
         frames.append(current.render.pixels)
@@ -349,11 +407,34 @@ def run_rollout(
             prompt_messages = repair_messages
         if not actions:
             actions = ["noop"]
-        step_outputs = runner.step_many([ACTION_NAME_TO_INDEX[action] for action in actions if action in ACTION_NAME_TO_INDEX])
+        action_names = actions[:]
+        action_indices = [ACTION_NAME_TO_INDEX[action] for action in actions if action in ACTION_NAME_TO_INDEX]
+        if not action_indices:
+            action_names = ["noop"]
+            action_indices = [ACTION_NAME_TO_INDEX["noop"]]
+        step_outputs = []
+        exploration_bonus_total = 0.0
+        for action in action_indices:
+            if current.done:
+                break
+            output = _step_runner(runner, int(action))
+            step_outputs.append(output)
+            position = _extract_player_position(runner.state)
+            if position is not None:
+                next_count = visit_counts.get(position, 0) + 1
+                visit_counts[position] = next_count
+                exploration_bonus_total += 1.0 / math.sqrt(float(next_count))
+            if output.done:
+                current = output
+                break
         if not step_outputs:
-            step_outputs = runner.step_many([ACTION_NAME_TO_INDEX["noop"]])
-        decision_reward = float(sum(item.reward for item in step_outputs))
+            step_outputs = [_step_runner(runner, ACTION_NAME_TO_INDEX["noop"])]
+            exploration_bonus_total = 0.0
+        step_rewards = [float(item.reward) for item in step_outputs]
+        decision_reward = float(sum(step_rewards) + exploration_bonus_total)
         total_reward += decision_reward
+        total_exploration_bonus += exploration_bonus_total
+        exploration_bonus_per_turn.append(exploration_bonus_total)
         current = step_outputs[-1]
         if current.render.pixels is not None:
             frames.append(current.render.pixels)
@@ -365,7 +446,10 @@ def run_rollout(
                 "prompt_messages": prompt_messages,
                 "assistant_text": str(message.get("content") or ""),
                 "reasoning_text": _extract_reasoning_text(message),
-                "actions": actions,
+                "actions": action_names,
+                "step_rewards": step_rewards,
+                "exploration_bonus": float(exploration_bonus_total),
+                "native_reward": float(sum(step_rewards)),
                 "decision_reward": decision_reward,
                 "return_to_go": float(len(unique_achievements)),
                 "trainable": not invalid_parse,
@@ -397,15 +481,19 @@ def run_rollout(
         "policy_version": policy_version,
         "success_status": "success",
         "reward_info": {
-            "outcome_reward": float(len(unique_achievements)),
+            "outcome_reward": float(len(unique_achievements) + total_exploration_bonus),
             "outcome_objectives": {
                 "unique_achievements": float(len(unique_achievements)),
                 "reward": float(len(unique_achievements)),
-                "native_env_reward_total": float(total_reward),
+                "native_env_reward_total": float(total_reward - total_exploration_bonus),
+                "native_env_reward_plus_bonus": float(total_reward),
+                "exploration_bonus_total": float(total_exploration_bonus),
             },
             "details": {
                 "achievements": sorted(unique_achievements),
-                "native_env_reward_total": float(total_reward),
+                "native_env_reward_total": float(total_reward - total_exploration_bonus),
+                "native_env_reward_plus_exploration_bonus": float(total_reward),
+                "exploration_bonus_per_turn": exploration_bonus_per_turn,
                 "llm_call_count": int(llm_call_count),
             },
         },

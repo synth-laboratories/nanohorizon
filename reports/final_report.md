@@ -1,62 +1,53 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Exploration-Bonus Rollout Candidate
 
 ## Context & objective
-
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+- Task objective: implement a NanoHorizon leaderboard candidate change for Craftax with count-based exploration shaping in rollout decisions, while avoiding SFT/RL approaches.
+- Constraint followed: keep shared harness surfaces unchanged unless required; only touched rollout logic in the core file.
 
 ## Experiments cited
-
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
-
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
-   - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
-
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
-
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+1. `py_compile`
+   - Path: `uv run --no-project --python 3.11 --with pyyaml python -m py_compile src/nanohorizon/craftax_core/rollout.py`
+   - Question: is the modified rollout module syntactically valid after adding exploration accounting logic and compatibility helper?
+   - Outcome: passing (no syntax errors).
+2. `verifier_smoke_fake_runner`
+   - Path: `artifacts/craftax_exploration_bonus_verifier_feedback.json`
+   - Command: `cd /home/daytona/workspace && uv run --no-project --python 3.11 --with pyyaml --with numpy --with httpx --with fastapi python - <<'PY' ...`
+   - Question: does per-step bonus follow `1/sqrt(visit_count[cell])` under repeated-cell visits?
+   - Outcome: supporting. Fake rollout produced outcome reward `2.7071067811865475` with `exploration_bonus=2.7071067811865475` and term sequence matching positions `[(0,1), (1,1), (0,1)]` with `[1.0, 1.0, 0.7071067811865475]`.
+3. `rollout_contract_delta`
+   - Path: `git diff` in working tree
+   - Question: are preserved harness surfaces untouched by this change?
+   - Outcome: supporting. Only `src/nanohorizon/craftax_core/rollout.py` was changed, matching the task constraint list.
 
 ## Insights
-
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. Per-cell exploration shaping is implemented cleanly by tracking cell visit counts and adding `1/sqrt(count)` into native reward at decision time.
+2. Moving from batch stepping to per-action stepping is required for correct bonus accounting; introducing `_step_runner` keeps compatibility with both `step` and legacy `step_many` runner APIs.
+3. The verifier smoke demonstrates numeric behavior end-to-end for rollout scoring and trace fields, including explicit `exploration_bonus` and `native_env_reward_plus_exploration_bonus` artifacts.
+4. No live environment or GPU-based execution was run; impact on benchmark leaderboard score remains unverified in this task.
 
 ## Research artifacts produced
-
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Modified source: `src/nanohorizon/craftax_core/rollout.py`
+- Verifier artifact: `artifacts/craftax_exploration_bonus_verifier_feedback.json`
+- Durable run notes: `findings.txt`
+- Finalized report: `reports/final_report.md`
 
 ## Quality & validation
-
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Executed command:
+  - `uv run --no-project --python 3.11 --with pyyaml python -m py_compile src/nanohorizon/craftax_core/rollout.py` (pass)
+- Executed verifier smoke:
+  - Inline `uv` Python script with fake `make_runner` / `_chat_completion` and action sequence `move_up, move_right, move_left`
+  - Recorded in `artifacts/craftax_exploration_bonus_verifier_feedback.json`
+- Explicit caveats:
+  - Not validated on live Craftax container, no Modals/benchmarks, and no `run_craftax_model_eval.sh` call.
+  - Not a full leaderboard score comparison; this task validates strategy mechanics and contract compatibility only.
 
 ## Reproduction & handoff
-
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Reproduce the checker locally:
+  1) `cd /home/daytona/workspace`
+  2) Use `uv` with the exact dependency set used above for any rollout smoke script
+  3) Run the inline script that imports `nanohorizon.craftax_core.rollout` from `/home/daytona/workspace/src`
+  4) Confirm `artifacts/craftax_exploration_bonus_verifier_feedback.json`.
+- Recommended next step before scaling:
+  - run an official submission-style live Craftax eval loop and compare benchmark metric deltas against baseline candidate.
+- Risk notes:
+  - this change alters scoring composition (`outcome_reward`) and could affect downstream consumers that only expect native rewards; additional downstream calibration may be needed.

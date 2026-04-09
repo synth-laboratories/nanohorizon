@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-09 - Craftax count-based exploration bonus rollout experiment
+- Implemented exploration bonus in `src/nanohorizon/craftax_core/rollout.py` by adding per-cell visit counts and adding `1/sqrt(count)` to per-step reward; total outcome reward now includes exploration bonus plus achievements.
+- Added compatibility shim for runner stepping: `run_rollout` now supports both `step` and `step_many` via `_step_runner`, preserving existing test fakes in `tests/test_craftax_core_contract.py` and `tests/test_craftax_core_runtime_guarantees.py`.
+- Added state-position extraction helpers (`_coerce_position`, `_extract_player_position`) and per-turn logging fields in rollout trace and reward info (`exploration_bonus`, `native_reward`, `exploration_bonus_per_turn`, `exploration_bonus_total`).
+- Verifier feedback evidence: `artifacts/craftax_exploration_bonus_verifier_feedback.json` (single-turn smoke run with fake runner). Result shows outcome reward `2.7071067811865475` and turn exploration bonus matching positions `[(0,1), (1,1), (0,1)]` with terms `[1.0, 1.0, 1/sqrt(2)]`.
+- Command used for verification smoke: `cd /home/daytona/workspace && uv run --no-project --python 3.11 --with pyyaml --with numpy --with httpx --with fastapi python - <<'PY' ...` (inline script injecting fake runner/chat outputs).
+- Caveat: no full live Craftax environment/Modal/HTTP integration rollout run was executed in this task; verification is a controlled monkeypatched smoke for contract and bonus accounting.
