@@ -113,3 +113,5 @@ without changing shared harness files.
 - Candidate score is still unmeasured and requires a run-capable environment.
 - Candidate labeling: `smoke-test-apr9-d`.
 - Known caveat: this task could not complete repository-wide verifier workflow due `uv` dependency resolution on a non-existent local path in environment.
+- Branch status: `smoke-test-apr9-d` pushed to `synth-laboratories/nanohorizon` on GitHub.
+- PR status: repository connector returned 403 (`Resource not accessible by integration`) when attempting to create PR; PR needs to be opened with credentials that allow `pulls` write.
