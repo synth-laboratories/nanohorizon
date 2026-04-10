@@ -1,3 +1,11 @@
+2026-04-10 - Craftax Test Candidate publication
+- Published the candidate branch to GitHub as `test-candidate-final` and opened PR `#19` (`https://github.com/synth-laboratories/nanohorizon/pull/19`).
+- Current reviewable head commit is `a24d24d` (`Finalize Craftax handoff notes`) on top of the working-memory buffer candidate chain.
+- Fresh validation in this workspace passed:
+  - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_durable_intent_candidate.py tests/test_codex_todo_refresh_gate_candidate.py -q`
+  - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with uvicorn --with pillow --with numpy --with craftax python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py -q`
+- No live Craftax leaderboard score run was executed, so the performance gain remains unmeasured.
+
 2026-04-10 - Craftax Test Candidate working-memory buffer
 - Scope kept to the shared Craftax harness surfaces listed in the task contract; the rollout HTTP surface, tool schema, and action catalog stayed stable.
 - Implemented a compact working-memory buffer in `src/nanohorizon/craftax_core/metadata.py` and threaded it through `src/nanohorizon/craftax_core/rollout.py` so each follow-up prompt sees the previous turns' plan, actions, compact state summary, reward, and achievements.
