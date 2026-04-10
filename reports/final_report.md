@@ -83,7 +83,7 @@ No live Craftax score run was executed in this task, so reward impact remains un
 - Candidate branch: `test-candidate-final`
 - GitHub PR: https://github.com/synth-laboratories/nanohorizon/pull/19
 - Implementation commit: `f9484e8` (`Add compact Craftax working memory`)
-- Current reviewable head commit: `a24d24d` (`Finalize Craftax handoff notes`)
+- Current reviewable head: the published tip of `test-candidate-final`
 - Main files to inspect:
   - `src/nanohorizon/craftax_core/metadata.py`
   - `src/nanohorizon/craftax_core/rollout.py`

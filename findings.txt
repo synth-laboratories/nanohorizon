@@ -1,6 +1,6 @@
 2026-04-10 - Craftax Test Candidate publication
 - Published the candidate branch to GitHub as `test-candidate-final` and opened PR `#19` (`https://github.com/synth-laboratories/nanohorizon/pull/19`).
-- Current reviewable head commit is `a24d24d` (`Finalize Craftax handoff notes`) on top of the working-memory buffer candidate chain.
+- The published branch tip is the current reviewable head for the candidate chain on `test-candidate-final`.
 - Fresh validation in this workspace passed:
   - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_durable_intent_candidate.py tests/test_codex_todo_refresh_gate_candidate.py -q`
   - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with uvicorn --with pillow --with numpy --with craftax python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py -q`
