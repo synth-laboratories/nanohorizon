@@ -16,6 +16,16 @@
 - Push blocker: `workspace_push` failed with `workspace_push requires a live worker session; no live worker handle was found`, so this run can leave a local reviewable commit but cannot complete the required backend-tracked push flow.
 - Caveat: no live Craftax or Modal rollout run was executed in this task, so score impact remains unmeasured.
 
+2026-04-10 - Craftax working-memory buffer candidate
+- Added a bounded working-memory buffer to the shared Craftax rollout path via `src/nanohorizon/craftax_core/metadata.py` and `src/nanohorizon/craftax_core/rollout.py`; follow-up prompts now receive recent plan/action/state summaries and `working_memory_capacity` is forwarded explicitly in rollout requests.
+- Updated `src/nanohorizon/baselines/prompt_opt.py` and `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml` so the prompt-opt candidate describes the private three-item buffer as a working-memory contract while preserving the existing tool schema and rollout shape.
+- Updated `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/` notes and run config to match the buffer-aware candidate.
+- Validation: `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_durable_intent_candidate.py tests/test_codex_todo_refresh_gate_candidate.py` passed.
+- Validation: `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with uvicorn --with pillow --with numpy --with craftax python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py` passed after fixing the working-memory fixture.
+- Validation: `PYTHONPATH=src uv run --no-project python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` and `.../2026-04-07_codex_todo_refresh_gate` both returned `ok: true`.
+- Caveat: project-discovering `uv run` still hits a stale optional `synth-ai` file dependency; the verified commands used `--no-project` to avoid that unrelated metadata issue.
+- Caveat: no live Craftax reward run was executed, so leaderboard impact remains unmeasured.
+
 2026-04-07 - Craftax todo refresh gate candidate
 - Kept the change inside `src/nanohorizon/baselines/prompt_opt.py`, one new prompt-opt config, one new record bundle, and a focused regression test; protected shared Craftax harness files remained unchanged.
 - Centralized the todo-tool contract in `src/nanohorizon/baselines/prompt_opt.py` via `TODO_SCRATCHPAD_REQUIREMENTS` so GEPA reflection and rollout feedback preserve the same private three-item scratchpad semantics instead of drifting across duplicated wording.
