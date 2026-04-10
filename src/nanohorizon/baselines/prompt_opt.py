@@ -234,6 +234,7 @@ def build_rollout_request(
     target_action_batch_size: int = 8,
     min_action_batch_size: int = 5,
     timeout_s: int = 45,
+    working_memory_capacity: int = 4,
 ) -> dict[str, Any]:
     return {
         "trace_correlation_id": trace_correlation_id,
@@ -257,6 +258,7 @@ def build_rollout_request(
                 "thinking_budget_tokens": int(thinking_budget_tokens),
                 "use_tools": True,
                 "policy_version": str(policy_version),
+                "working_memory_capacity": int(working_memory_capacity),
                 "route": "teacher" if "teacher" in str(policy_version).lower() else "student",
                 "target_action_batch_size": int(target_action_batch_size),
                 "min_action_batch_size": int(min_action_batch_size),
@@ -284,6 +286,7 @@ async def collect_rollouts_concurrently_with_summary(
     policy_version: str,
     target_action_batch_size: int,
     min_action_batch_size: int,
+    working_memory_capacity: int = 4,
     request_timeout_seconds: float,
     max_concurrent_rollouts: int,
     trace_prefix: str,
@@ -329,6 +332,7 @@ async def collect_rollouts_concurrently_with_summary(
                 target_action_batch_size=target_action_batch_size,
                 min_action_batch_size=min_action_batch_size,
                 timeout_s=max(1, math.ceil(request_timeout_seconds)),
+                working_memory_capacity=working_memory_capacity,
             )
             try:
                 payload = await asyncio.to_thread(run_rollout_request, request_body)
@@ -452,6 +456,7 @@ async def collect_rollouts_concurrently_with_summary(
             target_action_batch_size=target_action_batch_size,
             min_action_batch_size=min_action_batch_size,
             timeout_s=max(1, math.ceil(request_timeout_seconds)),
+            working_memory_capacity=working_memory_capacity,
         )
         try:
             response = await client.post(
@@ -565,9 +570,9 @@ async def collect_rollouts_concurrently_with_summary(
 
 TRACK_ID = "prompt_opt_1usd_gpt54_family"
 TODO_SCRATCHPAD_REQUIREMENTS = [
-    "Keep a tiny private todo list with exactly three items before the tool call.",
-    "The three items must track (1) the immediate danger or blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
-    "Refresh completed todo items every turn.",
+    "Keep a tiny private working-memory buffer, a compact internal todo list or scratchpad, with exactly three items before the tool call.",
+    "The three items must track danger, target resource, and loop-avoidance.",
+    "Refresh completed todo items every turn and keep the buffer current.",
     "If the policy repeats the same movement pattern without progress or new information, replace the stale target item instead of continuing the loop.",
     "Do not reveal the todo list or scratchpad in the final answer.",
 ]
@@ -592,7 +597,7 @@ Write a revised Craftax system prompt.
 Hard requirements you must preserve:
 - The policy must think if needed, then use the `craftax_interact` tool exactly once.
 - The final answer must not be plain text actions, JSON, or prose outside the tool call.
-- The prompt must preserve this todo-tool contract: {todo_scratchpad_directive()}.
+- The prompt must preserve this working-memory contract: {todo_scratchpad_directive()}.
 - The prompt should ask for a short valid full-Craftax action batch unless the episode is already done.
 - The prompt should prioritize early-game resource gathering and avoid repeated movement loops.
 
@@ -717,7 +722,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
         if action_summary:
             parts.append(f"Observed action sequence: {action_summary}.")
         parts.append(
-            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this todo-tool contract: {todo_scratchpad_directive()} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
+            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this working-memory contract: {todo_scratchpad_directive()} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
         )
         return " ".join(parts)
     parts = [f"This rollout achieved reward {score:.2f} and failed to make progress."]
@@ -732,7 +737,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
     if action_summary:
         parts.append(f"Observed action sequence: {action_summary}.")
     parts.append(
-        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. Add this todo-tool contract before the final action choice: {todo_scratchpad_directive()} The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
+        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. Add this working-memory contract before the final action choice: {todo_scratchpad_directive()} The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
     )
     return " ".join(parts)
 
@@ -742,7 +747,7 @@ def build_reflection_system_directive() -> str:
         "You rewrite Craftax system prompts for a tool-calling policy. "
         f"Preserve these hard requirements: the policy must use the `{PRIMARY_TOOL_NAME}` "
         "tool exactly once, must not answer with JSON or a plain-text action list, and must "
-        f"preserve this todo-tool contract: {todo_scratchpad_directive()} Return only the "
+        f"preserve this working-memory contract: {todo_scratchpad_directive()} Return only the "
         "revised prompt text."
     )
 
@@ -877,6 +882,7 @@ class CraftaxPromptOptAdapter(GEPAAdapter[PromptOptExample, dict[str, Any], dict
                 policy_version="prompt-opt",
                 target_action_batch_size=int(self.rollout_cfg["target_action_batch_size"]),
                 min_action_batch_size=int(self.rollout_cfg["min_action_batch_size"]),
+                working_memory_capacity=int(self.rollout_cfg.get("working_memory_capacity", 4)),
                 request_timeout_seconds=float(self.rollout_cfg["request_timeout_seconds"]),
                 max_concurrent_rollouts=int(self.rollout_cfg["max_concurrent_rollouts"]),
                 trace_prefix="prompt_opt",

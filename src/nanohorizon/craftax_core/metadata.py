@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections import deque
+from dataclasses import asdict, dataclass
+from typing import Any, Mapping, Sequence
+
 PRIMARY_TOOL_NAME = "craftax_interact"
 
 FULL_ACTIONS = {
@@ -120,3 +124,103 @@ FULL_ACHIEVEMENTS = {
 
 DEFAULT_ACTION_NAMES = list(FULL_ACTIONS.keys())
 DEFAULT_ACHIEVEMENT_NAMES = list(FULL_ACHIEVEMENTS.values())
+
+
+def compact_state_summary(text: str, *, max_lines: int = 3, max_chars: int = 320) -> str:
+    """Extract a compact resource/state summary from Craftax renderer text."""
+    stripped_lines = [line.strip() for line in str(text).splitlines() if line.strip()]
+    interesting_prefixes = (
+        "inventory:",
+        "achievements:",
+        "player_position:",
+        "health:",
+        "resources:",
+        "stats:",
+        "position:",
+    )
+    selected = [
+        line
+        for line in stripped_lines
+        if line.lower().startswith(interesting_prefixes)
+    ]
+    if not selected:
+        selected = stripped_lines
+    summary = " | ".join(selected[:max_lines])
+    return summary[:max_chars].strip()
+
+
+@dataclass(frozen=True)
+class CraftaxWorkingMemoryEntry:
+    turn_index: int
+    plan: str
+    actions: tuple[str, ...]
+    observation: str
+    state_summary: str
+    reward: float = 0.0
+    achievements: tuple[str, ...] = ()
+    note: str = ""
+
+    def render(self) -> str:
+        pieces = [
+            f"turn={self.turn_index}",
+            f"plan={self.plan}",
+        ]
+        if self.actions:
+            pieces.append(f"actions={', '.join(self.actions)}")
+        if self.state_summary:
+            pieces.append(f"state={self.state_summary}")
+        if self.achievements:
+            pieces.append(f"achievements={', '.join(self.achievements)}")
+        if self.reward:
+            pieces.append(f"reward={self.reward:.2f}")
+        if self.note:
+            pieces.append(f"note={self.note}")
+        return " | ".join(pieces)
+
+
+class WorkingMemoryBuffer:
+    def __init__(self, capacity: int = 4) -> None:
+        if capacity < 1:
+            raise ValueError("capacity must be at least 1")
+        self.capacity = int(capacity)
+        self._entries: deque[CraftaxWorkingMemoryEntry] = deque()
+
+    def push(
+        self,
+        *,
+        turn_index: int,
+        plan: str,
+        actions: Sequence[str],
+        observation: str,
+        state_summary: str,
+        reward: float = 0.0,
+        achievements: Sequence[str] = (),
+        note: str = "",
+    ) -> CraftaxWorkingMemoryEntry:
+        entry = CraftaxWorkingMemoryEntry(
+            turn_index=int(turn_index),
+            plan=str(plan).strip() or "unspecified",
+            actions=tuple(str(action).strip() for action in actions if str(action).strip()),
+            observation=str(observation).strip(),
+            state_summary=compact_state_summary(state_summary),
+            reward=float(reward),
+            achievements=tuple(str(item).strip() for item in achievements if str(item).strip()),
+            note=str(note).strip(),
+        )
+        self._entries.append(entry)
+        while len(self._entries) > self.capacity:
+            self._entries.popleft()
+        return entry
+
+    def latest(self) -> CraftaxWorkingMemoryEntry | None:
+        return self._entries[-1] if self._entries else None
+
+    def snapshot(self) -> list[dict[str, Any]]:
+        return [asdict(entry) for entry in self._entries]
+
+    def render(self) -> str:
+        if not self._entries:
+            return ""
+        lines = ["Working memory (recent turns):"]
+        lines.extend(f"- {entry.render()}" for entry in self._entries)
+        return "\n".join(lines)

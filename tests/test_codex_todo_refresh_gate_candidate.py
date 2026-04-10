@@ -20,13 +20,16 @@ RECORD_DIR = (
 def test_candidate_config_uses_refresh_gate_prompt() -> None:
     payload = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
     seed_prompt = str(payload["prompt"]["seed_prompt"])
+    rollout_cfg = payload["rollout"]
 
     assert "tiny private" in seed_prompt
     assert "todo list with exactly three items" in seed_prompt
+    assert "working-memory buffer" in seed_prompt
     assert "fallback action that breaks a loop" in seed_prompt
     assert "replace the stale target item" in seed_prompt
     assert "follows the first todo item" in seed_prompt
     assert "Do not reveal the todo list" in seed_prompt
+    assert int(rollout_cfg["working_memory_capacity"]) == 4
 
 
 def test_prompt_opt_source_centralizes_todo_contract() -> None:
