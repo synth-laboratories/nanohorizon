@@ -1,62 +1,71 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Test Candidate
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+Implement the smallest honest NanoHorizon Craftax improvement for the `Test Candidate` submission. The constraint was to keep the shared Craftax harness surfaces stable unless a change was strictly necessary, avoid SFT/RL, and use a compact custom harness optimization strategy that improves long-horizon decision making.
+
+The chosen strategy is a narrow working-memory buffer: each rollout turn now carries forward a compact summary of recent plan, actions, state, reward, and achievements so the next prompt can condition on prior progress without changing the tool contract or HTTP rollout surface.
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
+1. `src/nanohorizon/craftax_core/metadata.py`
+   - Question: can the harness keep a compact, bounded memory of prior turns without changing the shared rollout contract?
    - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+   - Evidence: `compact_state_summary`, `CraftaxWorkingMemoryEntry`, and `WorkingMemoryBuffer` were added to store and render recent turn summaries in a bounded deque.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. `src/nanohorizon/craftax_core/rollout.py`
+   - Question: can follow-up Craftax prompts receive the previous turns' working memory without altering the tool schema?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: `_observation_prompt` now injects rendered working memory text, `run_rollout` threads a bounded `WorkingMemoryBuffer`, and turn/metadata outputs include the memory snapshot.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. `tests/test_craftax_core_contract.py`
+   - Question: does the second prompt actually include the rendered memory from the earlier turn?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+   - Evidence: the new regression test stubs a two-turn rollout and asserts the follow-up prompt contains `Working memory from previous turns:` plus the first turn's plan, compact state summary, and achievements.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. `docs/task-craftax.md`
+   - Question: is the candidate strategy documented in the task-facing note without expanding the contract?
+   - Outcome: supporting.
+   - Evidence: a short candidate note records that `Test Candidate` uses a compact working-memory buffer while keeping the tool schema and rollout surface stable.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. A compact working-memory buffer is the smallest harness-side change that still gives later turns explicit access to prior subgoals and resource state.
+2. The change stays honest to the original Craftax contract because it only augments prompt context and result metadata; it does not alter the tool schema, action catalog, or rollout endpoints.
+3. The regression test is the most important evidence here because it proves the memory actually reaches the follow-up prompt instead of only existing in metadata.
+4. Live reward improvement remains unmeasured in this run, so the candidate should be read as a structurally improved baseline rather than a scored win.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Code:
+  - `src/nanohorizon/craftax_core/metadata.py`
+  - `src/nanohorizon/craftax_core/rollout.py`
+  - `src/nanohorizon/craftax_core/__init__.py`
+- Tests:
+  - `tests/test_craftax_core_contract.py`
+- Task note:
+  - `docs/task-craftax.md`
+- Handoff log:
+  - `findings.txt`
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Structural validation added: the new contract test checks that the second rollout prompt includes the rendered working-memory block from turn 0.
+- Executed and passed: `uv run --no-project --with pytest --with fastapi --with httpx --with pillow --with pyyaml --with numpy python -m pytest tests/test_craftax_core_contract.py -q`
+- Known failure mode: if the renderer emits sparse state text, the compact summary may be short; the buffer still preserves the raw observation and the turn-level metadata for inspection.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Candidate branch: `test-candidate-final`
+- Main implementation entrypoints:
+  - `src/nanohorizon/craftax_core/rollout.py`
+  - `src/nanohorizon/craftax_core/metadata.py`
+- Intended verification command:
+
+- Executed verification command:
+
+```bash
+uv run --no-project --with pytest --with fastapi --with httpx --with pillow --with pyyaml --with numpy python -m pytest tests/test_craftax_core_contract.py -q
+```
+
+- Open risk: the harness-side memory may help planning, but it has not been compared against a live baseline score in this run.

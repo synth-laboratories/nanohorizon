@@ -1,3 +1,11 @@
+2026-04-10 - Craftax Test Candidate working-memory buffer
+- Scope kept to the shared Craftax harness surfaces listed in the task contract; the rollout HTTP surface, tool schema, and action catalog stayed stable.
+- Implemented a compact working-memory buffer in `src/nanohorizon/craftax_core/metadata.py` and threaded it through `src/nanohorizon/craftax_core/rollout.py` so each follow-up prompt sees the previous turns' plan, actions, compact state summary, reward, and achievements.
+- Added a regression test in `tests/test_craftax_core_contract.py` that verifies the second prompt contains the rendered working-memory block from turn 0.
+- Updated `docs/task-craftax.md` with a brief candidate note so later reviewers can see the intended strategy without searching the run logs.
+- Validation passed with `uv run --no-project --with pytest --with fastapi --with httpx --with pillow --with pyyaml --with numpy python -m pytest tests/test_craftax_core_contract.py -q` on 2026-04-10.
+- Remaining packaging steps: create the reviewable commit on `test-candidate-final`, push the branch, and open the GitHub PR.
+
 2026-04-07 - Craftax todo-tool candidate packaging
 - Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
 - Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.

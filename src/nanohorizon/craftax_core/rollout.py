@@ -20,6 +20,8 @@ from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
+    WorkingMemoryBuffer,
+    compact_state_summary,
 )
 from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
@@ -247,15 +249,29 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    working_memory_text: str = "",
+) -> str:
+    prompt_parts = [
+        "Current Craftax long-horizon observation:",
+        observation_text,
+    ]
+    memory_text = str(working_memory_text or "").strip()
+    if memory_text:
+        prompt_parts.extend(["", "Working memory from previous turns:", memory_text])
+    prompt_parts.extend(
+        [
+            "",
+            "Plan a short useful macro-action.",
+            f"Use the {PRIMARY_TOOL_NAME} tool exactly once.",
+            f"Return exactly {target_action_batch_size} actions unless the environment is already done.",
+            "Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        ]
     )
+    return "\n".join(prompt_parts)
 
 
 def run_rollout(
@@ -279,6 +295,7 @@ def run_rollout(
     media: Mapping[str, Any] | None = None,
     env_kind: str = "full",
     request_logprobs: bool = True,
+    working_memory_capacity: int = 4,
 ) -> dict[str, Any]:
     runner = make_runner(kind="full" if env_kind == "full" else "classic", seed=int(seed), render_mode=render_mode)
     start = runner.reset()
@@ -286,6 +303,7 @@ def run_rollout(
     unique_achievements: set[str] = set()
     total_reward = 0.0
     llm_call_count = 0
+    working_memory = WorkingMemoryBuffer(capacity=max(1, int(working_memory_capacity)))
     frames: list[Any] = []
     if current.render.pixels is not None:
         frames.append(current.render.pixels)
@@ -297,6 +315,7 @@ def run_rollout(
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            working_memory_text=working_memory.render(),
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -359,6 +378,15 @@ def run_rollout(
             frames.append(current.render.pixels)
         achievements = achievement_names_from_state(runner.state)
         unique_achievements.update(achievements)
+        working_memory.push(
+            turn_index=turn_index,
+            plan=_extract_reasoning_text(message) or str(message.get("content") or "").strip() or "craftax macro-plan",
+            actions=actions,
+            observation=observation_text,
+            state_summary=compact_state_summary(str(current.render.text or "")),
+            reward=decision_reward,
+            achievements=sorted(unique_achievements),
+        )
         turns.append(
             {
                 "turn_index": turn_index,
@@ -371,6 +399,7 @@ def run_rollout(
                 "trainable": not invalid_parse,
                 "invalid_parse": invalid_parse,
                 "behavior_sequence_logprob": _extract_sequence_logprob(payload) or 0.0,
+                "working_memory": working_memory.snapshot(),
             }
         )
         if current.done:
@@ -417,6 +446,8 @@ def run_rollout(
             "seed": int(seed),
             "render_mode": render_mode.value,
             "env_kind": env_kind,
+            "working_memory_capacity": int(working_memory_capacity),
+            "working_memory": working_memory.snapshot(),
         },
         "artifact": [{"turns": turns}],
         "media": media_payload,
@@ -449,6 +480,7 @@ def run_rollout_request(request: Mapping[str, Any]) -> dict[str, Any]:
         media=media if isinstance(media, Mapping) else None,
         env_kind=str(env_config.get("env_kind") or "full"),
         request_logprobs=bool(policy_config.get("request_logprobs", True)),
+        working_memory_capacity=int(policy_config.get("working_memory_capacity") or 4),
     )
 
 

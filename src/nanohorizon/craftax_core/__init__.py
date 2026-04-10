@@ -4,6 +4,9 @@ from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
+    CraftaxWorkingMemoryEntry,
+    WorkingMemoryBuffer,
+    compact_state_summary,
 )
 from .modalities import CallableRenderer, RenderBundle, RenderMode
 from .rollout import collect_rollouts, run_rollout, run_rollout_request
@@ -14,6 +17,7 @@ __all__ = [
     "PRIMARY_TOOL_NAME",
     "DEFAULT_ACTION_NAMES",
     "DEFAULT_ACHIEVEMENT_NAMES",
+    "CraftaxWorkingMemoryEntry",
     "Checkpoint",
     "CheckpointCodec",
     "CallableRenderer",
@@ -24,7 +28,9 @@ __all__ = [
     "collect_rollouts",
     "create_app",
     "ensure_texture_cache",
+    "WorkingMemoryBuffer",
     "run_rollout",
     "run_rollout_request",
+    "compact_state_summary",
     "state_digest",
 ]

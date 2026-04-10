@@ -98,6 +98,11 @@ def test_http_shim_health_and_task_info(monkeypatch):
 
     monkeypatch.setattr(
         shim,
+        "ensure_texture_cache",
+        lambda: {"status": "ok", "full": {"shared_texture_cache_file": "full"}, "classic": {"shared_texture_cache_file": "classic"}},
+    )
+    monkeypatch.setattr(
+        shim,
         "run_rollout_request",
         lambda request: {
             "rollout_id": "rollout_test",
@@ -206,3 +211,106 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_rollout_injects_compact_working_memory_into_followup_turn(monkeypatch):
+    import nanohorizon.craftax_core.rollout as rollout
+
+    class FakeRender:
+        text = "inventory: wood=3\nplayer_position: x=4 y=7\nnoise: ignore"
+        pixels = None
+
+    class FakeStep:
+        def __init__(self, *, done: bool, reward: float = 0.0):
+            self.done = done
+            self.reward = reward
+            self.render = FakeRender()
+
+    class FakeRunner:
+        def __init__(self):
+            self.state = object()
+            self.action_history: list[int] = []
+            self.calls = 0
+
+        def reset(self):
+            return FakeStep(done=False)
+
+        def step_many(self, actions):
+            self.action_history.extend(actions)
+            self.calls += 1
+            if self.calls == 1:
+                return [FakeStep(done=False)]
+            return [FakeStep(done=False), FakeStep(done=True)]
+
+    call_messages: list[list[dict[str, object]]] = []
+    payloads = iter(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "plan the opening",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_right"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "plan the follow-up",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_up"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+        ]
+    )
+
+    def fake_chat_completion(**kwargs):  # type: ignore[no-untyped-def]
+        call_messages.append(list(kwargs["messages"]))
+        return next(payloads)
+
+    monkeypatch.setattr(rollout, "make_runner", lambda **kwargs: FakeRunner())
+    monkeypatch.setattr(rollout, "achievement_names_from_state", lambda state: ["collect_wood"])
+    monkeypatch.setattr(rollout, "_chat_completion", fake_chat_completion)
+
+    result = run_rollout(
+        inference_url="http://example.test/v1/chat/completions",
+        model="demo",
+        api_key="",
+        seed=0,
+        max_steps=2,
+        trace_correlation_id="trace",
+        system_prompt="system",
+        target_action_batch_size=1,
+        min_action_batch_size=1,
+        request_logprobs=False,
+        working_memory_capacity=2,
+    )
+
+    assert result["success_status"] == "success"
+    assert result["metadata"]["working_memory_capacity"] == 2
+    assert len(result["metadata"]["working_memory"]) == 2
+    assert len(call_messages) == 2
+    followup_prompt = call_messages[1][1]["content"]
+    assert "Working memory from previous turns:" in followup_prompt
+    assert "turn=0" in followup_prompt
+    assert "plan=plan the opening" in followup_prompt
+    assert "state=inventory: wood=3 | player_position: x=4 y=7" in followup_prompt
+    assert "achievements=collect_wood" in followup_prompt
