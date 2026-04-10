@@ -1,0 +1,7 @@
+2026-04-10
+- Initial repository state was a minimal starter commit with only `README.md`.
+- No preexisting NanoHorizon Craftax harness files were present in the git tree or in the visible workspace mirrors.
+- Implemented the candidate as a new src-layout package with a compact working-memory buffer rather than broad harness refactoring.
+- Smoke checks passed with `uv run --python 3.11 python -m unittest discover -s tests -t .` and `bash scripts/run_craftax_model_eval.sh`.
+- The package initializer now uses lazy runner exports so direct module execution stays clean while preserving package-level convenience.
+
