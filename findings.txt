@@ -25,6 +25,7 @@
 - Validation: `PYTHONPATH=src uv run --no-project python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` and `.../2026-04-07_codex_todo_refresh_gate` both returned `ok: true`.
 - Caveat: project-discovering `uv run` still hits a stale optional `synth-ai` file dependency; the verified commands used `--no-project` to avoid that unrelated metadata issue.
 - Caveat: no live Craftax reward run was executed, so leaderboard impact remains unmeasured.
+- Commit chain: implementation commit `f9484e8` plus handoff commit `8e4ffb8d6d8485a7eca353ef028a11839f3f4303` are now on `worker/run-59422a8a-13fa-4cfa-922c-552509e22be0`.
 
 2026-04-07 - Craftax todo refresh gate candidate
 - Kept the change inside `src/nanohorizon/baselines/prompt_opt.py`, one new prompt-opt config, one new record bundle, and a focused regression test; protected shared Craftax harness files remained unchanged.

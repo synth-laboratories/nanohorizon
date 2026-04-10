@@ -82,7 +82,7 @@ No live Craftax score run was executed in this task, so reward impact remains un
 
 - Candidate branch: `test-candidate-final`
 - Implementation commit: `f9484e8` (`Add compact Craftax working memory`)
-- The final handoff report and findings in this workspace are the only remaining dirty files before the last local commit.
+- Handoff commit: `8e4ffb8d6d8485a7eca353ef028a11839f3f4303` (`Add final Craftax working-memory handoff`)
 - Main files to inspect:
   - `src/nanohorizon/craftax_core/metadata.py`
   - `src/nanohorizon/craftax_core/rollout.py`
