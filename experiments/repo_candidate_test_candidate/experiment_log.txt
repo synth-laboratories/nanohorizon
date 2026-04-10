@@ -1,0 +1,12 @@
+2026-04-10T20:20:00Z initial scan
+- Observed that the checkout only contained `README.md` and no Craftax harness sources.
+- Confirmed the bare remote mirrored the same minimal tree.
+- Chose to build the smallest honest harness scaffold around a compact working-memory buffer.
+2026-04-10T20:28:00Z smoke validation
+- `uv run --python 3.11 python -m unittest discover -s tests -t .` passed with 2 tests.
+- `bash scripts/run_craftax_model_eval.sh` emitted the demo JSON showing the working-memory buffer carrying forward subgoals and resource state across three steps.
+- Fixed a package-init import loop that initially produced a `runpy` warning when running the module directly.
+2026-04-10T20:31:00Z final smoke
+- Re-ran `uv run --python 3.11 python -m nanohorizon.craftax_core.runner --demo` after switching to lazy exports.
+- The direct module invocation completed without the earlier warning and still emitted the expected demo JSON.
+
