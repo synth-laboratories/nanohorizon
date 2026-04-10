@@ -68,3 +68,8 @@ Separate classic track:
 - exact final score definition
 - whether any teacher besides `Qwen/Qwen3.5-9B` should be allowed for the offline reference path
 - whether precomputed reward labels are part of the allowed offline bundle
+
+## Current Candidate Note
+
+- `Test Candidate` uses the smallest harness-side change that keeps the shared rollout contract stable: a compact working-memory buffer that feeds prior turn plan/state summaries back into the next Craftax prompt.
+- The buffer is intentionally narrow and does not change the tool contract, action schema, or rollout HTTP surface.
