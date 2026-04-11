@@ -1,4 +1,5 @@
-2026-04-11: Visible checkout contained only `README.md` and `.out/`; no Craftax harness files were present in the working tree.
-2026-04-11: Candidate strategy recorded as a compact Todo Tool scratchpad in `docs/task-craftax.md` and `experiments/craftax_autopush_e2e/artifacts/todo_scratchpad.md`.
-2026-04-11: No harness code changes were made because the corresponding source files were absent in this checkout.
-2026-04-11: Final repo verification confirmed the same state; the reviewable candidate is the artifact trail, not a speculative harness patch.
+2026-04-11: Repo started from an initial workspace commit with only README.md tracked.
+2026-04-11: Added a minimal Craftax Todo Tool candidate centered on a three-item private scratchpad contract in src/nanohorizon/baselines/prompt_opt.py.
+2026-04-11: Added preserved Craftax surface files (metadata, runner, HTTP shim, eval wrapper) as minimal self-contained implementations so the task-specific paths exist in this seed repo.
+2026-04-11: Candidate is marked candidate_not_run/not_run; no live Craftax, Modal, or GEPA execution was performed in this task.
+

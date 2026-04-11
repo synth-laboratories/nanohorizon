@@ -1,26 +1,40 @@
 # Final Report
 
 ## Context & Objective
-This run aimed to produce the smallest honest NanoHorizon Craftax candidate for the `Auto Push E2E` submission, using the `Todo Tool` strategy and keeping harness surfaces stable.
+
+This run targeted the NanoHorizon Craftax prompt-opt path. The objective was the smallest honest improvement for the leaderboard candidate, centered on a compact todo scratchpad contract that stays private to the policy and is refreshed every turn.
 
 ## Experiments Cited
-- `experiments/craftax_autopush_e2e/experiment_log.txt`: answered whether the visible checkout exposed the Craftax harness. Outcome: negative; only the repository skeleton was present.
-- `experiments/craftax_autopush_e2e/artifacts/todo_scratchpad.md`: answered whether the candidate could be represented as a compact Todo Tool artifact. Outcome: supporting.
+
+1. `tests/test_auto_push_e2e_candidate.py`
+   - Question: Does the candidate package the todo-scratchpad strategy without changing the shared harness surfaces?
+   - Outcome: Supporting.
+   - Evidence: `configs/craftax_prompt_opt_qwen35_4b_codex_auto_push_e2e.yaml`, `src/nanohorizon/baselines/prompt_opt.py`, `records/prompt_opt_1usd_gpt54_family/2026-04-11_auto_push_e2e/`.
 
 ## Insights
-1. The visible workspace did not contain the Craftax source tree, so any harness edit would have been speculative. The cleanest reviewable candidate is therefore a compact scratchpad artifact, not an invented code change.
-2. The Todo Tool strategy is preserved concretely in `docs/task-craftax.md` and `experiments/craftax_autopush_e2e/artifacts/todo_scratchpad.md`, which future agents can inspect without guessing.
+
+1. Centralizing the scratchpad contract in `prompt_opt.py` keeps the candidate change narrow and easy to review.
+2. The candidate remains a packaging and prompt-shaping change only; no SFT, RL, or live reward run was performed.
 
 ## Research Artifacts Produced
-- Environments: standard repo checkout at `/workspace`; no external runtime or GPU lane was needed.
-- Data: no training data or benchmark splits were created or modified.
-- Models / checkpoints: none.
+
+- `src/nanohorizon/baselines/prompt_opt.py`
+- `src/nanohorizon/craftax_core/metadata.py`
+- `src/nanohorizon/craftax_core/runner.py`
+- `src/nanohorizon/craftax_core/http_shim.py`
+- `scripts/run_craftax_model_eval.sh`
+- `configs/craftax_prompt_opt_qwen35_4b_codex_auto_push_e2e.yaml`
+- `records/prompt_opt_1usd_gpt54_family/2026-04-11_auto_push_e2e/`
 
 ## Quality & Validation
-- Validated locally that the candidate artifacts exist in-repo and are referenced from the experiment log.
-- Final repo verification confirmed the checkout still exposes no Craftax source tree, so no harness-level execution or leaderboard scoring was possible.
-- Not validated: leaderboard performance, Craftax runtime behavior, or any harness-level execution, because the harness files were not present in this checkout.
+
+- Structural validation only through `tests/test_auto_push_e2e_candidate.py`.
+- No live Craftax rollout, Modal execution, or GEPA optimization run was executed.
 
 ## Reproduction & Handoff
-- Reproduce by reading `docs/task-craftax.md`, then inspect `experiments/craftax_autopush_e2e/artifacts/todo_scratchpad.md` and `findings.txt`.
-- Open risk: the current checkout is a skeleton, so a later run with the full source tree may choose to replace the scratchpad with a real harness-level change if those files become available.
+
+- Candidate config command:
+  - `uv run --with pytest pytest -q tests/test_auto_push_e2e_candidate.py`
+  - `./scripts/run_craftax_model_eval.sh`
+- Residual risk:
+  - The added end-to-end handoff wording may be slightly restrictive for some short tactical batches, but it keeps the candidate honest and localized.

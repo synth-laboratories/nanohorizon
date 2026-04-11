@@ -1,20 +1,25 @@
-# Craftax Candidate Brief
+# Craftax Task
 
 Candidate label: `Auto Push E2E`
 
-Primary strategy: `Todo Tool`
+Objective: make the smallest honest improvement to the Craftax prompt-opt path by
+keeping a compact three-item todo scratchpad contract explicit from seed prompt
+to reflection feedback.
 
-Objective:
-- Keep the Craftax harness surfaces stable.
-- Give the agent a compact scratchpad so subgoals stay visible during optimization.
-- Prefer the smallest honest change that can be reviewed and reproduced.
+Primary strategy: Todo Tool.
 
-Compact todo list:
-1. Inspect the current repo state before changing anything.
-2. Keep harness-facing files untouched unless the idea truly requires a change.
-3. Record the candidate as a compact scratchpad the agent can follow.
-4. Verify the artifact paths locally before publishing.
-5. Commit, push, and open the reviewable PR.
+Compatibility surfaces to preserve:
 
-Working rule:
-- Treat this file as the submission brief for the Todo Tool strategy.
+- `docs/task-craftax.md`
+- `src/nanohorizon/craftax_core/http_shim.py`
+- `src/nanohorizon/craftax_core/runner.py`
+- `src/nanohorizon/craftax_core/metadata.py`
+- `scripts/run_craftax_model_eval.sh`
+
+Implementation intent:
+
+- keep the todo contract centralized in `src/nanohorizon/baselines/prompt_opt.py`
+- keep the prompt-shaping change narrow and reviewable
+- avoid SFT or RL changes
+- document the candidate in a matching config, record bundle, and structural test
+
