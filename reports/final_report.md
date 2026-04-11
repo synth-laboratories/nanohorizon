@@ -54,6 +54,9 @@ the task-info payload, HTTP shim, and runtime runner.
    this repo because `pytest` is not a project dependency; the reproducible path
    is the explicit `uv run --no-project --with pyyaml --with pytest --python 3.11
    pytest -q tests/test_server_push_e2e_candidate.py` verifier command.
+5. The runtime refresh helper is now explicitly covered by the same structural
+   test as the shared prompt helper, which makes the single-source scratchpad
+   contract easier to keep honest over time.
 
 ## Research artifacts produced
 
@@ -74,6 +77,8 @@ the task-info payload, HTTP shim, and runtime runner.
 - Result: 4 tests passed.
 - Additional smoke check: direct `PYTHONPATH=src python` import and
   `validate_candidate_record(candidate_record())` both passed.
+- Additional verifier coverage: the runtime refresh helper is asserted to match
+  the shared baseline helper for the same example inputs.
 - Not validated: live Craftax rollout, benchmark reward, or GEPA search.
 
 ## Reproduction & handoff

@@ -7,3 +7,4 @@
 - The durable smoke result lives at `experiments/server_push_e2e/results/verifier.json`.
 - The candidate bundle lives under `records/prompt_opt_1usd_gpt54_family/2026-04-11_server_push_e2e/`.
 - No live Craftax rollout or benchmark comparison was run in this workspace; validation is structural only.
+- The runtime refresh helper is now covered by the same structural test as the shared prompt helper, which makes the single-source scratchpad contract explicit across both paths.

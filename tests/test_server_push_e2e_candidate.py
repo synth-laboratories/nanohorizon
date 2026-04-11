@@ -13,6 +13,7 @@ from nanohorizon.craftax_core.http_shim import build_task_info  # noqa: E402
 from nanohorizon.craftax_core.metadata import (  # noqa: E402
     DEFAULT_CANDIDATE_LABEL,
     build_server_push_e2e_metadata,
+    refresh_todo_items as refresh_runtime_todo_items,
 )
 from nanohorizon.craftax_core.runner import build_runner_output  # noqa: E402
 from nanohorizon.baselines.prompt_opt import (  # noqa: E402
@@ -67,6 +68,15 @@ def test_prompt_helper_and_refresh_contract_stay_in_sync() -> None:
         "Confirm the task constraints and keep the change narrow.",
         "Surface the scratchpad through task info and the runner.",
         "Validate the output with a local smoke verifier.",
+    )
+    assert refreshed == refresh_runtime_todo_items(
+        (
+            "Confirm the task constraints and keep the change narrow.",
+            "Stale item",
+            "Surface the scratchpad through task info and the runner.",
+        ),
+        completed_items=("Stale item",),
+        next_action="Validate the output with a local smoke verifier.",
     )
     assert len(refreshed) == 3
     assert validate_candidate_record(record) == []

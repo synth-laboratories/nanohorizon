@@ -2,3 +2,5 @@
 2026-04-11T00:00:00Z attempt-1: implemented the compact three-item scratchpad contract in the Craftax core surface.
 2026-04-11T00:00:00Z validation: re-ran the repo verifier script and a direct Python smoke check after cleanup.
 2026-04-11T00:00:00Z validation: `./scripts/run_craftax_model_eval.sh` emitted the three-item payload and passed.
+2026-04-11T00:00:00Z attempt-2: added an explicit test assertion that the Craftax runtime refresh helper matches the shared baseline refresh helper.
+2026-04-11T00:00:00Z validation: re-ran the verifier and wrapper script after the new assertion; both still passed.
