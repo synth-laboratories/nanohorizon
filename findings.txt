@@ -17,3 +17,9 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-11 - Pipeline Fix E2E branch correction
+- The initial seed checkout did not match GitHub `main`; the first branch would have deleted most of the real NanoHorizon tree if merged.
+- Rebased the task onto a clean worktree from GitHub `main` and narrowed the candidate to a small prompt-opt package instead of harness surgery.
+- New candidate package: `configs/craftax_prompt_opt_qwen35_4b_codex_pipeline_fix_e2e.yaml`, `scripts/run_craftax_prompt_opt_pipeline_fix_e2e.sh`, and `records/prompt_opt_1usd_gpt54_family/2026-04-11_codex_pipeline_fix_e2e/`.
+- Validation still pending at the time of this note: targeted pytest plus `validate_record` for the new candidate bundle.

@@ -1,0 +1,1 @@
+./scripts/run_craftax_prompt_opt_pipeline_fix_e2e.sh
