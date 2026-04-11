@@ -17,3 +17,13 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-11 - Craftax video validation run candidate
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_video_validation_run.yaml` and the matching `records/prompt_opt_1usd_gpt54_family/2026-04-11_codex_video_validation_run/` bundle.
+- The new seed prompt keeps the private three-item todo contract but sharpens the wording for quick inspection during a video validation run and for replacing stale targets after no-progress loops.
+- Added `tests/test_codex_video_validation_run_candidate.py` to pin the new config and record bundle shape.
+- Added `scripts/verify_video_validation_run.py` so the candidate can be structurally validated without relying on the broken optional cloud dependency path in `uv`.
+- Validation run: `uv run pytest tests/test_codex_video_validation_run_candidate.py` passed on 2026-04-11.
+- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-11_codex_video_validation_run` returned `ok: true` on 2026-04-11.
+- Validation run: `python scripts/verify_video_validation_run.py` passed on 2026-04-11.
+- The shared Craftax runtime files under `src/nanohorizon/craftax_core/` and `scripts/run_craftax_model_eval.sh` were left unchanged.

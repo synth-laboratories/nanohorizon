@@ -1,62 +1,54 @@
-# Craftax Todo Refresh Gate Candidate
+# Video Validation Run
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+The task was to package a minimal, reviewable Craftax leaderboard candidate in the prompt-opt lane using the smallest honest change that improves the todo/scratchpad strategy. The protected Craftax runtime surfaces were left unchanged; the candidate lives in a new prompt-opt config, a matching not-run record bundle, and a focused verifier.
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+1. `configs/craftax_prompt_opt_qwen35_4b_codex_video_validation_run.yaml`
+   - Question: does a slightly sharper private todo contract help the model keep a short auditable plan during rollout?
+   - Outcome: supporting as a candidate specification.
+   - Evidence: seed prompt asks for three bounded todo items, explicit stale-target replacement, and a short final batch aligned with the first todo item.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
-   - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+2. `tests/test_codex_video_validation_run_candidate.py`
+   - Question: does the candidate config and record bundle preserve the intended scratchpad wording and packaging shape?
+   - Outcome: supporting as a structural verifier.
+   - Evidence: the test pins the config text and checks the record bundle metadata, metrics, and launch command.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
-
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
+3. `records/prompt_opt_1usd_gpt54_family/2026-04-11_codex_video_validation_run/`
+   - Question: is the candidate packaged reproducibly for future execution?
    - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+   - Evidence: `command.txt`, `metadata.json`, `metrics.json`, `notes.md`, `run_config.yaml`, and `system_info.json` are present with `candidate_not_run` / `not_run` markers.
+
+4. `scripts/verify_video_validation_run.py`
+   - Question: can the candidate be checked without relying on the broken optional cloud dependency path in `uv`?
+   - Outcome: supporting.
+   - Evidence: the script validates the config and record bundle with only stdlib plus `yaml`.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The prompt-opt baseline already centralizes the todo-tool contract; the safest improvement is a narrower seed-prompt variant rather than touching the Craftax runtime.
+2. Making the scratchpad explicitly short and visually inspectable is a reasonable fit for a video validation run, because the candidate is meant to stay auditable while still constraining loop behavior.
+3. Structural validation is enough for this packaging task, but it does not measure leaderboard lift.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Config: `configs/craftax_prompt_opt_qwen35_4b_codex_video_validation_run.yaml`
+- Record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-11_codex_video_validation_run/`
+- Verifier: `scripts/verify_video_validation_run.py`
+- Handoff notes: `findings.txt`
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Ran `python scripts/verify_video_validation_run.py` successfully.
+- The verifier confirmed the scratchpad wording, the not-run record bundle, and the candidate command.
+- Not validated: any live Craftax rollout, GEPA search result, or reward delta.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Candidate command:
+  - `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_video_validation_run.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
+- Open risk: the scratchpad wording may be neutral if it does not materially improve loop breaking under the real Craftax reward signal.
+- Branch/PR: see the GitHub branch and PR created for this candidate.
+
