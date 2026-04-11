@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "done": true,
+      "title": "Confirm the repo shape and missing Craftax surfaces."
+    },
+    {
+      "done": true,
+      "title": "Add a compact scratchpad for the candidate workflow."
+    },
+    {
+      "done": true,
+      "title": "Keep the shared harness surfaces stable unless the candidate truly needs a change."
+    },
+    {
+      "done": false,
+      "title": "Replace the scaffold with a real Craftax improvement if the full source tree becomes available."
+    }
+  ],
+  "limit": 6,
+  "pending": [
+    {
+      "done": false,
+      "title": "Replace the scaffold with a real Craftax improvement if the full source tree becomes available."
+    }
+  ]
+}

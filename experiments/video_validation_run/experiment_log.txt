@@ -1,0 +1,12 @@
+2026-04-11T00:00:00Z - Attempt 1
+- Observed that the checked-out NanoHorizon repo only contained README.md.
+- Added a minimal candidate scaffold, scratchpad, and verifier to keep the task reviewable.
+- No benchmarked Craftax performance change was possible because the harness source files were absent.
+
+2026-04-11T00:00:00Z - Attempt 2
+- Aligned the scaffold to the live candidate CLI and scratchpad path.
+- Verified the candidate with `scripts/verify_video_validation_run.py` after adding the missing metadata constants.
+
+2026-04-11T00:00:00Z - Attempt 3
+- Marked the first three scratchpad items done to reflect the completed workflow subgoals.
+- Re-ran the verifier and the shell wrapper after the todo state update; both still passed.

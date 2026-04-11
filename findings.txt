@@ -1,0 +1,4 @@
+2026-04-11: Initial repo was effectively empty; only README.md was tracked in the initial commit.
+2026-04-11: docs/task-craftax.md was missing from the checkout and from git history. The candidate was rebuilt as a minimal harness scaffold instead of patching nonexistent source files.
+2026-04-11: Added a compact todo scratchpad candidate in src/nanohorizon/craftax_core/{http_shim.py,runner.py,metadata.py} and wired scripts/run_craftax_model_eval.sh through uv.
+2026-04-11: The bounded scratchpad is stored at `.craftax_todo.json`; the `metadata` subcommand and verifier both passed after the metadata constants were aligned.
