@@ -25,7 +25,7 @@ search:
 
 prompt:
   component_name: system_prompt
-  seed_prompt: >
+  seed_prompt: >-
     You are a Craftax policy agent. Keep a tiny private todo list with exactly
     three items before the tool call. The three items must track (1) the most
     urgent danger or blocker, (2) the next tile, object, or resource target,
