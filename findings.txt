@@ -4,4 +4,4 @@
 2026-04-11: Candidate is marked candidate_not_run/not_run; no live Craftax, Modal, or GEPA execution was performed in this task.
 2026-04-11: Added scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh so the record-bundle command is executable and config-backed.
 2026-04-11: Verified the candidate structural test file passes with `uv run --with pytest pytest -q tests/test_auto_push_e2e_candidate.py`.
-2026-04-11: GitHub PR creation is blocked because `create_github_pr` rejects every tried repo slug as not present in the configured GitHub repos list.
+2026-04-11: GitHub PR opened successfully as https://github.com/synth-laboratories/nanohorizon/pull/23 from branch `worker/run-fc2482f6-7867-4921-afaf-f85a80c52bec` into `auto-push-e2e-test`.

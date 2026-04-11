@@ -41,5 +41,5 @@ This run targeted the NanoHorizon Craftax prompt-opt path. The objective was the
   - `./scripts/run_craftax_model_eval.sh`
 - Residual risk:
   - The added end-to-end handoff wording may be slightly restrictive for some short tactical batches, but it keeps the candidate honest and localized.
-- Publication blocker:
-  - The branch is committed and pushed, but `create_github_pr` rejected every attempted repo slug as not present in the configured GitHub repos list, so a real PR could not be opened from this session.
+- Publication:
+  - The branch is committed and pushed, and PR `https://github.com/synth-laboratories/nanohorizon/pull/23` is open from `worker/run-fc2482f6-7867-4921-afaf-f85a80c52bec` into `auto-push-e2e-test`.

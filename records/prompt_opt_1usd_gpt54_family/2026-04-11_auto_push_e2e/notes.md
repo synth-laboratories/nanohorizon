@@ -21,4 +21,4 @@ Validation performed in this task:
 Residual risks:
 - The extra end-to-end handoff wording could overconstrain otherwise good short tactical action batches.
 - Because no live rollout run was executed, this remains a packaging and prompt-shaping candidate rather than a measured improvement.
-- GitHub publication is blocked by repository configuration: `create_github_pr` rejected every tried repo slug as not present in the configured GitHub repos list.
+- GitHub publication succeeded: PR #23 is open at https://github.com/synth-laboratories/nanohorizon/pull/23.
