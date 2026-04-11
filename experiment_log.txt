@@ -22,3 +22,7 @@
 - Rechecked the runner entrypoint directly with `PYTHONPATH=src uv run --python 3.11 python -m nanohorizon.craftax_core.runner --json`.
 - Confirmed the shared task-info payload still emits the three-item scratchpad contract.
 - Left the candidate and verifier outputs aligned with the restored harness modules and prompt helper.
+
+2026-04-11 17:18 UTC - PR blocker
+- `create_github_pr` rejected repo guesses for the internal repo id, `NanoHorizon`, and `openai/NanoHorizon`.
+- The configured GitHub repo slug is not exposed in the workspace state I can read, so PR creation is blocked.
