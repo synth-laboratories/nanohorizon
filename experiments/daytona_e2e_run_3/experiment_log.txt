@@ -1,0 +1,5 @@
+2026-04-11T05:10:00Z - Started from the real NanoHorizon repository base on GitHub `main`, which already contains the shared todo-contract implementation in `src/nanohorizon/baselines/prompt_opt.py`.
+2026-04-11T05:12:00Z - Chose the smallest honest improvement: add a new `Daytona E2E Run 3` prompt-opt variant instead of broad harness changes.
+2026-04-11T05:14:00Z - Added the new config, a structural test, and a matching non-run record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-11_daytona_e2e_run_3/`.
+2026-04-11T05:18:00Z - Verification passed with `uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_daytona_e2e_run_3_candidate.py tests/test_codex_todo_refresh_gate_candidate.py`.
+2026-04-11T05:20:00Z - Updated `docs/task-craftax.md` and `reports/final_report.md` to describe the new candidate and the unchanged todo scratchpad contract.

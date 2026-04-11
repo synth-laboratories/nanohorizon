@@ -17,3 +17,9 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-11 - Daytona E2E Run 3 prompt-opt variant
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_daytona_e2e_run_3.yaml` as a small todo-tool refinement that preserves the shared 1 USD prompt-opt envelope and rollout shape.
+- Added `tests/test_daytona_e2e_run_3_candidate.py` plus a matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-11_daytona_e2e_run_3/`.
+- Structural verification passed with `uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_daytona_e2e_run_3_candidate.py tests/test_codex_todo_refresh_gate_candidate.py`.
+- The current candidate remains a prompt-shaping artifact only; no live Craftax reward run was executed here.

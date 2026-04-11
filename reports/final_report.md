@@ -1,49 +1,64 @@
-# NanoHorizon Craftax Candidate
+# NanoHorizon Daytona E2E Run 3
 
 ## Context & objective
 
-This run targeted the NanoHorizon leaderboard candidate `Daytona E2E Run 3`.
-The objective was the smallest honest improvement to the Craftax approach:
-add a compact todo scratchpad so the agent can track subgoals while keeping the
-named Craftax harness surfaces stable. No SFT or RL changes were introduced.
+This run implemented a small prompt-opt candidate for the Craftax todo-tool
+strategy. The goal was to keep the existing Craftax surfaces stable while
+adding a reviewable `Daytona E2E Run 3` variant that preserves the compact
+three-item scratchpad contract and adds a small end-to-end handoff guard.
 
 ## Experiments cited
 
-1. `tests/test_craftax_core.py`
-   - Question: does the Todo Tool scaffold expose the expected stable surfaces?
+1. `configs/craftax_prompt_opt_qwen35_4b_codex_daytona_e2e_run_3.yaml`
+   - Question: does the new candidate variant keep the same budget and rollout
+     envelope while tightening the todo handoff wording?
    - Outcome: supporting.
-   - Evidence: `tests/test_craftax_core.py`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/runner.py`.
-2. `uv run --python 3.11 python -m unittest discover -s tests -v`
-   - Question: does the scaffold import and behave cleanly under local verification?
+   - Evidence: the config keeps the same model, optimizer budget, rollout
+     shape, and seed split as the existing todo-refresh-gate baseline.
+2. `tests/test_daytona_e2e_run_3_candidate.py`
+   - Question: is the new config packaged reproducibly and grounded in the
+     central todo contract?
    - Outcome: supporting.
-   - Evidence: command output from this run.
-3. `uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json`
-   - Question: does the eval entrypoint render the candidate summary and todo board?
+   - Evidence: the test checks the config wording, the centralized
+     `TODO_SCRATCHPAD_REQUIREMENTS`, and the record bundle metadata.
+3. `tests/test_codex_todo_refresh_gate_candidate.py`
+   - Question: does the shared todo-contract source remain stable while the
+     new candidate is added?
    - Outcome: supporting.
-   - Evidence: command output from this run.
-4. `scripts/run_craftax_model_eval.sh`
-   - Question: does the compatibility eval script still emit the candidate JSON payload?
+   - Evidence: the existing todo-refresh-gate checks still pass.
+4. `uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_daytona_e2e_run_3_candidate.py tests/test_codex_todo_refresh_gate_candidate.py`
+   - Question: does the candidate surface stay structurally valid under local
+     verification?
    - Outcome: supporting.
-   - Evidence: `.out/craftax_eval/smoke_payload.json`.
+   - Evidence: `6 passed in 0.06s`.
 
 ## Insights
 
-1. A compact scratchpad is enough to make the candidate more inspectable without changing the broader Craftax contract. Supported by `src/nanohorizon/craftax_core/runner.py` and `tests/test_craftax_core.py`.
-2. Keeping the harness surfaces explicit in metadata makes the change easy to review downstream. Supported by `src/nanohorizon/craftax_core/metadata.py` and `docs/task-craftax.md`.
-3. The rollout compatibility alias can remain stable while still exposing the new todo-driven candidate context. Supported by `src/nanohorizon/craftax_core/http_shim.py`.
-4. The runner can preserve the older smoke invocation flags while still supporting the newer `--format json` path. Supported by `src/nanohorizon/craftax_core/runner.py` and `scripts/run_craftax_model_eval.sh`.
+1. The smallest honest improvement is still a prompt/config refinement, not a
+   harness rewrite. The existing todo contract in
+   `src/nanohorizon/baselines/prompt_opt.py` already centralizes the scratchpad
+   behavior; the new config just tightens the handoff wording.
+2. Keeping the seed prompt close to the existing todo-refresh-gate baseline
+   preserves the original search envelope while making the new variant easy to
+   review.
+3. A separate candidate bundle is useful even when the underlying contract is
+   shared, because it gives the new variant a stable artifact path and a
+   reproducible command.
 
 ## Research artifacts produced
 
 ### Environments
 
-- Local project scaffold in `/workspace`.
-- Python entrypoint via `uv run --python 3.11 python -m nanohorizon.craftax_core.runner`.
+- Prompt-opt config at
+  `configs/craftax_prompt_opt_qwen35_4b_codex_daytona_e2e_run_3.yaml`
+- Record bundle at
+  `records/prompt_opt_1usd_gpt54_family/2026-04-11_daytona_e2e_run_3/`
 
 ### Data
 
-- No external dataset was introduced.
-- The candidate uses a fixed todo board defined in `src/nanohorizon/craftax_core/metadata.py`.
+- No new training data was introduced.
+- The config reuses the existing `craftax_prompt_opt_starter_seeds.json`
+  split.
 
 ### Models / checkpoints
 
@@ -51,15 +66,12 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
 
 ## Quality & validation
 
-- Added unittest coverage for the todo board rendering, the `/rollout` alias,
-  the runner summary shape, and the smoke payload write path.
-- The package initializer exports `CraftaxRunner` lazily so the entrypoint stays
-  warning-free under `python -m`.
-- The eval script now emits `.out/craftax_eval/smoke_payload.json` through the
-  runner compatibility path that accepts both `--format json` and the legacy
-  `--smoke --json --output` flags.
-- Not validated: actual benchmark scoring, remote container execution, or any
-  training-time behavior.
+- Structural pytest coverage passed for the new candidate and the existing
+  todo-refresh-gate candidate.
+- The config stayed within the established 1 USD budget and 3/4 action rollout
+  envelope.
+- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search
+  output.
 
 ## Reproduction & handoff
 
@@ -68,11 +80,10 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
 - Reproduce locally with:
 
 ```bash
-uv run --python 3.11 python -m unittest discover -s tests -v
-uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json
-./scripts/run_craftax_model_eval.sh
+uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_daytona_e2e_run_3_candidate.py tests/test_codex_todo_refresh_gate_candidate.py
+NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_daytona_e2e_run_3.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh
 ```
 
-- Open risks: this is a minimal scaffold in an otherwise empty repository, so
-  the impact is limited to the harness/doc surface added in this run.
+- Open risk: the reward impact of the new handoff wording remains unmeasured
+  until a live optimization run is executed.
 
