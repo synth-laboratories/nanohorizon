@@ -1,62 +1,75 @@
-# Craftax Todo Refresh Gate Candidate
+# NanoHorizon Craftax Candidate Report
 
-## Context & objective
+## Context & Objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+The workspace started as a near-empty checkout, but the meaningful candidate scaffold was present in untracked files under `src/nanohorizon/baselines/prompt_opt.py`, `configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml`, and the Craftax smoke shim. The task was to make the smallest honest improvement to the Craftax approach, keep the shared harness surfaces stable, and validate the result with a reproducible smoke pass.
 
-## Experiments cited
+The candidate is `Full Auto E2E` using the `Todo Tool` strategy. The improvement is packaging the prompt contract into a nested candidate config, a compact prompt helper, and a smoke runner that round-trips the config and emits candidate artifacts.
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
+## Experiments Cited
+
+1. `configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml`
+   - Question: what candidate config captures the requested Todo Tool strategy and rollout shape?
    - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+   - Evidence: the file encodes the nested candidate, policy, optimizer, prompt, rollout, data, and output settings.
 
 2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+   - Question: can the candidate prompt contract be represented as a reproducible prompt-opt scaffold?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: the module defines the seed prompt, todo contract, nested candidate config, and config loader.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. `src/nanohorizon/craftax_core/metadata.py` and `src/nanohorizon/craftax_core/runner.py`
+   - Question: can the preserved Craftax-facing surfaces round-trip the candidate config and emit artifacts?
+   - Outcome: supporting verifier.
+   - Evidence: `metadata.py` renders the candidate manifest and prompt text, while `runner.py` validates the config and writes `candidate_summary.json` and `candidate_prompt.txt`.
+
+4. `experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json`
+   - Question: did the smoke path run end-to-end and preserve the expected summary payload?
+   - Outcome: supporting verifier.
+   - Evidence: the summary records the candidate config, loaded config, and output directory for the smoke run.
+
+5. `scripts/run_craftax_model_eval.sh`
+   - Question: can the candidate be exercised reproducibly through `uv` with artifacts written to disk?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
-
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+   - Evidence: the script runs the Craftax runner through an editable install and writes the summary and prompt artifacts into the configured results directory.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The smallest honest change is the Todo Tool prompt contract itself, not a broader harness rewrite. The candidate keeps the change explicit and reviewable.
+2. The candidate is reproducible because the nested config and `candidate_config()` now round-trip cleanly, and the smoke runner emits durable artifacts for future inspection.
+3. The verifier surfaced one real integration issue: the smoke lane must run with an editable install so `nanohorizon` imports resolve correctly. That is now baked into `scripts/run_craftax_model_eval.sh`.
 
-## Research artifacts produced
+## Research Artifacts Produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+### Environments
 
-## Quality & validation
+- Project metadata: `pyproject.toml`
+- Candidate module: `src/nanohorizon/baselines/prompt_opt.py`
+- Craftax surfaces: `src/nanohorizon/craftax_core/metadata.py`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/runner.py`
+- Smoke entrypoint: `scripts/run_craftax_model_eval.sh`
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+### Data
 
-## Reproduction & handoff
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml`
+- Candidate summary: `experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json`
+- Candidate prompt: `experiments/nanohorizon_leaderboard_candidate/results/candidate_prompt.txt`
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+### Models / Checkpoints
+
+- No model weights were trained or promoted in this run.
+- The submission is a prompt/context-shaping candidate only.
+
+## Quality & Validation
+
+- Validation command: `bash scripts/run_craftax_model_eval.sh`
+- Additional smoke: `uv run --with-editable . --python 3.12 python -m unittest discover -s tests -v`
+- The smoke path now writes the candidate summary and prompt artifacts and the unittest smoke suite passes against the same tree.
+- Explicitly not validated: real Craftax benchmark score movement, remote rollout behavior, or any SFT/RL training loop.
+
+## Reproduction & Handoff
+
+- Reproduce with: `bash scripts/run_craftax_model_eval.sh`
+- Review the candidate summary in `experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json`
+- Review the candidate prompt in `experiments/nanohorizon_leaderboard_candidate/results/candidate_prompt.txt`
+- Open risk: the workspace still does not contain a real Craftax environment rollout, so this run establishes a reproducible candidate scaffold rather than a benchmark-measured leaderboard delta.
+
