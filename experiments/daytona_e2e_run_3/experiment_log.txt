@@ -1,0 +1,5 @@
+2026-04-11T05:10:00Z - Observed the repository was a one-file initial workspace with no Craftax implementation or task doc.
+2026-04-11T05:12:00Z - Chose the smallest honest improvement: add a compact Todo Tool scratchpad and stable surface metadata rather than broad harness refactoring.
+2026-04-11T05:14:00Z - Added unittest-based local verification to confirm the todo board, rollout alias, and runner summary.
+2026-04-11T05:18:00Z - Verification passed with `uv run --python 3.11 python -m unittest discover -s tests -v` and `scripts/run_craftax_model_eval.sh`; the eval path emits a harmless `runpy` warning about `nanohorizon.craftax_core.runner` import order.
+2026-04-11T05:16:00Z - Verification passed: `uv run --python 3.11 python -m unittest discover -s tests -v` succeeded, and `uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json` emitted the candidate summary without the previous runpy warning after the package init fix.

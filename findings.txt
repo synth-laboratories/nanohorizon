@@ -1,0 +1,5 @@
+2026-04-11: The checkout started as a placeholder repo with only README.md; the requested Craftax surfaces were absent.
+2026-04-11: Implemented a minimal Todo Tool candidate surface for Craftax: compact todo normalization, tool schema, prompt builder, and smoke runner.
+2026-04-11: Kept the harness stable by not changing the named compatibility surfaces beyond creating them in the empty checkout.
+2026-04-11: `uv run --python 3.11 python -m unittest discover -s tests -v` passed, and `scripts/run_craftax_model_eval.sh` emitted the expected JSON summary. The eval entrypoint also emits a benign `runpy` warning about `nanohorizon.craftax_core.runner` import order.
+2026-04-11: `python -m nanohorizon.craftax_core.runner` initially warned because craftax_core/__init__.py eagerly imported CraftaxRunner; switched to a lazy export to keep the module entrypoint clean.
