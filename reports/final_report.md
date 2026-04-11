@@ -52,8 +52,8 @@ the task-info payload, HTTP shim, and runtime runner.
    infrastructure.
 4. The plain `uv run --python 3.11 pytest ...` invocation is not sufficient in
    this repo because `pytest` is not a project dependency; the reproducible path
-   is the explicit `uv run --no-project --with pytest --python 3.11
-   pytest -q /workspace/tests/test_server_push_e2e_candidate.py` verifier command.
+   is the explicit `uv run --no-project --with pyyaml --with pytest --python 3.11
+   pytest -q tests/test_server_push_e2e_candidate.py` verifier command.
 
 ## Research artifacts produced
 
@@ -68,7 +68,7 @@ the task-info payload, HTTP shim, and runtime runner.
 
 ## Quality & validation
 
-- Executed: `uv run --no-project --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py`
+- Executed: `uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py`
 - Result: 4 tests passed.
 - Executed: `./scripts/run_craftax_model_eval.sh`
 - Result: 4 tests passed.
@@ -81,7 +81,7 @@ the task-info payload, HTTP shim, and runtime runner.
 - Reproduce with:
 
 ```bash
-uv run --no-project --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py
+uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py
 ./scripts/run_craftax_model_eval.sh
 ```
 
