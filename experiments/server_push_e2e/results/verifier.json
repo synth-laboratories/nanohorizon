@@ -1,0 +1,12 @@
+{
+  "candidate_label": "Server Push E2E",
+  "checks": {
+    "todo_item_count": 3,
+    "scratchpad_mode": "compact-three-item",
+    "todo_scratchpad_rendered": true,
+    "task_info_json_emitted": true,
+    "runner_importable": true,
+    "script_smoke": true
+  },
+  "status": "pass"
+}

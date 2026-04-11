@@ -64,6 +64,7 @@ the task-info payload, HTTP shim, and runtime runner.
 - Task doc: `docs/task-craftax.md`
 - Structural test: `tests/test_server_push_e2e_candidate.py`
 - Experiment verifier: `experiments/server_push_e2e/results/verifier.json`
+- Candidate bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-11_server_push_e2e/`
 
 ## Quality & validation
 
