@@ -78,6 +78,16 @@ def candidate_config() -> dict[str, Any]:
     }
 
 
+def candidate_prompt_text() -> str:
+    return (
+        FULL_AUTO_E2E_SYSTEM_PROMPT
+        + "\n\n"
+        + "Todo contract: "
+        + todo_scratchpad_directive()
+        + "\n"
+    )
+
+
 def load_config(path: str | Path) -> dict[str, Any]:
     config_path = Path(path).expanduser().resolve()
     text = config_path.read_text(encoding="utf-8")
@@ -85,6 +95,16 @@ def load_config(path: str | Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"config must decode to an object: {config_path}")
     return payload
+
+
+def write_candidate_artifacts(output_dir: str | Path, summary: dict[str, Any]) -> None:
+    root = Path(output_dir).expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "candidate_summary.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (root / "candidate_prompt.txt").write_text(candidate_prompt_text(), encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -108,6 +128,8 @@ def main(argv: list[str] | None = None) -> int:
         "loaded_config": loaded,
         "candidate_config": candidate_config(),
     }
+    if args.output_dir:
+        write_candidate_artifacts(args.output_dir, summary)
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
 

@@ -1,9 +1,11 @@
-"""Stable prompt metadata for the Craftax interface-shaped candidate."""
+"""Stable metadata for the Craftax prompt-opt candidate."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping, Sequence
+
+from nanohorizon.baselines.prompt_opt import FULL_AUTO_E2E_SYSTEM_PROMPT, todo_scratchpad_directive
 
 OBSERVATION_FIELD_ORDER = (
     "health",
@@ -17,6 +19,9 @@ PRIMARY_TOOL_NAME = "craftax_interact"
 
 CANDIDATE_LABEL = "Full Auto E2E"
 PRIMARY_STRATEGY = "Todo Tool"
+TRACK_NAME = "prompt_opt_1usd_gpt54_family"
+TASK_NAME = "craftax"
+OUTPUT_ROOT = "records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e"
 TODO_ITEMS = (
     "State the objective and verifier target in one line.",
     "Keep the change set as small as possible.",
@@ -107,23 +112,23 @@ def build_candidate_manifest() -> dict[str, Any]:
         "strategy": PRIMARY_STRATEGY,
         "todo_items": TODO_ITEMS,
         "preserved_surfaces": PRESERVED_SURFACES,
+        "verification_modes": ("config_roundtrip_smoke", "prompt_render_smoke"),
+        "track_name": TRACK_NAME,
+        "task_name": TASK_NAME,
+        "output_root": OUTPUT_ROOT,
         "rationale": (
-            "A compact todo scratchpad is the smallest honest change that makes the "
-            "Full Auto E2E candidate more disciplined without mutating the existing "
-            "Craftax harness contract."
+            "The prompt-opt baseline centralizes the Todo Tool contract, keeps the "
+            "candidate packaging explicit, and preserves the existing Craftax "
+            "harness surfaces."
         ),
     }
 
 
 def build_candidate_prompt() -> str:
-    scratchpad = "\n".join(f"{index}. {item}" for index, item in enumerate(TODO_ITEMS, start=1))
     return (
-        "You are working on the NanoHorizon Craftax candidate.\n"
-        f"Candidate label: {CANDIDATE_LABEL}\n"
-        f"Primary strategy: {PRIMARY_STRATEGY}\n"
-        "Use the following compact todo scratchpad and keep it current:\n"
-        f"{scratchpad}\n"
-        "Stop only after the verifier pass is documented."
+        f"{FULL_AUTO_E2E_SYSTEM_PROMPT}\n\n"
+        "Todo contract:\n"
+        f"{todo_scratchpad_directive()}"
     )
 
 

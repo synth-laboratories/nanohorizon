@@ -1,5 +1,6 @@
 {
   "label": "Full Auto E2E",
+  "output_root": "records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e",
   "preserved_surfaces": [
     "docs/task-craftax.md",
     "src/nanohorizon/craftax_core/http_shim.py",
@@ -7,13 +8,19 @@
     "src/nanohorizon/craftax_core/metadata.py",
     "scripts/run_craftax_model_eval.sh"
   ],
-  "rationale": "A compact todo scratchpad is the smallest honest change that makes the Full Auto E2E candidate more disciplined without mutating the existing Craftax harness contract.",
+  "rationale": "The prompt-opt baseline centralizes the Todo Tool contract, keeps the candidate packaging explicit, and preserves the existing Craftax harness surfaces.",
   "strategy": "Todo Tool",
+  "task_name": "craftax",
   "todo_items": [
     "State the objective and verifier target in one line.",
     "Keep the change set as small as possible.",
     "Record the evidence before expanding scope.",
     "Check the candidate against the preserved harness surfaces.",
     "Stop only after the verifier pass is documented."
+  ],
+  "track_name": "prompt_opt_1usd_gpt54_family",
+  "verification_modes": [
+    "config_roundtrip_smoke",
+    "prompt_render_smoke"
   ]
 }

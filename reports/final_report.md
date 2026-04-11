@@ -19,18 +19,18 @@ The workspace started as a near-empty checkout and the task was to produce a con
 3. `tests/test_candidate.py`
    - Question: does the candidate metadata/prompt/runner stay aligned with the chosen strategy?
    - Outcome: supporting verifier.
-   - Evidence: the smoke test checks manifest content, prompt content, and manifest writing behavior.
+   - Evidence: the smoke test checks manifest content, prompt content, config round-tripping, and the generated smoke summary.
 
 4. `scripts/run_craftax_model_eval.sh`
    - Question: can the candidate be exercised reproducibly through `uv` with artifacts written to disk?
    - Outcome: supporting.
-   - Evidence: the script runs the prompt-opt smoke path and the unittest suite.
+   - Evidence: the script runs the prompt-opt smoke path and emits the structured observation summary.
 
 ## Insights
 
 1. The smallest honest change is the Todo Tool scratchpad itself, not a broader harness rewrite. The config and prompt helper keep that change explicit and reviewable.
 2. The candidate is reproducible from the workspace because the manifest and prompt are emitted to `experiments/nanohorizon_leaderboard_candidate/results/` and validated by `tests/test_candidate.py`.
-3. The verifier surface exposed one real caveat: `uv run --python 3.11 ...` fails because `pyproject.toml` requires Python >=3.12. The final harness path is now explicit about Python 3.12 in `scripts/run_craftax_model_eval.sh`.
+3. The final harness path is reproducible end-to-end: `scripts/run_craftax_model_eval.sh` writes the manifest and prompt artifacts, and the unittest smoke suite passes against the same tree.
 
 ## Research artifacts produced
 
@@ -45,6 +45,9 @@ The workspace started as a near-empty checkout and the task was to produce a con
 - Candidate config: `configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml`
 - Candidate command note: `records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e/command.txt`
 - Candidate run metadata and metrics: `records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e/metadata.json`, `metrics.json`, `run_config.yaml`, `system_info.json`
+- Candidate summary: `experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json`
+- Candidate smoke summary: `records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e/smoke_summary.json`
+- Candidate smoke artifacts: `experiments/nanohorizon_leaderboard_candidate/results/candidate_manifest.json`, `candidate_summary.json`, `candidate_prompt.txt`
 
 ### Models / checkpoints
 
@@ -53,8 +56,7 @@ The workspace started as a near-empty checkout and the task was to produce a con
 
 ## Quality & validation
 
-- Validation command: `bash scripts/run_craftax_model_eval.sh`
-- Direct smoke validation also passed with `uv run python -m unittest discover -s tests -v`
+- Validation commands: `bash scripts/run_craftax_model_eval.sh` and `uv run --python 3.12 python -m unittest discover -s tests -v`
 - The smoke path restored `runner.py --write`, so the manifest emission path is covered by the verifier.
 - The smoke test covers the candidate metadata, prompt text, and manifest writing behavior.
 - Explicitly not validated: real Craftax benchmark score movement, remote rollout behavior, or any SFT/RL training loop.
@@ -63,6 +65,7 @@ The workspace started as a near-empty checkout and the task was to produce a con
 
 - Reproduce with: `bash scripts/run_craftax_model_eval.sh`
 - Review the candidate manifest in `experiments/nanohorizon_leaderboard_candidate/results/candidate_manifest.json`
+- Review the candidate smoke summary in `experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json`
 - Review the candidate prompt in `experiments/nanohorizon_leaderboard_candidate/results/candidate_prompt.txt`
 - Review the prompt-opt record bundle in `records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e/`
 - Open risk: the workspace still does not contain a real Craftax environment rollout, so this run establishes a reproducible candidate scaffold rather than a benchmark-measured leaderboard delta.

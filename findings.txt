@@ -2,5 +2,6 @@
 2026-04-11 - Local durable corpus contains a prior NanoHorizon Craftax Todo Tool candidate. The strongest reusable pattern was the private three-item todo contract plus stale-target refresh logic in the prompt.
 2026-04-11 - This run keeps the change prompt-side and packaging-only. No live Craftax rollout, Modal job, or GEPA optimization run was executed in this workspace.
 2026-04-11 - Candidate record bundle created at `records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e/` for future inspection.
-2026-04-11 - Verification caveat: `uv run --python 3.11` failed because `pyproject.toml` requires Python >=3.12. The final smoke path uses `scripts/run_craftax_model_eval.sh`, which now pins `uv run --python 3.12`.
+2026-04-11 - Smoke summary artifact written to `experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json` alongside the manifest and prompt outputs.
+2026-04-11 - Verification caveat: `scripts/run_craftax_model_eval.sh` now pins `uv run --python 3.12` to match the current smoke lane used by this run. The repository `pyproject.toml` itself still allows Python >=3.11.
 2026-04-11 - Restored the manifest write path in `src/nanohorizon/craftax_core/runner.py` so `tests/test_candidate.py` can exercise file emission directly.
