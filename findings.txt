@@ -1,0 +1,7 @@
+2026-04-11
+- Repository seed checkout only tracked `README.md` at initial inspection; the NanoHorizon Craftax sources were absent from the git tree.
+- Remote read access works when `Authorization: Bearer ...` is passed as the full HTTP header.
+- Candidate scaffold added as a minimal Python package with shared Craftax response builders and a compact TODO scratchpad in `metadata.py`.
+- Shared harness surfaces were introduced as thin wrappers: `http_shim.py`, `runner.py`, `metadata.py`, and `scripts/run_craftax_model_eval.sh`.
+- `bash scripts/run_craftax_model_eval.sh --format text` passes when `uv` is run in `--no-project` mode and `runner.py` is invoked as a direct file entrypoint.
+- `python -m compileall src` is blocked by read-only `__pycache__` directory creation on this mount; import-level smoke tests were used instead.

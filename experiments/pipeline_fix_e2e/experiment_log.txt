@@ -1,0 +1,8 @@
+2026-04-11T15:10:00Z initial
+- Inspected seed checkout and confirmed it only contained `README.md`.
+- Searched local filesystem and runtime logs for Craftax sources; none were present in the checkout.
+- Decided to create the smallest honest scaffold that preserves the required Craftax surfaces and carries a compact TODO scratchpad.
+2026-04-11T15:25:00Z validation
+- `bash scripts/run_craftax_model_eval.sh --format text` now succeeds with `uv run --no-project` and the direct file entrypoint.
+- `PYTHONPATH=src uv run --no-project --python 3.11 python -m nanohorizon.craftax_core.runner --format text` and the import smoke check both passed.
+- This serves as the verifier-equivalent smoke feedback for the scaffolded candidate.

@@ -1,0 +1,14 @@
+Verifier-equivalent smoke feedback
+
+Passed:
+- `bash scripts/run_craftax_model_eval.sh --format text`
+- `PYTHONPATH=src uv run --no-project --python 3.11 python -m nanohorizon.craftax_core.runner --format text`
+- `PYTHONPATH=src uv run --no-project --python 3.11 python - <<'PY' ... import-ok`
+
+Observed behavior:
+- `/health` returns a stable OK payload with the candidate label and TODO count.
+- `/task_info` returns the TODO scratchpad and shared harness surface list.
+- `/rollouts` returns a ready payload with the same candidate label.
+
+Known constraint:
+- The checkout was a seed repo with no preexisting Craftax sources, so this run validated the scaffold rather than a benchmark-trained model.
