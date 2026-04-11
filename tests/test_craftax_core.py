@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 import unittest
 
 from nanohorizon.craftax_core.http_shim import CraftaxHTTPShim
-from nanohorizon.craftax_core.runner import CraftaxRunner, render_todo_board
+from nanohorizon.craftax_core.runner import CraftaxRunner, main, render_todo_board
 
 
 class CraftaxCoreTests(unittest.TestCase):
@@ -25,7 +27,15 @@ class CraftaxCoreTests(unittest.TestCase):
         self.assertIn("stable_surfaces", summary)
         self.assertGreaterEqual(len(summary["stable_surfaces"]), 3)
 
+    def test_runner_main_writes_smoke_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "smoke.json"
+            exit_code = main(["--smoke", "--json", "--output", str(output_path)])
+            self.assertEqual(exit_code, 0)
+            payload = output_path.read_text(encoding="utf-8")
+            self.assertIn('"smoke": true', payload)
+            self.assertIn('"candidate_label": "Daytona E2E Run 3"', payload)
+
 
 if __name__ == "__main__":
     unittest.main()
-

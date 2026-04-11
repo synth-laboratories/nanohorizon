@@ -55,6 +55,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format for the candidate summary.",
     )
+    parser.add_argument("--smoke", action="store_true", help="Emit a built-in smoke example.")
+    parser.add_argument("--json", action="store_true", help="Emit the full request payload as JSON.")
+    parser.add_argument("--output", default=None, help="Optional path to write JSON output.")
     return parser
 
 
@@ -62,6 +65,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     runner = CraftaxRunner()
+    if args.smoke or args.json or args.output:
+        payload = runner.summary()
+        if args.smoke:
+            payload["smoke"] = True
+        rendered = json.dumps(payload if args.json or args.output else {"prompt": runner.render()}, indent=2, sort_keys=True)
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as handle:
+                handle.write(rendered + "\n")
+        else:
+            print(rendered)
+        return 0
     if args.format == "json":
         print(json.dumps(runner.summary(), indent=2, sort_keys=True))
     else:

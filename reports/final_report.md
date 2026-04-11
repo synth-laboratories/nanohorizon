@@ -17,10 +17,10 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
    - Question: does the scaffold import and behave cleanly under local verification?
    - Outcome: supporting.
    - Evidence: command output from this run.
-3. `uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json`
-   - Question: does the eval entrypoint render the candidate summary and todo board?
+3. `scripts/run_craftax_model_eval.sh`
+   - Question: does the eval entrypoint render the candidate summary and write the smoke payload artifact?
    - Outcome: supporting.
-   - Evidence: command output from this run.
+   - Evidence: `scripts/run_craftax_model_eval.sh`, `.out/craftax_eval/smoke_payload.json`.
 
 ## Insights
 
@@ -47,9 +47,11 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
 ## Quality & validation
 
 - Added unittest coverage for the todo board rendering, the `/rollout` alias,
-  and the runner summary shape.
+  the runner summary shape, and the smoke payload write path.
 - The package initializer exports `CraftaxRunner` lazily so the entrypoint stays
   warning-free under `python -m`.
+- The eval script now emits `.out/craftax_eval/smoke_payload.json` through the
+  runner's `--smoke --json --output` path.
 - Not validated: actual benchmark scoring, remote container execution, or any
   training-time behavior.
 
@@ -61,10 +63,8 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
 
 ```bash
 uv run --python 3.11 python -m unittest discover -s tests -v
-uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json
 ./scripts/run_craftax_model_eval.sh
 ```
 
 - Open risks: this is a minimal scaffold in an otherwise empty repository, so
   the impact is limited to the harness/doc surface added in this run.
-
