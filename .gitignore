@@ -32,3 +32,4 @@ records/*/*/artifacts/
 records/*/*/checkpoints/
 records/*/*/train.log
 records/*/*/eval_rollouts.jsonl
+experiments/nanohorizon_leaderboard_candidate/results/candidate_summary.json
