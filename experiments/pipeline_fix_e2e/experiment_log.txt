@@ -1,0 +1,6 @@
+2026-04-11
+- Confirmed the real NanoHorizon repository on GitHub `main` is much larger than the seed checkout, so the initial scaffold branch would have deleted most of the project if merged.
+- Switched to a clean worktree from GitHub `main` and scoped the candidate to a narrow prompt-opt package change instead of harness surgery.
+- Candidate under construction: `Pipeline Fix E2E` prompt wording + dedicated wrapper + record bundle.
+- Validation completed: `uv run --no-project --with pytest --with pyyaml --python 3.11 pytest tests/test_codex_pipeline_fix_e2e_candidate.py` passed.
+- Validation completed: `PYTHONPATH=src python3 -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-11_codex_pipeline_fix_e2e` returned `ok: true`.
