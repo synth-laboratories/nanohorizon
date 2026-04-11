@@ -6,3 +6,5 @@
 - `tests/test_todo_tool.py` now imports `nanohorizon` directly; `uv run` installs the editable package from `src/` without a local `sys.path` shim.
 - Invalid todo statuses are normalized to `todo` at the public `add_item` surface and during `TodoItem.from_dict` restoration.
 - Validation passed with `uv run python -m unittest discover -s tests -p 'test_*.py'`; the final verifier run covered 5 tests.
+- GitHub push/PR creation is blocked by the configured allowlist: `github_push` rejected every repo slug tried for this project, including `synth/nanohorizon`, `smr/nanohorizon`, and the UUID-shaped binding from the git remote. The local branch is still ahead of `origin`, but no real GitHub PR could be created from this workspace.
+- `workspace_push` checkpointed the workspace to commit `69de005ba4a34d28547323996f0961433339eae4`, but `github_push` rejected the available repo guesses and the configured GitHub repo slug is not exposed in the run metadata.
