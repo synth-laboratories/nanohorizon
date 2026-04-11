@@ -1,0 +1,5 @@
+{
+  "platform": "linux",
+  "python": "3.11",
+  "workspace": "nanoHorizon bootstrap checkout"
+}

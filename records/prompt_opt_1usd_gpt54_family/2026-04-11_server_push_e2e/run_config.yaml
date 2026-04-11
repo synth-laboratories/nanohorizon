@@ -1,0 +1,40 @@
+candidate_label: Server Push E2E
+objective: >-
+  Improve the Craftax approach with a compact todo/scratchpad contract that
+  stays fresh across turns.
+strategy: Todo Tool
+scratchpad_contract: |-
+  The scratchpad contract is:
+
+  - Keep a private scratchpad with at most three live todo items.
+  - Push completed items as server-pushed state: remove them immediately.
+  - If progress stalls, replace the stalest item with the next best action.
+seed_prompt: |-
+  You are optimizing Craftax with the `Server Push E2E` strategy.
+
+  Maintain a private todo scratchpad and keep it server-pushed.
+  Use the same scratchpad contract below every turn.
+
+  The scratchpad contract is:
+
+  - Keep a private scratchpad with at most three live todo items.
+  - Push completed items as server-pushed state: remove them immediately.
+  - If progress stalls, replace the stalest item with the next best action.
+reflection_prompt: |-
+  Reflect on the last turn using the same scratchpad contract.
+  Before proposing the next action, refresh the scratchpad so it still obeys
+  the server-pushed contract.
+
+  The scratchpad contract is:
+
+  - Keep a private scratchpad with at most three live todo items.
+  - Push completed items as server-pushed state: remove them immediately.
+  - If progress stalls, replace the stalest item with the next best action.
+scratchpad_requirements:
+  - Keep a private scratchpad with at most three live todo items.
+  - Push completed items as server-pushed state: remove them immediately.
+  - If progress stalls, replace the stalest item with the next best action.
+scratchpad_refresh_example:
+  - Confirm the task constraints and keep the change narrow.
+  - Surface the scratchpad through task info and the runner.
+  - Validate the output with a local smoke verifier.

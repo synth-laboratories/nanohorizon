@@ -1,0 +1,24 @@
+2026-04-11 16:10 UTC - initial inspection
+- Workspace contained only the bootstrap README and git metadata.
+- Confirmed the expected Craftax source tree was absent from the visible checkout.
+
+2026-04-11 16:25 UTC - candidate implementation
+- Materialized the Server Push E2E source tree under `src/nanohorizon/craftax_core/`.
+- Centralized the compact todo contract in `src/nanohorizon/craftax_core/metadata.py`
+  and exposed it through the Craftax runner and HTTP shim.
+
+2026-04-11 16:30 UTC - verifier feedback
+- A plain `uv run --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py`
+  failed because `pytest` was not installed in the project environment.
+- Re-ran with the explicit verifier command:
+  `uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py`.
+
+2026-04-11 16:40 UTC - validation
+- The explicit verifier command passed with `4 passed in 0.04s`.
+- `./scripts/run_craftax_model_eval.sh` passed with `4 passed in 0.02s`.
+- The runner JSON emitted `todo_item_count: 3` and `scratchpad_mode: compact-three-item`.
+
+2026-04-11 17:05 UTC - final verification pass
+- Rechecked the runner entrypoint directly with `PYTHONPATH=src uv run --python 3.11 python -m nanohorizon.craftax_core.runner --json`.
+- Confirmed the shared task-info payload still emits the three-item scratchpad contract.
+- Left the candidate and verifier outputs aligned with the restored harness modules and prompt helper.

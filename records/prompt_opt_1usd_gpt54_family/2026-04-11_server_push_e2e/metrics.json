@@ -1,0 +1,6 @@
+{
+  "validation": "structural",
+  "tests_passed": 4,
+  "live_rollout": false,
+  "script_smoke_passed": true
+}

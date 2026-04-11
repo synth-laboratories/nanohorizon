@@ -1,0 +1,8 @@
+2026-04-11 - Server Push E2E candidate
+- The compact todo contract now lives in `src/nanohorizon/craftax_core/{metadata,http_shim,runner}.py`.
+- The prompt helper contract lives in `src/nanohorizon/baselines/prompt_opt.py` and is reused by the Craftax metadata layer.
+- The runtime payload reports `todo_item_count: 3`, `scratchpad_mode: compact-three-item`, and a three-item `todo_scratchpad`.
+- `./scripts/run_craftax_model_eval.sh` and the explicit verifier command both pass.
+- The reproducible verifier path is `uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py`.
+- The durable smoke result lives at `experiments/server_push_e2e/results/verifier.json`.
+- No live Craftax rollout or benchmark comparison was run in this workspace; validation is structural only.
