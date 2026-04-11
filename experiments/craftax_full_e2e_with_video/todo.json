@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "done": false,
+      "title": "Confirm the preserved Craftax surfaces stay stable."
+    },
+    {
+      "done": false,
+      "title": "Keep the todo scratchpad compact and durable."
+    },
+    {
+      "done": false,
+      "title": "Verify the runner and report the result honestly."
+    }
+  ],
+  "limit": 3,
+  "pending": [
+    {
+      "done": false,
+      "title": "Confirm the preserved Craftax surfaces stay stable."
+    },
+    {
+      "done": false,
+      "title": "Keep the todo scratchpad compact and durable."
+    },
+    {
+      "done": false,
+      "title": "Verify the runner and report the result honestly."
+    }
+  ]
+}
+

@@ -1,0 +1,5 @@
+2026-04-11T18:00:00Z: Stub checkout confirmed. The repo only exposed `README.md`, so the candidate needed to be reconstructed as a minimal scaffold.
+2026-04-11T18:10:00Z: Chosen candidate shape is a compact todo scratchpad plus a deterministic runner/verifier loop. No benchmark claim is being made.
+2026-04-11T18:20:00Z: Verification passed with `uv run --python 3.11 python scripts/verify_video_validation_run.py` and `bash scripts/run_craftax_model_eval.sh metadata`.
+2026-04-11T18:25:00Z: Wrote `experiments/craftax_full_e2e_with_video/results/verification.json` so the smoke evidence is durable and machine-readable.
+2026-04-11T18:12:45Z: GitHub PR creation was attempted with repo slug `00000000-0000-0000-0000-000000000001/77224b95-36c5-45e7-9be1-35890e9b29b7` and was rejected because that repo is not in the configured GitHub repos list.

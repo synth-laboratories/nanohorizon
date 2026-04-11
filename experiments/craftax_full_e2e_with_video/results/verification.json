@@ -1,0 +1,15 @@
+{
+  "candidate_label": "Final E2E With Video",
+  "commands": [
+    "uv run --python 3.11 python scripts/verify_video_validation_run.py",
+    "bash scripts/run_craftax_model_eval.sh metadata",
+    "uv run --python 3.11 python -m nanohorizon.craftax_core.runner list"
+  ],
+  "status": "passed",
+  "summary": {
+    "experiment_id": "craftax_full_e2e_with_video",
+    "scratchpad_path": "experiments/craftax_full_e2e_with_video/todo.json",
+    "scratchpad_limit": 3
+  }
+}
+

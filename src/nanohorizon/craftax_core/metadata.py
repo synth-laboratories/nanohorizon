@@ -1,122 +1,67 @@
+"""Metadata for the Craftax video-validation candidate."""
+
 from __future__ import annotations
 
-PRIMARY_TOOL_NAME = "craftax_interact"
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
 
-FULL_ACTIONS = {
-    "noop": 0,
-    "move_left": 1,
-    "move_right": 2,
-    "move_up": 3,
-    "move_down": 4,
-    "do": 5,
-    "sleep": 6,
-    "place_stone": 7,
-    "place_table": 8,
-    "place_furnace": 9,
-    "place_plant": 10,
-    "make_wood_pickaxe": 11,
-    "make_stone_pickaxe": 12,
-    "make_iron_pickaxe": 13,
-    "make_wood_sword": 14,
-    "make_stone_sword": 15,
-    "make_iron_sword": 16,
-    "rest": 17,
-    "descend": 18,
-    "ascend": 19,
-    "make_diamond_pickaxe": 20,
-    "make_diamond_sword": 21,
-    "make_iron_armour": 22,
-    "make_diamond_armour": 23,
-    "shoot_arrow": 24,
-    "make_arrow": 25,
-    "cast_fireball": 26,
-    "cast_iceball": 27,
-    "place_torch": 28,
-    "drink_potion_red": 29,
-    "drink_potion_green": 30,
-    "drink_potion_blue": 31,
-    "drink_potion_pink": 32,
-    "drink_potion_cyan": 33,
-    "drink_potion_yellow": 34,
-    "read_book": 35,
-    "enchant_sword": 36,
-    "enchant_armour": 37,
-    "make_torch": 38,
-    "level_up_dexterity": 39,
-    "level_up_strength": 40,
-    "level_up_intelligence": 41,
-    "enchant_bow": 42,
-}
+CANDIDATE_LABEL = "Final E2E With Video"
+EXPERIMENT_ID = "craftax_full_e2e_with_video"
+CRAFTAX_METADATA_VERSION = "1.0"
+SCRATCHPAD_PATH = Path("experiments") / EXPERIMENT_ID / "todo.json"
+PRESERVED_HARNESS_SURFACES = (
+    "docs/task-craftax.md",
+    "src/nanohorizon/craftax_core/http_shim.py",
+    "src/nanohorizon/craftax_core/runner.py",
+    "src/nanohorizon/craftax_core/metadata.py",
+    "scripts/run_craftax_model_eval.sh",
+)
 
-FULL_ACHIEVEMENTS = {
-    0: "collect_wood",
-    1: "place_table",
-    2: "eat_cow",
-    3: "collect_sapling",
-    4: "collect_drink",
-    5: "make_wood_pickaxe",
-    6: "make_wood_sword",
-    7: "place_plant",
-    8: "defeat_zombie",
-    9: "collect_stone",
-    10: "place_stone",
-    11: "eat_plant",
-    12: "defeat_skeleton",
-    13: "make_stone_pickaxe",
-    14: "make_stone_sword",
-    15: "wake_up",
-    16: "place_furnace",
-    17: "collect_coal",
-    18: "collect_iron",
-    19: "collect_diamond",
-    20: "make_iron_pickaxe",
-    21: "make_iron_sword",
-    22: "make_arrow",
-    23: "make_torch",
-    24: "place_torch",
-    25: "make_diamond_sword",
-    26: "make_iron_armour",
-    27: "make_diamond_armour",
-    28: "enter_gnomish_mines",
-    29: "enter_dungeon",
-    30: "enter_sewers",
-    31: "enter_vault",
-    32: "enter_troll_mines",
-    33: "enter_fire_realm",
-    34: "enter_ice_realm",
-    35: "enter_graveyard",
-    36: "defeat_gnome_warrior",
-    37: "defeat_gnome_archer",
-    38: "defeat_orc_soldier",
-    39: "defeat_orc_mage",
-    40: "defeat_lizard",
-    41: "defeat_kobold",
-    42: "defeat_troll",
-    43: "defeat_deep_thing",
-    44: "defeat_pigman",
-    45: "defeat_fire_elemental",
-    46: "defeat_frost_troll",
-    47: "defeat_ice_elemental",
-    48: "damage_necromancer",
-    49: "defeat_necromancer",
-    50: "eat_bat",
-    51: "eat_snail",
-    52: "find_bow",
-    53: "fire_bow",
-    54: "collect_sapphire",
-    55: "learn_fireball",
-    56: "cast_fireball",
-    57: "learn_iceball",
-    58: "cast_iceball",
-    59: "collect_ruby",
-    60: "make_diamond_pickaxe",
-    61: "open_chest",
-    62: "drink_potion",
-    63: "enchant_sword",
-    64: "enchant_armour",
-    65: "defeat_knight",
-    66: "defeat_archer",
-}
 
-DEFAULT_ACTION_NAMES = list(FULL_ACTIONS.keys())
-DEFAULT_ACHIEVEMENT_NAMES = list(FULL_ACHIEVEMENTS.values())
+@dataclass(frozen=True, slots=True)
+class CraftaxRunMetadata:
+    candidate_label: str = CANDIDATE_LABEL
+    experiment_id: str = EXPERIMENT_ID
+    metadata_version: str = CRAFTAX_METADATA_VERSION
+    scratchpad_limit: int = 3
+    harness_surfaces: tuple[str, ...] = PRESERVED_HARNESS_SURFACES
+    scratchpad_path: Path = SCRATCHPAD_PATH
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["harness_surfaces"] = list(self.harness_surfaces)
+        payload["preserved_harness_surfaces"] = list(self.harness_surfaces)
+        payload["scratchpad_path"] = str(self.scratchpad_path)
+        return payload
+
+
+def build_candidate_metadata() -> CraftaxRunMetadata:
+    return CraftaxRunMetadata()
+
+
+def build_candidate_manifest() -> dict[str, Any]:
+    metadata = build_candidate_metadata().to_dict()
+    return {
+        "label": metadata["candidate_label"],
+        "experiment_id": metadata["experiment_id"],
+        "metadata_version": metadata["metadata_version"],
+        "output_root": str(SCRATCHPAD_PATH.parent),
+        "strategy": "Todo Tool",
+        "track_name": "craftax",
+        "verification_modes": ["metadata_roundtrip_smoke", "scratchpad_render_smoke"],
+    }
+
+
+def build_candidate_prompt() -> str:
+    return (
+        "You are a Craftax policy agent. "
+        "Keep a tiny private todo list with exactly three items before each tool call. "
+        "The three items must track (1) the most urgent danger or blocker, "
+        "(2) the next tile, object, or resource target, and "
+        "(3) the fallback action that breaks a loop if progress stalls. "
+        "Refresh completed todo items every turn. "
+        "If the policy repeats the same movement pattern without progress or new information, "
+        "replace the stale target item instead of continuing the loop. "
+        "Do not reveal the todo list or scratchpad in the final answer."
+    )
