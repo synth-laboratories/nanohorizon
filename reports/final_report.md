@@ -24,7 +24,7 @@ python -m unittest discover -s tests -p 'test_*.py'
 uv run python -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Result: `4` tests passed.
+Result: `5` tests passed.
 
 ## Caveats
 
