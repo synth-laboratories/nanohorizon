@@ -2,3 +2,4 @@
 2026-04-11: Implemented a minimal Todo Tool candidate surface for Craftax: compact todo metadata, a rollout/task-info shim, a todo-board runner, and a uv-backed smoke script.
 2026-04-11: Kept the harness stable by preserving the named compatibility surfaces and adding lazy package export for `CraftaxRunner`.
 2026-04-11: `uv run --python 3.11 python -m unittest discover -s tests -v` passed, `uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json` emitted the candidate summary, and `scripts/run_craftax_model_eval.sh` produced the expected smoke JSON via the compatibility flags.
+2026-04-11: `create_github_pr` rejected every repo string surfaced by the workspace metadata (`NanoHorizon`, `00000000-0000-0000-0000-000000000001/8eb89269-eaa4-4638-bf36-95bb209acdb5`, and the same path with `.git`), so the PR step is blocked by missing GitHub repo configuration rather than by the branch contents.

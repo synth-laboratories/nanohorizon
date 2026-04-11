@@ -70,3 +70,6 @@ uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json
 
 - Open risks: this is a minimal scaffold in an otherwise empty repository, so
   the impact is limited to the harness/doc surface added in this run.
+- PR creation is blocked in this workspace because `create_github_pr` rejected
+  every repo string exposed by the runtime metadata, so no configured GitHub
+  repo slug was available to open the review.
