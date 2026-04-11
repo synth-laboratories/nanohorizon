@@ -1,0 +1,5 @@
+2026-04-11T17:20:00Z - Attempt 1: Inspected repo and run state. Found only README.md in git; docs/task-craftax.md and Craftax surfaces were absent from the checkout.
+2026-04-11T17:20:00Z - Decision: implement the smallest honest improvement as a compact todo scratchpad candidate rather than inventing a broader harness refactor.
+2026-04-11T17:20:00Z - Next: run uv-based smoke verification, capture the manifest and prompt artifacts, then review the diff for minimality before commit/push.
+2026-04-11T17:22:00Z - Attempt 2: Ran bash scripts/run_craftax_model_eval.sh successfully. The script created the candidate manifest and prompt artifacts and the unittest smoke suite passed (3 tests).
+2026-04-11T17:24:00Z - Follow-up: pinned the eval script to Python 3.12 and restored the `--write` path in `runner.py` so the smoke verifier and manifest emission path both pass under the actual project interpreter requirement.

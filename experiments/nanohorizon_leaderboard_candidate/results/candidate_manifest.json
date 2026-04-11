@@ -1,0 +1,19 @@
+{
+  "label": "Full Auto E2E",
+  "preserved_surfaces": [
+    "docs/task-craftax.md",
+    "src/nanohorizon/craftax_core/http_shim.py",
+    "src/nanohorizon/craftax_core/runner.py",
+    "src/nanohorizon/craftax_core/metadata.py",
+    "scripts/run_craftax_model_eval.sh"
+  ],
+  "rationale": "A compact todo scratchpad is the smallest honest change that makes the Full Auto E2E candidate more disciplined without mutating the existing Craftax harness contract.",
+  "strategy": "Todo Tool",
+  "todo_items": [
+    "State the objective and verifier target in one line.",
+    "Keep the change set as small as possible.",
+    "Record the evidence before expanding scope.",
+    "Check the candidate against the preserved harness surfaces.",
+    "Stop only after the verifier pass is documented."
+  ]
+}

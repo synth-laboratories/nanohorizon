@@ -1,0 +1,1 @@
+NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml ./scripts/run_craftax_model_eval.sh

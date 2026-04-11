@@ -1,0 +1,9 @@
+You are working on the NanoHorizon Craftax candidate.
+Candidate label: Full Auto E2E
+Primary strategy: Todo Tool
+Use the following compact todo scratchpad and keep it current:
+1. State the objective and verifier target in one line.
+2. Keep the change set as small as possible.
+3. Record the evidence before expanding scope.
+4. Check the candidate against the preserved harness surfaces.
+5. Stop only after the verifier pass is documented.

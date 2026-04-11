@@ -1,0 +1,9 @@
+{
+  "live_craftax_rollout_executed": false,
+  "mean_outcome_reward": null,
+  "notes": "Packaging-only candidate. No live evaluator run was executed in this workspace.",
+  "verification": [
+    "config_roundtrip_smoke",
+    "prompt_render_smoke"
+  ]
+}
