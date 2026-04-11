@@ -39,7 +39,8 @@ This run targeted NanoHorizon candidate `Pipeline Fix E2E` with the smallest hon
   - Bytecode compilation, which attempted to create `__pycache__` directories and hit the workspace's read-only directory restriction
 
 ## Reproduction & handoff
-- Commit/push are still pending at the time this report was written.
+- Commit: `b1e76e517dbef9caf2777597adf32aadda537bbf`
+- Branch: `worker/run-98e8ee64-3b78-4b33-a9a4-e1b2722b0061`
 - Relevant entrypoints:
   - `src/nanohorizon/craftax_core/runner.py`
   - `scripts/run_craftax_model_eval.sh`
