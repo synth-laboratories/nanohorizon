@@ -1,0 +1,17 @@
+2026-04-11
+
+Blocker for `repo_candidate_daytona_stack_validation`:
+- `/workspace` only contains `README.md` at `HEAD` (`89ff3d6163ccc53d5c2ccb4de49882d19f03b12f`).
+- The task-required Craftax surfaces are absent locally: `docs/task-craftax.md`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/runner.py`, `src/nanohorizon/craftax_core/metadata.py`, and `scripts/run_craftax_model_eval.sh`.
+- `git ls-remote --heads origin` returned HTTP 403 from the configured remote, so I could not recover a missing source tree from the remote.
+- `/horizons-seed-workspace` is another checkout with the same initial commit and the same blocker; its `findings.txt` records the identical absence of source files.
+- Result: I could not implement or verifier-test the Daytona Stack Validation candidate without inventing files or assumptions outside the contract.
+- Current run snapshot (`run_id=4c4834a0-8ba3-483e-a6e7-47438b77de03`) still shows the task active and the shared context empty; no additional repository artifacts are available to recover the missing Craftax sources.
+
+2026-04-11
+
+Reconstructed candidate packaging:
+- Added a narrow prompt-opt helper at `src/nanohorizon/baselines/prompt_opt.py` that centralizes the three-item todo scratchpad contract for the Daytona Stack Validation candidate.
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_daytona_stack_validation.yaml` with the candidate seed prompt, keeping the `craftax_interact` contract and the short action-batch shape.
+- Added a durable record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-11_daytona_stack_validation/` and a final report that states the runtime caveat explicitly.
+- Validation in this checkout was limited to file-content checks; the Craftax runtime was not executed because the source tree remained absent.

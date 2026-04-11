@@ -1,0 +1,7 @@
+{
+  "name": "daytona_stack_validation",
+  "implementation_status": "candidate_not_run",
+  "candidate_label": "Daytona Stack Validation",
+  "notes": "This checkout was missing the Craftax source tree, so the candidate was reconstructed from the archived NanoHorizon prompt-opt baseline and not executed in-place."
+}
+

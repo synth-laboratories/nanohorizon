@@ -1,0 +1,2 @@
+NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_daytona_stack_validation.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh
+
