@@ -15,9 +15,10 @@ Evidence gathered before choosing this change:
 - The new config stays within the existing prompt-opt budget and rollout envelope.
 
 Validation performed in this task:
-- Structural source/config/record validation only. No live Craftax, Modal, or GEPA reward run was executed, so reward impact remains unmeasured.
+- Structural source/config/record validation only. `uv run --with pytest pytest -q tests/test_auto_push_e2e_candidate.py` passed with `4 passed`.
+- No live Craftax, Modal, or GEPA reward run was executed, so reward impact remains unmeasured.
 
 Residual risks:
 - The extra end-to-end handoff wording could overconstrain otherwise good short tactical action batches.
 - Because no live rollout run was executed, this remains a packaging and prompt-shaping candidate rather than a measured improvement.
-
+- GitHub publication is blocked by repository configuration: `create_github_pr` rejected every tried repo slug as not present in the configured GitHub repos list.

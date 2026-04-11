@@ -5,6 +5,12 @@ from pathlib import Path
 
 import yaml
 
+from nanohorizon.baselines.prompt_opt import (
+    build_reflection_system_directive,
+    build_seed_prompt,
+    todo_scratchpad_directive,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = REPO_ROOT / "configs" / "craftax_prompt_opt_qwen35_4b_codex_auto_push_e2e.yaml"
@@ -29,21 +35,21 @@ def test_candidate_config_uses_auto_push_todo_prompt() -> None:
     payload = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
     seed_prompt = str(payload["prompt"]["seed_prompt"])
 
+    assert seed_prompt == build_seed_prompt()
     assert "Auto Push E2E" not in seed_prompt
-    assert "tiny private" in seed_prompt
-    assert "todo list with exactly three items" in seed_prompt
-    assert "fallback action that breaks a loop" in seed_prompt
-    assert "replace the stale target item" in seed_prompt
+    assert todo_scratchpad_directive() in seed_prompt
     assert "end-to-end handoff guard" in seed_prompt
+    assert "craftax_interact" in seed_prompt
 
 
 def test_prompt_opt_source_centralizes_todo_contract() -> None:
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "TODO_SCRATCHPAD_REQUIREMENTS" in source
+    assert "_build_seed_prompt_body()" in source
     assert "todo_scratchpad_directive()" in source
-    assert "replace the stale target item" in source
     assert "Do not reveal the todo list or scratchpad" in source
+    assert todo_scratchpad_directive() in build_reflection_system_directive()
 
 
 def test_candidate_record_bundle_is_present_and_marked_not_run() -> None:

@@ -29,7 +29,7 @@ This run targeted the NanoHorizon Craftax prompt-opt path. The objective was the
 
 ## Quality & Validation
 
-- Structural validation only through `tests/test_auto_push_e2e_candidate.py`.
+- Structural validation only through `tests/test_auto_push_e2e_candidate.py`, which passed with `4 passed`.
 - The prompt-opt wrapper command is now present as a dry-run/config inspection script.
 - No live Craftax rollout, Modal execution, or GEPA optimization run was executed.
 
