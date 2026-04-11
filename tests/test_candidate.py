@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-import contextlib
-import io
 import json
 import tempfile
 from pathlib import Path
 import unittest
 
-from nanohorizon.baselines.prompt_opt import candidate_config
+from nanohorizon.baselines.prompt_opt import (
+    FULL_AUTO_E2E_SYSTEM_PROMPT,
+    TRACK_NAME,
+    candidate_config,
+    load_config,
+    todo_scratchpad_directive,
+)
 from nanohorizon.craftax_core.metadata import (
     CANDIDATE_LABEL,
+    OUTPUT_ROOT,
     PRIMARY_STRATEGY,
     build_candidate_manifest,
     build_candidate_prompt,
@@ -22,37 +27,51 @@ class CandidateSmokeTest(unittest.TestCase):
         manifest = build_candidate_manifest()
         self.assertEqual(manifest["label"], CANDIDATE_LABEL)
         self.assertEqual(manifest["strategy"], PRIMARY_STRATEGY)
-        self.assertGreaterEqual(len(manifest["todo_items"]), 3)
-        self.assertEqual(manifest["track_name"], candidate_config()["track"])
+        self.assertEqual(manifest["output_root"], OUTPUT_ROOT)
+        self.assertEqual(
+            manifest["verification_modes"],
+            ["config_roundtrip_smoke", "prompt_render_smoke"],
+        )
+        self.assertEqual(manifest["track_name"], TRACK_NAME)
 
-    def test_prompt_contains_todo_scratchpad(self) -> None:
+    def test_prompt_contains_candidate_prompt_text(self) -> None:
         prompt = build_candidate_prompt()
-        self.assertIn("todo scratchpad", prompt)
-        self.assertIn("Stop only after the verifier pass is documented.", prompt)
+        self.assertIn(FULL_AUTO_E2E_SYSTEM_PROMPT, prompt)
+        self.assertIn("Todo contract:", prompt)
+        self.assertIn(todo_scratchpad_directive(), prompt)
+
+    def test_candidate_config_round_trip(self) -> None:
+        self.assertEqual(
+            load_config("configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml"),
+            candidate_config(),
+        )
 
     def test_runner_writes_summary_and_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "config.json"
             output_dir = Path(tmpdir) / "artifacts"
             manifest_path = output_dir / "candidate_manifest.json"
             prompt_path = output_dir / "candidate_prompt.txt"
-            config_path.write_text(json.dumps(candidate_config()), encoding="utf-8")
-            with contextlib.redirect_stdout(io.StringIO()):
-                exit_code = main(
-                    [
-                        "--config",
-                        str(config_path),
-                        "--output-dir",
-                        str(output_dir),
-                        "--write",
-                        str(manifest_path),
-                        "--prompt-out",
-                        str(prompt_path),
-                    ]
-                )
+            exit_code = main(
+                [
+                    "--config",
+                    "configs/craftax_prompt_opt_qwen35_4b_full_auto_e2e.yaml",
+                    "--output-dir",
+                    str(output_dir),
+                    "--write",
+                    str(manifest_path),
+                    "--prompt-out",
+                    str(prompt_path),
+                ]
+            )
             self.assertEqual(exit_code, 0)
             summary = json.loads((output_dir / "smoke_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["candidate_manifest"]["label"], CANDIDATE_LABEL)
-            self.assertEqual(summary["loaded_config"]["candidate"]["label"], CANDIDATE_LABEL)
-            self.assertEqual(manifest_path.read_text(encoding="utf-8").strip(), json.dumps(build_candidate_manifest(), indent=2, sort_keys=True))
-            self.assertEqual(prompt_path.read_text(encoding="utf-8"), build_candidate_prompt() + "\n")
+            self.assertEqual(summary["loaded_config"], candidate_config())
+            self.assertEqual(
+                manifest_path.read_text(encoding="utf-8"),
+                json.dumps(build_candidate_manifest(), indent=2, sort_keys=True) + "\n",
+            )
+            self.assertEqual(
+                prompt_path.read_text(encoding="utf-8"),
+                build_candidate_prompt() + "\n",
+            )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 from nanohorizon.baselines.prompt_opt import FULL_AUTO_E2E_SYSTEM_PROMPT, todo_scratchpad_directive
@@ -110,9 +110,9 @@ def build_candidate_manifest() -> dict[str, Any]:
     return {
         "label": CANDIDATE_LABEL,
         "strategy": PRIMARY_STRATEGY,
-        "todo_items": TODO_ITEMS,
+        "todo_items": list(TODO_ITEMS),
         "preserved_surfaces": PRESERVED_SURFACES,
-        "verification_modes": ("config_roundtrip_smoke", "prompt_render_smoke"),
+        "verification_modes": ["config_roundtrip_smoke", "prompt_render_smoke"],
         "track_name": TRACK_NAME,
         "task_name": TASK_NAME,
         "output_root": OUTPUT_ROOT,

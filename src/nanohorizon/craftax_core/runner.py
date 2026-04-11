@@ -66,20 +66,17 @@ def main(argv: list[str] | None = None) -> int:
     else:
         loaded_config = {}
 
-    payload = _load_payload_from_stdin()
     effective_output_dir = Path(args.output_dir or loaded_config.get("output", {}).get("root_dir", ""))
     if effective_output_dir:
         effective_output_dir.mkdir(parents=True, exist_ok=True)
     summary = {
         "config_path": str(config_path) if config_path is not None else None,
-        "effective_output_dir": str(effective_output_dir) if effective_output_dir else None,
-        "candidate_manifest": build_candidate_manifest(),
+        "candidate_config": candidate_config(),
         "loaded_config": loaded_config,
-        "prompt_turn": build_prompt_context_from_json(payload),
-        "verification": ["config_roundtrip_smoke", "prompt_render_smoke"],
+        "output_dir": str(effective_output_dir) if effective_output_dir else "",
     }
     if effective_output_dir:
-        (effective_output_dir / "smoke_summary.json").write_text(
+        (effective_output_dir / "candidate_summary.json").write_text(
             json.dumps(summary, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )

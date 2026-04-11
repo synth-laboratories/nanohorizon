@@ -46,12 +46,41 @@ def todo_scratchpad_directive() -> str:
 
 def candidate_config() -> dict[str, Any]:
     return {
-        "track": TRACK_NAME,
-        "task": TASK_NAME,
-        "candidate_label": "Full Auto E2E",
-        "base_model": BASE_MODEL,
-        "optimizer_budget_usd": 1.0,
-        "optimizer_models": OPTIMIZER_MODELS,
+        "task": {
+            "name": TASK_NAME,
+        },
+        "candidate": {
+            "label": "Full Auto E2E",
+            "strategy": "Todo Tool",
+        },
+        "policy": {
+            "model": BASE_MODEL,
+            "served_model_name": MODEL_LABEL,
+            "max_model_len": 8192,
+        },
+        "optimizer": {
+            "budget_usd": 1.0,
+            "proposer_model": "gpt-5.4-mini",
+            "reflection_backend": "policy_inference",
+            "allowed_models": OPTIMIZER_MODELS,
+            "allowed_split": "any",
+        },
+        "search": {
+            "objective": "improve_craftax_rollout_reward",
+            "max_metric_calls": 24,
+            "reflection_minibatch_size": 2,
+            "candidate_selection_strategy": "epsilon_greedy",
+            "seed": 7,
+        },
+        "prompt": {
+            "component_name": "system_prompt",
+            "seed_prompt": FULL_AUTO_E2E_SYSTEM_PROMPT,
+            "todo_contract": todo_scratchpad_directive(),
+        },
+        "data": {
+            "train_seeds": [10007, 10008, 10011, 10014],
+            "eval_seeds": [10001, 10010, 10017, 10019],
+        },
         "rollout": {
             "max_steps": 10,
             "max_concurrent_rollouts": 4,
@@ -65,15 +94,8 @@ def candidate_config() -> dict[str, Any]:
             "enable_thinking": True,
             "thinking_budget_tokens": 2000,
         },
-        "train_seeds": [10007, 10008, 10011, 10014],
-        "eval_seeds": [10001, 10010, 10017, 10019],
-        "prompt": {
-            "component_name": "system_prompt",
-            "seed_prompt": FULL_AUTO_E2E_SYSTEM_PROMPT,
-            "todo_contract": todo_scratchpad_directive(),
-        },
         "output": {
-            "root_dir": "records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e"
+            "root_dir": "records/prompt_opt_1usd_gpt54_family/2026-04-11_full_auto_e2e",
         },
     }
 
