@@ -51,7 +51,8 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
 - The package initializer exports `CraftaxRunner` lazily so the entrypoint stays
   warning-free under `python -m`.
 - The eval script now emits `.out/craftax_eval/smoke_payload.json` through the
-  runner's `--smoke --json --output` path.
+  runner compatibility path that accepts both `--format json` and the legacy
+  `--smoke --json --output` flags.
 - Not validated: actual benchmark scoring, remote container execution, or any
   training-time behavior.
 
@@ -63,6 +64,7 @@ named Craftax harness surfaces stable. No SFT or RL changes were introduced.
 
 ```bash
 uv run --python 3.11 python -m unittest discover -s tests -v
+uv run --python 3.11 python -m nanohorizon.craftax_core.runner --format json
 ./scripts/run_craftax_model_eval.sh
 ```
 
