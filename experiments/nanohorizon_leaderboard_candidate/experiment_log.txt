@@ -1,0 +1,4 @@
+2026-04-11T19:00:00Z Initial inspection: repository only contains `README.md` and no Craftax sources.
+2026-04-11T19:02:00Z Decision: implement a minimal todo scratchpad helper plus smoke tests; avoid inventing missing harness surfaces.
+2026-04-11T19:03:00Z Verification update: `PYTHONPATH=src uv run python -m unittest discover -s tests` passed after converting the scratchpad test to unittest style.
+2026-04-11T19:10:00Z PR blocker: workspace push succeeded on `worker/run-1b03f95c-8dc4-465b-aaf1-a43a43c44b5a` at `4a0358e589e3b8f0ac523573735ce55a09bc4510`, but `create_github_pr` rejected every guessed repo slug.

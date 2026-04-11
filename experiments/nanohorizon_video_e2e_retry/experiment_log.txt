@@ -1,0 +1,5 @@
+2026-04-11T18:55:00Z - Attempt 1: repository is a stub checkout with only README.md tracked. Chose the smallest honest candidate: add a reusable todo/scratchpad helper and test instead of inventing a broader harness refactor.
+2026-04-11T18:55:00Z - Verification plan: run `PYTHONPATH=src uv run python -m unittest tests.test_todo tests.test_todo_scratchpad`.
+2026-04-11T18:55:01Z - Verification outcome: the initial package import path was broken; fixed `src/nanohorizon/craftax_core/__init__.py` to re-export `TodoItem`, `TodoScratchpad`, and `compact_todo_block` from `todo.py`.
+2026-04-11T18:55:01Z - Verification outcome: restored `tests/test_todo.py` as a module import smoke test, kept `tests/test_todo_scratchpad.py` as the render/truncation verifier, and confirmed `PYTHONPATH=src uv run python -m unittest tests.test_todo tests.test_todo_scratchpad` passes.
+2026-04-11T18:55:01Z - Smoke check: `PYTHONPATH=src uv run python scripts/craftax_todo.py init|add|done|show` round-trips the markdown board and produces the expected markdown board state in `/tmp/craftax_todo_check.md`.
