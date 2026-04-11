@@ -1,1 +1,2 @@
-"""NanoHorizon baseline package."""
+"""NanoHorizon package."""
+

@@ -1,62 +1,32 @@
-# Craftax Todo Refresh Gate Candidate
+# NanoHorizon Candidate Report
 
-## Context & objective
+## Context & Objective
+This run targeted the NanoHorizon candidate `Video E2E Retry`. The repo was a sparse workspace, so the right outcome was a small honest candidate that adds a reusable compact todo/scratchpad primitive for Craftax-style subgoal tracking without mutating the shared harness surfaces.
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
-
-## Experiments cited
-
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
-
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
-   - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
-
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
-
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+## Experiments Cited
+- `scripts/craftax_todo.py`: verified the file-backed markdown board can `init`, `add`, `done`, and `show` a compact scratchpad.
+- `src/nanohorizon/craftax_core/todo_scratchpad.py`: implemented the in-memory scratchpad primitive and bounded markdown rendering.
+- `src/nanohorizon/craftax_core/todo.py`: provides the public compatibility export for the scratchpad API.
+- `tests/test_todo.py` and `tests/test_todo_scratchpad.py`: exercised package exports, stable rendering, mark-done behavior, truncation, and empty-item rejection.
 
 ## Insights
+1. A compact scratchpad is a defensible minimal improvement for this workspace because it keeps the agent’s subgoals visible without inventing a larger harness rewrite.
+2. The candidate is still honest and narrow: the code only tracks and renders todo items; it does not add rollout logic, model changes, or benchmark-specific behavior.
+3. The package export bug was real and verifier-visible. Fixing `src/nanohorizon/craftax_core/__init__.py` to route through `src/nanohorizon/craftax_core/todo.py` made the scratchpad importable from the package root.
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+## Research Artifacts Produced
+- Environment: `pyproject.toml` with a `src/` layout and `uv.lock` for reproducible Python commands.
+- Scratchpad tool: `scripts/craftax_todo.py` plus the default board in `craftax_todo.md`.
+- In-memory helper: `src/nanohorizon/craftax_core/todo_scratchpad.py`, exposed through `src/nanohorizon/craftax_core/todo.py` and re-exported from `src/nanohorizon/craftax_core/__init__.py`.
+- Tests: `tests/test_todo.py` and `tests/test_todo_scratchpad.py` for the module export and scratchpad behavior.
 
-## Research artifacts produced
+## Quality & Validation
+- Passed `PYTHONPATH=src uv run python -m unittest discover -s tests`.
+- Passed a file-backed board round-trip with `uv run python scripts/craftax_todo.py init|add|done|show`.
+- Not validated: any Craftax leaderboard score, rollout path, or model performance change. The repository did not contain the original shared Craftax harness files, so the candidate intentionally avoided inventing them.
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
-
-## Quality & validation
-
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
-
-## Reproduction & handoff
-
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+## Reproduction & Handoff
+- Reproduce the main verifier with `PYTHONPATH=src uv run python -m unittest discover -s tests`.
+- Reproduce the file-backed tool round-trip with `uv run python scripts/craftax_todo.py init --path <tmp>/board.md`, then `add`, `done`, and `show`.
+- Open risk: this remains a helper-level candidate, not a full Craftax benchmark integration, because the checkout lacked the harness files named in the task notes.
+- PR creation is blocked on the configured GitHub repo slug; workspace push succeeded on commit `4a0358e589e3b8f0ac523573735ce55a09bc4510`.
