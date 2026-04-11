@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Iterable, Literal, Mapping, cast
+from typing import Any, Iterable, Literal, Mapping, Sequence, cast
 
 
 TodoStatus = Literal["todo", "doing", "done"]
@@ -34,6 +34,14 @@ def _coerce_metadata(value: Any) -> dict[str, Any]:
     if isinstance(value, Mapping):
         return dict(value)
     return {}
+
+
+def _coerce_rows(value: Any) -> Sequence[Any]:
+    if isinstance(value, Sequence) and not isinstance(
+        value, (str, bytes, bytearray)
+    ):
+        return value
+    return ()
 
 
 def _coerce_status(value: Any) -> TodoStatus:
@@ -139,13 +147,12 @@ class TodoBoard:
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "TodoBoard":
         items: list[TodoItem] = []
-        rows = raw.get("items")
-        if not isinstance(rows, list) or not rows:
-            rows = raw.get("project_todo")
-        if isinstance(rows, list):
-            for row in rows:
-                if isinstance(row, Mapping):
-                    items.append(TodoItem.from_dict(row))
+        rows = _coerce_rows(raw.get("items"))
+        if not rows:
+            rows = _coerce_rows(raw.get("project_todo"))
+        for row in rows:
+            if isinstance(row, Mapping):
+                items.append(TodoItem.from_dict(row))
         return cls(
             board_id=_coerce_text(raw.get("board_id")) or "shared-history",
             items=items,

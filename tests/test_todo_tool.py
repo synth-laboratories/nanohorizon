@@ -45,13 +45,13 @@ class TodoToolTests(unittest.TestCase):
         restored = TodoBoard.from_dict(
             {
                 "board_id": "run-2",
-                "project_todo": [
+                "project_todo": (
                     {
                         "title": "draft candidate",
                         "status": "doing",
                         "owner": "agent",
-                    }
-                ],
+                    },
+                ),
             }
         )
 
