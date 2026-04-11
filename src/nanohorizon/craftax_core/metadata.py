@@ -10,6 +10,7 @@ from nanohorizon.baselines.prompt_opt import (
     TODO_SCRATCHPAD_REQUIREMENTS,
     build_reflection_prompt as build_contract_reflection_prompt,
     build_seed_prompt as build_contract_seed_prompt,
+    refresh_todo_items as refresh_contract_todo_items,
 )
 
 
@@ -72,14 +73,13 @@ def refresh_todo_items(
     completed_items: Iterable[str] = (),
     next_action: str | None = None,
 ) -> tuple[str, ...]:
-    """Keep the scratchpad compact and server-pushed."""
+    """Keep the scratchpad compact and server-pushed via the shared helper."""
 
-    completed = {item.strip() for item in completed_items if item and item.strip()}
-    live_items = [item for item in todo_items if item not in completed]
-    if next_action:
-        live_items = [item for item in live_items if item != next_action]
-        live_items.append(next_action)
-    return tuple(live_items[-3:])
+    return refresh_contract_todo_items(
+        todo_items,
+        completed_items=completed_items,
+        next_action=next_action,
+    )
 
 
 def build_server_push_e2e_metadata(
