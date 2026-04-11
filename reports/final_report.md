@@ -68,6 +68,8 @@ the task-info payload, HTTP shim, and runtime runner.
 - Structural test: `tests/test_server_push_e2e_candidate.py`
 - Experiment verifier: `experiments/server_push_e2e/results/verifier.json`
 - Candidate bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-11_server_push_e2e/`
+- Candidate record includes the scratchpad refresh example used by the
+  structural test.
 
 ## Quality & validation
 
@@ -86,10 +88,14 @@ the task-info payload, HTTP shim, and runtime runner.
 - Reproduce with:
 
 ```bash
-uv run --no-project --with pyyaml --with pytest --python 3.11 pytest -q tests/test_server_push_e2e_candidate.py
+uv run --no-project --with pytest --python 3.11 pytest -q /workspace/tests/test_server_push_e2e_candidate.py
 ./scripts/run_craftax_model_eval.sh
 ```
 
 - Open risk: no live Craftax benchmark rollout was run in this workspace, so
   the result is a structural candidate rather than a scored leaderboard
   submission.
+- Blocking issue: I could not resolve the configured GitHub repo slug from the
+  workspace state. `create_github_pr` rejected the internal repo id and the
+  `NanoHorizon` / `openai/NanoHorizon` guesses, so the PR step is not complete
+  yet.
