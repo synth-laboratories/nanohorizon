@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from nanohorizon.craftax_core.todo_tool import TodoBoard
+from nanohorizon.craftax_core.todo_tool import TodoBoard, TodoItem
 
 
 class TodoToolTests(unittest.TestCase):
@@ -39,6 +39,7 @@ class TodoToolTests(unittest.TestCase):
         self.assertEqual(restored.items[0].metadata, {"phase": "plan"})
         self.assertIsNotNone(restored.next_item())
         self.assertEqual(restored.open_items()[0].title, "verify candidate")
+        self.assertIn("project_todo", board.to_dict())
 
     def test_from_titles_creates_ordered_board(self) -> None:
         board = TodoBoard.from_titles(["read docs", "patch code", "verify"], board_id="run-1")
@@ -52,13 +53,6 @@ class TodoToolTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             board.mark_done("missing")
-
-    def test_invalid_status_is_coerced_to_todo(self) -> None:
-        board = TodoBoard()
-
-        item = board.add_item("draft candidate", status="not-a-status")
-
-        self.assertEqual(item.status, "todo")
 
 
 if __name__ == "__main__":

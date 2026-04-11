@@ -129,17 +129,23 @@ class TodoBoard:
         raise KeyError(f"unknown todo item: {item_id}")
 
     def to_dict(self) -> dict[str, Any]:
+        items = [item.to_dict() for item in self.items]
         return {
             "board_id": self.board_id,
-            "items": [item.to_dict() for item in self.items],
+            "items": items,
+            "project_todo": items,
         }
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "TodoBoard":
         items: list[TodoItem] = []
-        for row in raw.get("items", []):
-            if isinstance(row, Mapping):
-                items.append(TodoItem.from_dict(row))
+        rows = raw.get("items")
+        if not isinstance(rows, list) or not rows:
+            rows = raw.get("project_todo")
+        if isinstance(rows, list):
+            for row in rows:
+                if isinstance(row, Mapping):
+                    items.append(TodoItem.from_dict(row))
         return cls(
             board_id=_coerce_text(raw.get("board_id")) or "shared-history",
             items=items,

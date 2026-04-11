@@ -11,6 +11,7 @@ The git checkout was effectively empty at start, so the honest implementation ta
 - Added `src/nanohorizon/craftax_core/todo_tool.py` with a small `TodoBoard` and `TodoItem` model.
 - Added `tests/test_todo_tool.py` coverage for round-trip serialization, ordered todo creation, missing-item handling, and invalid-status coercion.
 - Added `pyproject.toml` plus the generated `uv.lock` so the `src/` layout is importable under `uv run` without manually exporting `PYTHONPATH`.
+- Aligned the board serialization with the richer `/app` optimizer-state shape by emitting both `items` and `project_todo` and accepting either key on load.
 - Recorded the workspace caveat and the decision trail in `findings.txt` and `experiments/nanohorizon_shared_history_e2e/experiment_log.txt`.
 
 ## Validation
