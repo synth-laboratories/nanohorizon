@@ -1,7 +1,4 @@
-2026-04-11: Repo started from an initial workspace commit with only README.md tracked.
-2026-04-11: Added a minimal Craftax Todo Tool candidate centered on a three-item private scratchpad contract in src/nanohorizon/baselines/prompt_opt.py.
-2026-04-11: Added preserved Craftax surface files (metadata, runner, HTTP shim, eval wrapper) as minimal self-contained implementations so the task-specific paths exist in this seed repo.
-2026-04-11: Candidate is marked candidate_not_run/not_run; no live Craftax, Modal, or GEPA execution was performed in this task.
-2026-04-11: Added scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh so the record-bundle command is executable and config-backed.
-2026-04-11: Verified the candidate structural test file passes with `uv run --with pytest pytest -q tests/test_auto_push_e2e_candidate.py`.
-2026-04-11: GitHub PR creation is blocked because `create_github_pr` rejects every tried repo slug as not present in the configured GitHub repos list.
+2026-04-11: The candidate lives in `src/nanohorizon/baselines/prompt_opt.py` with supporting Craftax surfaces in `src/nanohorizon/craftax_core/`.
+2026-04-11: The focused verifier `uv run --with pytest pytest -q tests/test_auto_push_e2e_candidate.py` passed (`4 passed`).
+2026-04-11: The preserved surface command for inspection is `scripts/run_craftax_model_eval.sh`; no live Craftax, Modal, or GEPA execution was performed.
+2026-04-11: `create_github_pr` rejected every attempted repo slug as not present in the configured GitHub repos list, so PR publication is blocked by environment configuration.

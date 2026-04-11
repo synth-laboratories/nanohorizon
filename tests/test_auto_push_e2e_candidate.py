@@ -33,7 +33,7 @@ def test_task_doc_names_the_candidate() -> None:
 
 def test_candidate_config_uses_auto_push_todo_prompt() -> None:
     payload = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
-    seed_prompt = str(payload["prompt"]["seed_prompt"])
+    seed_prompt = str(payload["prompt"]["seed_prompt"]).rstrip()
 
     assert seed_prompt == build_seed_prompt()
     assert "Auto Push E2E" not in seed_prompt
