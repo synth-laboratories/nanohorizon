@@ -1,19 +1,7 @@
-2026-04-07 - Craftax todo-tool candidate packaging
-- Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
-- Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.
-- Updated the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix/` so `run_config.yaml` and `notes.md` reflect the same candidate wording.
-- Validation run: `uv run pytest tests/test_codex_durable_intent_candidate.py` passed on 2026-04-07.
-- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` returned `ok: true` on 2026-04-07.
-- Local reviewable commit: `0434db4681ae114669540ab37dd4211c00f20645` (`Preserve Craftax todo guidance during prompt optimization`).
-- Push blocker: `workspace_push` failed with `workspace_push requires a live worker session; no live worker handle was found`, so this run can leave a local reviewable commit but cannot complete the required backend-tracked push flow.
-- Caveat: no live Craftax or Modal rollout run was executed in this task, so score impact remains unmeasured.
-
-2026-04-07 - Craftax todo refresh gate candidate
-- Kept the change inside `src/nanohorizon/baselines/prompt_opt.py`, one new prompt-opt config, one new record bundle, and a focused regression test; protected shared Craftax harness files remained unchanged.
-- Centralized the todo-tool contract in `src/nanohorizon/baselines/prompt_opt.py` via `TODO_SCRATCHPAD_REQUIREMENTS` so GEPA reflection and rollout feedback preserve the same private three-item scratchpad semantics instead of drifting across duplicated wording.
-- Added `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`, which asks the policy to refresh its private three-item todo list every turn, replace stale targets after no-progress loops, and make the 3-4 action batch follow the current first todo item.
-- Packaged the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/` with `command.txt`, `metadata.json`, `metrics.json`, `notes.md`, `run_config.yaml`, and `system_info.json`.
-- Validation run: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py` passed on 2026-04-07.
-- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
-- Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
-- Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+2026-04-11: The checkout started as a stub containing only `README.md`, so the candidate was reconstructed as a minimal Craftax video-validation scaffold rather than a benchmark-measured policy change.
+2026-04-11: The reviewable surfaces are `docs/task-craftax.md`, `src/nanohorizon/craftax_core/{http_shim.py,metadata.py,runner.py}`, `scripts/run_craftax_model_eval.sh`, and `scripts/verify_video_validation_run.py`.
+2026-04-11: The durable experiment state lives under `experiments/craftax_full_e2e_with_video/` and uses a compact todo scratchpad.
+2026-04-11: A stale verification artifact from an earlier run was removed from `experiments/nanohorizon_leaderboard_candidate/` to keep the workspace unambiguous.
+2026-04-11: Verification passed with `uv run --python 3.11 python scripts/verify_video_validation_run.py`; the repo-owned smoke path `bash scripts/run_craftax_model_eval.sh metadata` also completed cleanly after removing an eager runner import from `src/nanohorizon/craftax_core/__init__.py`.
+2026-04-11: A durable result artifact now lives at `experiments/craftax_full_e2e_with_video/results/verification.json`.
+2026-04-11: Git branch push succeeded, but `mcp__worker__create_github_pr` rejected repo slug `00000000-0000-0000-0000-000000000001/77224b95-36c5-45e7-9be1-35890e9b29b7` because it is not in the configured GitHub repos list.

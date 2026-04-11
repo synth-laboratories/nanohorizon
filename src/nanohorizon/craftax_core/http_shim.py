@@ -1,152 +1,137 @@
+"""Compact todo scratchpad used during Craftax validation runs."""
+
 from __future__ import annotations
 
-import os
-import uuid
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
-from .checkpoint import Checkpoint, CheckpointCodec
-from .rollout import collect_rollouts, run_rollout_request
-from .texture_cache import ensure_texture_cache
-
-
-class _Store:
-    def __init__(self) -> None:
-        self.rollouts: dict[str, dict[str, Any]] = {}
-        self.checkpoints: dict[str, bytes] = {}
-
-
-STORE = _Store()
+from .metadata import (
+    CANDIDATE_LABEL,
+    PRESERVED_HARNESS_SURFACES,
+    SCRATCHPAD_PATH,
+    build_candidate_manifest,
+    build_candidate_metadata,
+    build_candidate_prompt,
+)
 
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="nanohorizon-craftax-core")
+@dataclass(slots=True)
+class TodoItem:
+    title: str
+    done: bool = False
 
-    @app.get("/")
-    def root() -> dict[str, Any]:
-        return {"status": "ok", "service": "craftax_core_http_shim"}
+    def to_dict(self) -> dict[str, object]:
+        return {"title": self.title, "done": self.done}
 
-    @app.get("/health")
-    def health() -> dict[str, Any]:
-        texture = ensure_texture_cache()
+    @classmethod
+    def from_dict(cls, raw: dict[str, object]) -> "TodoItem":
+        return cls(title=str(raw["title"]), done=bool(raw.get("done", False)))
+
+
+@dataclass(slots=True)
+class CompactTodoScratchpad:
+    path: Path
+    limit: int = 3
+    items: list[TodoItem] = field(default_factory=list)
+
+    @classmethod
+    def load(cls, path: str | Path, limit: int = 3) -> "CompactTodoScratchpad":
+        path = Path(path)
+        if path.exists():
+            raw_text = path.read_text(encoding="utf-8").strip()
+            payload = json.loads(raw_text) if raw_text else {}
+            items = [TodoItem.from_dict(item) for item in payload.get("items", [])]
+        else:
+            items = []
+        return cls(path=path, limit=limit, items=items[:limit])
+
+    def add(self, title: str) -> TodoItem:
+        item = TodoItem(title=title)
+        self.items.append(item)
+        self._trim()
+        return item
+
+    def mark_done(self, index: int) -> TodoItem:
+        item = self.items[index]
+        item.done = True
+        return item
+
+    def pending(self) -> list[TodoItem]:
+        return [item for item in self.items if not item.done]
+
+    def snapshot(self) -> dict[str, object]:
         return {
-            "status": "ok",
-            "service": "craftax_core_http_shim",
-            "upstream_ready": True,
-            "texture_cache": texture,
+            "limit": self.limit,
+            "items": [item.to_dict() for item in self.items],
+            "pending": [item.to_dict() for item in self.pending()],
         }
 
-    @app.get("/done")
-    def done() -> dict[str, Any]:
-        return {"ok": True, "service": "craftax_core_http_shim"}
+    def save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(
+            json.dumps(self.snapshot(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
-    @app.get("/info")
-    def info() -> dict[str, Any]:
+    def render(self) -> str:
+        lines = []
+        for idx, item in enumerate(self.items, start=1):
+            marker = "x" if item.done else " "
+            lines.append(f"{idx}. [{marker}] {item.title}")
+        if not lines:
+            lines.append("(empty)")
+        return "\n".join(lines)
+
+    def _trim(self) -> None:
+        overflow = len(self.items) - self.limit
+        if overflow > 0:
+            self.items = self.items[overflow:]
+
+
+def create_app(*, scratchpad_path: str | Path = SCRATCHPAD_PATH) -> FastAPI:
+    app = FastAPI(title="NanoHorizon Craftax", version="0.1.0")
+    path = Path(scratchpad_path)
+
+    @app.get("/health")
+    def health() -> dict[str, object]:
         return {
-            "id": "craftax_core_http_shim",
-            "name": "Craftax Core HTTP Shim",
-            "description": "Python Craftax runtime with deterministic rollout support.",
+            "ok": True,
+            "candidate_label": CANDIDATE_LABEL,
+            "upstream_ready": True,
+            "scratchpad_path": str(path),
         }
 
     @app.get("/task_info")
-    def task_info() -> dict[str, Any]:
+    def task_info() -> dict[str, object]:
+        metadata = build_candidate_metadata().to_dict()
         return {
-            "id": "craftax_full",
-            "name": "Craftax Full",
-            "description": "Native full-Craftax long-horizon task.",
-            "action_space": "tool_call",
             "env_kind": "full",
+            "candidate": metadata,
+            "preserved_harness_surfaces": list(PRESERVED_HARNESS_SURFACES),
         }
 
     @app.post("/rollout")
-    def rollout(request: dict[str, Any]) -> dict[str, Any]:
-        payload = run_rollout_request(request)
-        STORE.rollouts[str(payload["rollout_id"])] = payload
-        return payload
-
     @app.post("/rollouts")
-    def rollouts(request: list[dict[str, Any]] | dict[str, Any]) -> dict[str, Any]:
-        requests = request if isinstance(request, list) else [request]
-        results, summary = collect_rollouts(requests=requests)
-        for payload in results:
-            STORE.rollouts[str(payload["rollout_id"])] = payload
-        return {"rollouts": results, "summary": summary}
+    def rollout(payload: dict[str, Any]) -> dict[str, object]:
+        del payload
+        return build_runner_summary(path)
 
-    @app.get("/rollouts/{rollout_id}")
-    def get_rollout(rollout_id: str) -> dict[str, Any]:
-        payload = STORE.rollouts.get(rollout_id)
-        if payload is None:
-            raise HTTPException(status_code=404, detail="unknown rollout_id")
-        return payload
-
-    @app.post("/rollouts/{rollout_id}/checkpoints")
-    def create_checkpoint(rollout_id: str, request: dict[str, Any]) -> dict[str, Any]:
-        rollout = STORE.rollouts.get(rollout_id)
-        if rollout is None:
-            raise HTTPException(status_code=404, detail="unknown rollout_id")
-        checkpoint_id = str(request.get("checkpoint_id") or f"checkpoint_{uuid.uuid4().hex}")
-        checkpoint = Checkpoint(
-            version=1,
-            seed=int(rollout.get("metadata", {}).get("seed", 0)),
-            episode_index=0,
-            step_index=int(len(rollout.get("metadata", {}).get("action_history", []))),
-            next_rng=None,
-            state=rollout,
-            metadata={"source": "shim_rollout_snapshot"},
-        )
-        STORE.checkpoints[checkpoint_id] = CheckpointCodec.dumps(checkpoint)
-        return {"checkpoint_id": checkpoint_id}
-
-    @app.get("/rollouts/{rollout_id}/checkpoints/{checkpoint_id}")
-    def get_checkpoint(rollout_id: str, checkpoint_id: str) -> dict[str, Any]:
-        del rollout_id
-        payload = STORE.checkpoints.get(checkpoint_id)
-        if payload is None:
-            raise HTTPException(status_code=404, detail="unknown checkpoint_id")
-        return {"checkpoint_id": checkpoint_id, "size_bytes": len(payload)}
-
-    @app.post("/rollouts/{rollout_id}/resume")
-    def resume_rollout(rollout_id: str, request: dict[str, Any]) -> dict[str, Any]:
-        del rollout_id
-        checkpoint_id = str(request.get("checkpoint_id") or "").strip()
-        if not checkpoint_id or checkpoint_id not in STORE.checkpoints:
-            raise HTTPException(status_code=404, detail="unknown checkpoint_id")
-        checkpoint = CheckpointCodec.loads(STORE.checkpoints[checkpoint_id])
-        if not isinstance(checkpoint.state, dict):
-            raise HTTPException(status_code=400, detail="checkpoint is not resumable")
-        return checkpoint.state
-
-    @app.post("/rollouts/{rollout_id}/terminate")
-    def terminate_rollout(rollout_id: str) -> dict[str, Any]:
-        STORE.rollouts.pop(rollout_id, None)
-        return {"status": "terminated", "rollout_id": rollout_id}
+    @app.get("/prompt")
+    def prompt() -> dict[str, object]:
+        return {
+            "candidate_prompt": build_candidate_prompt(),
+            "manifest": build_candidate_manifest(),
+        }
 
     return app
 
 
-app = create_app()
+def build_runner_summary(scratchpad_path: Path | None = None) -> dict[str, object]:
+    from .runner import build_runner_summary as _build_runner_summary
 
+    return _build_runner_summary(scratchpad_path)
 
-def main() -> None:
-    import uvicorn
-
-    texture_report = ensure_texture_cache()
-    print(f"Craftax texture cache ready: {texture_report}", flush=True)
-    host = os.getenv("NANOHORIZON_CRAFTAX_BIND_HOST") or "127.0.0.1"
-    port = int(os.getenv("NANOHORIZON_CRAFTAX_BIND_PORT") or "8903")
-    workers = max(1, int(os.getenv("NANOHORIZON_CRAFTAX_UVICORN_WORKERS") or "1"))
-    if workers > 1:
-        uvicorn.run(
-            "nanohorizon.craftax_core.http_shim:app",
-            host=str(host),
-            port=port,
-            log_level="info",
-            workers=workers,
-        )
-        return
-    uvicorn.run(app, host=str(host), port=port, log_level="info")
-
-
-if __name__ == "__main__":
-    main()

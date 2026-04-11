@@ -1,0 +1,12 @@
+2026-04-11T18:07Z - Investigation
+- Checked `/workspace` tree, git history, and `.out` artifacts for the Craftax task statement and harness.
+- Result: `docs/task-craftax.md` and the preserved Craftax surfaces are absent from the checkout/history.
+- Evidence: `README.md` only at HEAD `673aeaeedcb31ea44d19b1a038e6d5b2b06343c8`; `/workspace/.out/.../agent_result.json` is `{}`.
+- Outcome: blocked from making an honest implementation change without fabricating the task contract.
+- Follow-up: internal git push succeeded, but GitHub PR creation is blocked because the repo is not in the configured GitHub repos list.
+
+2026-04-11T18:14Z - Recheck
+- Reconfirmed the repo still contains only `README.md`, `experiments/nanohorizon_leaderboard_candidate/experiment_log.txt`, `findings.txt`, and `reports/final_report.md` at `HEAD`.
+- Reconfirmed there is no `docs/task-craftax.md` and no `src/nanohorizon/craftax_core/*` or `scripts/run_craftax_model_eval.sh` in the tree or branch history.
+- Reconfirmed the latest task-scoped `agent_result.json` artifacts are empty (`{}`), so there is no recoverable task payload to continue from.
+- Outcome: no honest candidate implementation path is available from the current workspace state.
