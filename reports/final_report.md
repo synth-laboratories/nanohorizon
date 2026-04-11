@@ -24,4 +24,6 @@ The NanoHorizon checkout was effectively empty apart from `README.md`, so the be
 ## Reproduction & handoff
 - Run `scripts/run_craftax_model_eval.sh` for the candidate summary.
 - Run `scripts/verify_video_validation_run.py` for the local scaffold check.
+- Commit/push landed on `worker/run-f25e1f93-4ce2-4785-b8f8-31501e35832c` at `becfde10050fc8ae3702f9514452bb309f1a7aac`.
+- GitHub PR creation could not be completed because the configured GitHub repo list was not exposed and each candidate repo identifier was rejected by `create_github_pr`.
 - Open risk: the repo needs the real Craftax source tree before meaningful leaderboard tuning can happen.

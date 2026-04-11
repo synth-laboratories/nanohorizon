@@ -3,3 +3,4 @@
 2026-04-11: Added a compact todo scratchpad candidate in src/nanohorizon/craftax_core/{http_shim.py,runner.py,metadata.py} and wired scripts/run_craftax_model_eval.sh through uv.
 2026-04-11: The bounded scratchpad is stored at `.craftax_todo.json`; the `metadata` subcommand and verifier both passed after the metadata constants were aligned.
 2026-04-11: `scripts/verify_video_validation_run.py` now bootstraps `src/` itself, so it passes both as a direct executable and via `uv run`.
+2026-04-11: Commit/push succeeded on `worker/run-f25e1f93-4ce2-4785-b8f8-31501e35832c` (`becfde10050fc8ae3702f9514452bb309f1a7aac`), but GitHub PR creation was blocked because `create_github_pr` rejected every repo identifier derivable from the workspace and the configured repo list was not exposed locally.
