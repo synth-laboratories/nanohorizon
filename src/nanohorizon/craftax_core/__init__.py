@@ -1,20 +1,24 @@
-"""Craftax harness utilities."""
+"""Craftax harness helpers for NanoHorizon."""
 
-from .metadata import CandidateMetadata, TodoItem, build_todo_summary
-from .http_shim import build_request_payload, build_todo_tool_schema
+from __future__ import annotations
 
+from typing import Any
 
-def build_candidate_prompt(*args, **kwargs):
-    from .runner import build_candidate_prompt as _build_candidate_prompt
-
-    return _build_candidate_prompt(*args, **kwargs)
-
+from .http_shim import CraftaxHTTPShim
+from .metadata import CRAFTAX_SURFACES, TODO_TOOL_STRATEGY, build_default_todo_items
 
 __all__ = [
-    "CandidateMetadata",
-    "TodoItem",
-    "build_todo_summary",
-    "build_request_payload",
-    "build_todo_tool_schema",
-    "build_candidate_prompt",
+    "CRAFTAX_SURFACES",
+    "CraftaxHTTPShim",
+    "CraftaxRunner",
+    "TODO_TOOL_STRATEGY",
+    "build_default_todo_items",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "CraftaxRunner":
+        from .runner import CraftaxRunner
+
+        return CraftaxRunner
+    raise AttributeError(name)
