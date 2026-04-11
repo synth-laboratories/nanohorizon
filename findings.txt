@@ -5,4 +5,4 @@
 - The board now serializes both `items` and `project_todo`, and `from_dict` accepts the `project_todo` alias so it stays compatible with the richer optimizer-state shape in `/app`.
 - `tests/test_todo_tool.py` keeps a minimal `src` bootstrap so both plain `unittest` discovery and `uv run` can import `nanohorizon` without extra environment setup.
 - Invalid todo statuses are normalized to `todo` at the public `add_item` surface and during `TodoItem.from_dict` restoration.
-- Validation passed with both `python -m unittest discover -s tests -p 'test_*.py'` and `uv run python -m unittest discover -s tests -p 'test_*.py'`; the final verifier run covered 4 tests.
+- Validation passed with both `python -m unittest discover -s tests -p 'test_*.py'` and `uv run python -m unittest discover -s tests -p 'test_*.py'`; the final verifier run covered 5 tests.
