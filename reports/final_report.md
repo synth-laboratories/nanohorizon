@@ -18,6 +18,7 @@ The NanoHorizon checkout was effectively empty apart from `README.md`, so the be
 
 ## Quality & validation
 - Verified the candidate scaffold with `scripts/verify_video_validation_run.py` and the `metadata` subcommand of `nanohorizon.craftax_core.runner`.
+- Confirmed the verifier works as a direct executable and via `uv run --python 3.11 python scripts/verify_video_validation_run.py`.
 - Not validated: any actual Craftax leaderboard impact, because the relevant harness sources were absent from the checkout.
 
 ## Reproduction & handoff

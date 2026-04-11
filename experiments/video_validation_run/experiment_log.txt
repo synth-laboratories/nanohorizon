@@ -6,6 +6,7 @@
 2026-04-11T00:00:00Z - Attempt 2
 - Aligned the scaffold to the live candidate CLI and scratchpad path.
 - Verified the candidate with `scripts/verify_video_validation_run.py` after adding the missing metadata constants.
+- Confirmed the verifier runs directly and under `uv run --python 3.11 python scripts/verify_video_validation_run.py`.
 
 2026-04-11T00:00:00Z - Attempt 3
 - Marked the first three scratchpad items done to reflect the completed workflow subgoals.
