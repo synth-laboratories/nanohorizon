@@ -41,6 +41,26 @@ class TodoToolTests(unittest.TestCase):
         self.assertEqual(restored.open_items()[0].title, "verify candidate")
         self.assertIn("project_todo", board.to_dict())
 
+    def test_from_dict_accepts_project_todo_alias(self) -> None:
+        restored = TodoBoard.from_dict(
+            {
+                "board_id": "run-2",
+                "project_todo": [
+                    {
+                        "title": "draft candidate",
+                        "status": "doing",
+                        "owner": "agent",
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(restored.board_id, "run-2")
+        self.assertEqual(len(restored.items), 1)
+        self.assertEqual(restored.items[0].title, "draft candidate")
+        self.assertEqual(restored.items[0].status, "doing")
+        self.assertEqual(restored.items[0].owner, "agent")
+
     def test_from_titles_creates_ordered_board(self) -> None:
         board = TodoBoard.from_titles(["read docs", "patch code", "verify"], board_id="run-1")
 
