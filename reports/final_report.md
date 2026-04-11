@@ -23,17 +23,20 @@ This run targeted the NanoHorizon Craftax prompt-opt path. The objective was the
 - `src/nanohorizon/craftax_core/runner.py`
 - `src/nanohorizon/craftax_core/http_shim.py`
 - `scripts/run_craftax_model_eval.sh`
+- `scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
 - `configs/craftax_prompt_opt_qwen35_4b_codex_auto_push_e2e.yaml`
 - `records/prompt_opt_1usd_gpt54_family/2026-04-11_auto_push_e2e/`
 
 ## Quality & Validation
 
 - Structural validation only through `tests/test_auto_push_e2e_candidate.py`.
+- The prompt-opt wrapper command is now present as a dry-run/config inspection script.
 - No live Craftax rollout, Modal execution, or GEPA optimization run was executed.
 
 ## Reproduction & Handoff
 
 - Candidate config command:
+  - `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_auto_push_e2e.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
   - `uv run --with pytest pytest -q tests/test_auto_push_e2e_candidate.py`
   - `./scripts/run_craftax_model_eval.sh`
 - Residual risk:
