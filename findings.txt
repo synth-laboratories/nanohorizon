@@ -1,0 +1,4 @@
+2026-04-11: Visible checkout contained only `README.md` and `.out/`; no Craftax harness files were present in the working tree.
+2026-04-11: Candidate strategy recorded as a compact Todo Tool scratchpad in `docs/task-craftax.md` and `experiments/craftax_autopush_e2e/artifacts/todo_scratchpad.md`.
+2026-04-11: No harness code changes were made because the corresponding source files were absent in this checkout.
+2026-04-11: Final repo verification confirmed the same state; the reviewable candidate is the artifact trail, not a speculative harness patch.

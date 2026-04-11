@@ -1,0 +1,4 @@
+2026-04-11T00:00:00Z | start | Checked the checkout and found only the repository skeleton plus `.out/`; no Craftax source tree was present in the visible workspace.
+2026-04-11T00:00:00Z | decision | Kept the change narrow and honest: represent the Todo Tool strategy as a compact scratchpad instead of fabricating harness changes that do not exist in this checkout.
+2026-04-11T00:00:00Z | verify | Confirmed the new submission artifacts are present in-repo and the task brief is documented at `docs/task-craftax.md`.
+2026-04-11T00:00:00Z | verify | Final repo check still shows no Craftax harness source files in the checkout; candidate remains the artifact trail plus scratchpad, with no harness surface edits.
