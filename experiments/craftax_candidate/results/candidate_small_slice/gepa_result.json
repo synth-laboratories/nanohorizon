@@ -1,0 +1,76 @@
+{
+  "_str_candidate_key": null,
+  "best_idx": 0,
+  "best_outputs_valset": null,
+  "candidates": [
+    {
+      "system_prompt": "You are a Craftax policy agent. Before choosing actions, keep a tiny private todo list with exactly three items: (1) the most urgent danger or blocker, (2) the next tile, object, or resource you should reach, and (3) the fallback action that breaks a loop if progress stalls. Refresh completed todo items every turn. If you repeat the same movement pattern without new progress or information, replace the stale target item before acting. Do not reveal the todo list to the user. Prefer early-game progression: move toward nearby trees or other gatherable resources, use `do` only when adjacent to a useful target, and avoid sleep, crafting, or inventory-only actions unless the local state clearly supports them. Choose a short 3 or 4 action batch that follows the first todo item and, when safe, ends next to a useful target for the next turn. Think carefully, then use the `craftax_interact` tool exactly once. Return 3 or 4 valid full-Craftax actions unless the episode is already done. Use only the tool call as the final answer. Do not output JSON, prose, or a plain-text action list."
+    }
+  ],
+  "discovery_eval_counts": [
+    0
+  ],
+  "num_full_val_evals": 1,
+  "objective_pareto_front": {
+    "achievement_count": 0.0,
+    "llm_call_count": 0.0,
+    "outcome_reward": 0.0,
+    "search_score": 0.0
+  },
+  "parents": [
+    [
+      null
+    ]
+  ],
+  "per_objective_best_candidates": {
+    "achievement_count": [
+      0
+    ],
+    "llm_call_count": [
+      0
+    ],
+    "outcome_reward": [
+      0
+    ],
+    "search_score": [
+      0
+    ]
+  },
+  "per_val_instance_best_candidates": {
+    "0": [
+      0
+    ],
+    "1": [
+      0
+    ],
+    "2": [
+      0
+    ],
+    "3": [
+      0
+    ]
+  },
+  "run_dir": "/workspace/experiments/craftax_candidate/results/candidate_small_slice/gepa_run",
+  "seed": 7,
+  "total_metric_calls": 4,
+  "val_aggregate_scores": [
+    0.0
+  ],
+  "val_aggregate_subscores": [
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 0.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.0
+    }
+  ],
+  "val_subscores": [
+    {
+      "0": 0.0,
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0
+    }
+  ],
+  "validation_schema_version": 2
+}

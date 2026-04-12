@@ -17,3 +17,10 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+2026-04-12 - Craftax candidate proxy evaluation
+- Added `experiments/craftax_candidate/` with baseline/candidate small-slice configs and a comparison summary file.
+- Ran `run_training(...)` twice on a 4-seed slice with `container_url=direct://local`, `inference_url=https://api.openai.com`, `request_model=gpt-5.4-mini`, `num_train_seeds=2`, and `max_metric_calls=2`.
+- Baseline proxy result: `primary_score=0.0`, `bootstrap_score=0.0`, `score_delta=0.0`.
+- Candidate proxy result: `primary_score=0.0`, `bootstrap_score=0.0`, `score_delta=0.0`.
+- Intended Modal/Qwen verification was blocked because Modal auth was unavailable in this workspace; the proxy slice did not demonstrate uplift.
+- GitHub PR opened: `https://github.com/synth-laboratories/nanohorizon/pull/35` on branch `pr/worker/run-557ee4b7-b9ef-48f7-b5b9-3fcd25cdd676`.
