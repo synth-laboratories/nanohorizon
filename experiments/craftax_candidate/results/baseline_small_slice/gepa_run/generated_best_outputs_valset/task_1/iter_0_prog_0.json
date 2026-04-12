@@ -1,0 +1,5 @@
+{
+    "error": "craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+    "seed": 10010,
+    "trace_correlation_id": "prompt_opt_00001_10010"
+}

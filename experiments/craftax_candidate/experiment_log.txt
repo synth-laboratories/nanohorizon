@@ -1,0 +1,11 @@
+2026-04-12T00:00:00Z - Initialized Craftax candidate experiment workspace.
+- Goal: run a small repeated-seed baseline-vs-candidate slice using the existing prompt-opt eval path.
+- Planned slice: 4 eval seeds, 2 train seeds, 2 GEPA metric calls, fixed seed 7.
+- Evidence will live under experiments/craftax_candidate/results/.
+2026-04-12T00:00:00Z - Proxy baseline run completed with direct local Craftax + OpenAI API rollout path.
+- Command: PYTHONPATH=src uv run --no-project --with modal --with httpx --with pyyaml --with gepa --with numpy python - <<'PY' ... run_training(config_path=experiments/craftax_candidate/configs/baseline_small_slice.yaml, container_url=direct://local, inference_url=https://api.openai.com, request_model=gpt-5.4-mini)
+- Result: bootstrap_score=0.0, primary_score=0.0, score_delta=0.0 across 4 eval seeds.
+2026-04-12T00:00:00Z - Proxy candidate run completed with the same slice and backend path.
+- Command: PYTHONPATH=src uv run --no-project --with modal --with httpx --with pyyaml --with gepa --with numpy python - <<'PY' ... run_training(config_path=experiments/craftax_candidate/configs/candidate_small_slice.yaml, container_url=direct://local, inference_url=https://api.openai.com, request_model=gpt-5.4-mini)
+- Result: bootstrap_score=0.0, primary_score=0.0, score_delta=0.0 across 4 eval seeds.
+- Caveat: Modal-backed Qwen verification remained blocked because the workspace lacks Modal auth; these proxy results do not validate the intended Qwen track.

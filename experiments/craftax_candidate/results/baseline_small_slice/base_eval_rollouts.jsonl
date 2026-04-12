@@ -1,0 +1,4 @@
+{"error": "craftax imports were not available. Install the classic dependency group. No module named 'craftax'", "seed": 10001, "trace_correlation_id": "prompt_opt_00000_10001"}
+{"error": "craftax imports were not available. Install the classic dependency group. No module named 'craftax'", "seed": 10010, "trace_correlation_id": "prompt_opt_00001_10010"}
+{"error": "craftax imports were not available. Install the classic dependency group. No module named 'craftax'", "seed": 10017, "trace_correlation_id": "prompt_opt_00002_10017"}
+{"error": "craftax imports were not available. Install the classic dependency group. No module named 'craftax'", "seed": 10019, "trace_correlation_id": "prompt_opt_00003_10019"}

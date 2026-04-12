@@ -1,62 +1,98 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Candidate Run Report
 
-## Context & objective
+## Context & Objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+This run targeted the NanoHorizon Craftax leaderboard track. The intended goal was to make the smallest honest candidate change that could improve Craftax outcomes over the baseline, while keeping the protected Craftax harness surfaces stable:
 
-## Experiments cited
+- `docs/task-craftax.md`
+- `src/nanohorizon/craftax_core/http_shim.py`
+- `src/nanohorizon/craftax_core/runner.py`
+- `src/nanohorizon/craftax_core/metadata.py`
+- `scripts/run_craftax_model_eval.sh`
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+Success required a reviewable commit, a baseline-vs-candidate evaluation with repeated seeds, and a real GitHub PR. Because the intended Modal-backed Qwen lane was blocked, I ran a proxy evaluation on the existing prompt-opt path and reported it honestly below.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
-   - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+## Experiments Cited
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+1. `experiments/craftax_candidate/configs/baseline_small_slice.yaml`
+   - Question: what score does the baseline prompt achieve on a small repeated-seed slice?
+   - Outcome: no uplift signal; held-out score stayed at `0.0`.
+   - Evidence: `experiments/craftax_candidate/results/baseline_small_slice/metrics.json`, `base_eval_summary.json`, `best_eval_summary.json`, `notes.md`.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+2. `experiments/craftax_candidate/configs/candidate_small_slice.yaml`
+   - Question: does the candidate todo-refresh prompt improve the same slice?
+   - Outcome: no uplift signal; held-out score stayed at `0.0`.
+   - Evidence: `experiments/craftax_candidate/results/candidate_small_slice/metrics.json`, `base_eval_summary.json`, `best_eval_summary.json`, `notes.md`.
+
+3. `experiments/craftax_candidate/results/proxy_slice_summary.json`
+   - Question: can the two runs be compared directly on the same proxy slice?
+   - Outcome: negative for uplift; candidate minus baseline primary score was `0.0`.
+   - Evidence: comparison summary plus the two run output directories above.
+
+4. `experiments/craftax_candidate/experiment_log.txt`
+   - Question: what happened operationally during the run?
+   - Outcome: supporting evidence for the executed commands, results, and blocked verification lane.
+   - Evidence: timestamped entries for the baseline and candidate proxy runs.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The candidate prompt did not demonstrate measurable improvement on the proxy slice. Both baseline and candidate finished at `0.0` primary score on the same 4-seed evaluation slice.
+2. The proxy slice is reproducible, but it is not the intended leaderboard verification. It used `run_training(...)` from `src/nanohorizon/baselines/prompt_opt.py` with `direct://local` Craftax rollouts and the OpenAI API as the policy backend because Modal-backed Qwen evaluation was blocked in this workspace.
+3. The run is still useful as evidence that the candidate did not regress the proxy slice, but it does not support a claim of uplift.
 
-## Research artifacts produced
+## Research Artifacts Produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+### Environments
 
-## Quality & validation
+- Eval path: `run_training(...)` in `src/nanohorizon/baselines/prompt_opt.py`
+- Local execution mode: `container_url=direct://local`
+- Proxy policy backend: `inference_url=https://api.openai.com`, `request_model=gpt-5.4-mini`
+- Small-slice settings: `num_train_seeds=2`, `num_eval_seeds=4`, `max_metric_calls=2`
+- The initial `uv run --group modal` path failed because the workspace lacked Modal auth and the project sync also referenced a stale file:// dependency path; the no-project invocation worked around the sync issue, but not the missing Modal token for the intended lane.
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+### Data
 
-## Reproduction & handoff
+- Seed source: `data/craftax/craftax_prompt_opt_starter_seeds.json`
+- The proxy slice used the repo-native prompt-opt split logic with the 4 held-out seeds selected by the configs above.
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+### Models / Checkpoints
+
+- No weights were trained or promoted in this run.
+- The candidate remains a prompt-shaping change, not a finetune or RL artifact.
+
+## Quality & Validation
+
+- Baseline proxy run:
+  - `primary_score=0.0`
+  - `bootstrap_score=0.0`
+  - `score_delta=0.0`
+- Candidate proxy run:
+  - `primary_score=0.0`
+  - `bootstrap_score=0.0`
+  - `score_delta=0.0`
+- Measured delta on the shared slice:
+  - `candidate_minus_baseline_primary_score=0.0`
+  - `uplift_demonstrated=false`
+- What was explicitly not validated:
+  - the intended Modal-backed Qwen lane
+  - leaderboard submission quality on `Qwen/Qwen3.5-4B`
+  - any claim of generalization beyond the proxy slice
+
+## Reproduction & Handoff
+
+- Baseline command:
+  - `PYTHONPATH=src uv run --no-project --with modal --with httpx --with pyyaml --with gepa --with numpy python - <<'PY' ... run_training(config_path=experiments/craftax_candidate/configs/baseline_small_slice.yaml, container_url=direct://local, inference_url=https://api.openai.com, request_model=gpt-5.4-mini) ... PY`
+- Candidate command:
+  - `PYTHONPATH=src uv run --no-project --with modal --with httpx --with pyyaml --with gepa --with numpy python - <<'PY' ... run_training(config_path=experiments/craftax_candidate/configs/candidate_small_slice.yaml, container_url=direct://local, inference_url=https://api.openai.com, request_model=gpt-5.4-mini) ... PY`
+- Workspace push commit:
+  - `1f1f3c386f760c8afc397f874f7d640287825a2e`
+- GitHub PR:
+  - `https://github.com/synth-laboratories/nanohorizon/pull/35`
+- Output directories:
+  - `experiments/craftax_candidate/results/baseline_small_slice/`
+  - `experiments/craftax_candidate/results/candidate_small_slice/`
+- Comparison artifact:
+  - `experiments/craftax_candidate/results/proxy_slice_summary.json`
+- Open risks:
+  - Modal-backed verification still needs auth and the intended Qwen track was not exercised.
+  - The proxy slice is too weak to claim leaderboard uplift.

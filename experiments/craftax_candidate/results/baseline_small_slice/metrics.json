@@ -1,0 +1,830 @@
+{
+  "baseline": "gepa_craftax_prompt_optimization",
+  "best_candidate_idx": 0,
+  "best_gepa_val_score": 0.0,
+  "bootstrap_achievement_frequencies": {
+    "cast_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "cast_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_ruby": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapphire": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "damage_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_deep_thing": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_fire_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_frost_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_warrior": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_ice_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_knight": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_kobold": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_lizard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_mage": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_soldier": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_pigman": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "drink_potion": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_bat": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_snail": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_dungeon": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_fire_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_gnomish_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_graveyard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_ice_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_sewers": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_troll_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_vault": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "find_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "fire_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_arrow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "open_chest": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "bootstrap_score": 0.0,
+  "elapsed_minutes": 0.0008049050966898601,
+  "gepa_score_delta": 0.0,
+  "num_candidates": 1,
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "primary_achievement_frequencies": {
+    "cast_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "cast_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_ruby": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapphire": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "damage_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_deep_thing": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_fire_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_frost_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_warrior": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_ice_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_knight": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_kobold": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_lizard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_mage": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_soldier": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_pigman": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "drink_potion": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_bat": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_snail": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_dungeon": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_fire_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_gnomish_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_graveyard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_ice_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_sewers": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_troll_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_vault": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "find_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "fire_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_arrow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "open_chest": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "primary_score": 0.0,
+  "reflection_backend": "policy_inference",
+  "reflection_model": "gpt-5.4-mini",
+  "request_model": "gpt-5.4-mini",
+  "rollout_inference_url": "https://api.openai.com/v1/chat/completions",
+  "score_delta": 0.0,
+  "status": "success",
+  "submission_achievement_frequencies": {
+    "cast_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "cast_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_ruby": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapphire": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "damage_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_deep_thing": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_fire_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_frost_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_warrior": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_ice_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_knight": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_kobold": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_lizard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_mage": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_soldier": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_pigman": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "drink_potion": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_bat": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_snail": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_dungeon": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_fire_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_gnomish_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_graveyard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_ice_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_sewers": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_troll_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_vault": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "find_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "fire_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_arrow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "open_chest": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "submission_mean_outcome_reward": 0.0,
+  "total_metric_calls": 4,
+  "track": "prompt_opt_1usd_gpt54_family"
+}

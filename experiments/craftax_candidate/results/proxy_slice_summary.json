@@ -1,0 +1,32 @@
+{
+  "baseline": {
+    "config": "experiments/craftax_candidate/configs/baseline_small_slice.yaml",
+    "primary_score": 0.0,
+    "bootstrap_score": 0.0,
+    "score_delta": 0.0,
+    "num_eval_seeds": 4,
+    "num_train_seeds": 2,
+    "max_metric_calls": 2,
+    "request_model": "gpt-5.4-mini",
+    "container_url": "direct://local",
+    "inference_url": "https://api.openai.com"
+  },
+  "candidate": {
+    "config": "experiments/craftax_candidate/configs/candidate_small_slice.yaml",
+    "primary_score": 0.0,
+    "bootstrap_score": 0.0,
+    "score_delta": 0.0,
+    "num_eval_seeds": 4,
+    "num_train_seeds": 2,
+    "max_metric_calls": 2,
+    "request_model": "gpt-5.4-mini",
+    "container_url": "direct://local",
+    "inference_url": "https://api.openai.com"
+  },
+  "comparison": {
+    "candidate_minus_baseline_primary_score": 0.0,
+    "candidate_minus_baseline_bootstrap_score": 0.0,
+    "uplift_demonstrated": false,
+    "notes": "Proxy slice on OpenAI API and direct local Craftax did not show any uplift. Intended Modal/Qwen lane was blocked."
+  }
+}

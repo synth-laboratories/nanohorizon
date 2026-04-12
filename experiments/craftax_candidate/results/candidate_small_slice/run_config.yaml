@@ -1,0 +1,28 @@
+base_model: Qwen/Qwen3.5-4B
+eval_seeds:
+- 10001
+- 10010
+- 10017
+- 10019
+optimizer_budget_usd: 1.0
+optimizer_models:
+- gpt-5.4
+- gpt-5.4-mini
+- gpt-5.4-nano
+rollout:
+  enable_thinking: true
+  max_concurrent_rollouts: 4
+  max_steps: 10
+  max_tokens: 3072
+  min_action_batch_size: 3
+  request_timeout_seconds: 900
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 2
+  target_action_batch_size: 4
+  temperature: 0.0
+  thinking_budget_tokens: 2000
+task: craftax
+track: prompt_opt_1usd_gpt54_family
+train_seeds:
+- 10007
+- 10008
