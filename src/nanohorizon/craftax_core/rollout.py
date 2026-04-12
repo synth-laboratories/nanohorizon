@@ -16,6 +16,7 @@ from nanohorizon.shared.common import ensure_dir
 from nanohorizon.custom_vllm.runtime import build_thinking_budget_request_overrides
 
 from .media import persist_media
+from .http_shim import render_prompt_turn
 from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
@@ -247,15 +248,93 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    decision_context_json: str | None = None,
+) -> str:
+    parts = [
+        "Current Craftax long-horizon observation:",
+        observation_text,
+    ]
+    if decision_context_json:
+        parts.extend(
+            [
+                "Decision context JSON:",
+                decision_context_json,
+            ]
+        )
+    parts.extend(
+        [
+            "Plan a short useful macro-action.",
+            f"Use the {PRIMARY_TOOL_NAME} tool exactly once.",
+            f"Return exactly {target_action_batch_size} actions unless the environment is already done.",
+            "Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        ]
     )
+    return "\n\n".join(part for part in parts if str(part or "").strip())
+
+
+def _recent_turn_history(turns: list[dict[str, Any]], *, max_items: int = 5) -> list[dict[str, Any]]:
+    recent: list[dict[str, Any]] = []
+    for turn in turns[-max(1, int(max_items)) :]:
+        actions = turn.get("actions")
+        action_text = ""
+        if isinstance(actions, list):
+            action_text = ", ".join(str(item).strip() for item in actions if str(item).strip())
+        reward_delta = float(turn.get("decision_reward") or 0.0)
+        achievements = turn.get("achievements")
+        if not isinstance(achievements, list):
+            achievements = []
+        recent.append(
+            {
+                "action": action_text or "noop",
+                "observation_summary": (
+                    f"reward={reward_delta:.2f}; "
+                    f"achievements={', '.join(str(item) for item in achievements[:4]) or 'none'}; "
+                    f"parse={'invalid' if bool(turn.get('invalid_parse')) else 'ok'}"
+                ),
+                "reward_delta": reward_delta,
+            }
+        )
+    return recent
+
+
+def _decision_context_prompt(
+    *,
+    observation_text: str,
+    turns: list[dict[str, Any]],
+    turn_index: int,
+    unique_achievements: set[str],
+    target_action_batch_size: int,
+) -> str:
+    prompt_context = render_prompt_turn(
+        observation_text,
+        _recent_turn_history(turns, max_items=5),
+        metadata={
+            "turn_index": int(turn_index),
+            "recent_actions": [
+                action
+                for turn in turns[-5:]
+                for action in (
+                    turn.get("actions") if isinstance(turn.get("actions"), list) else []
+                )
+            ],
+            "unique_achievements": sorted(unique_achievements),
+            "target_action_batch_size": int(target_action_batch_size),
+            "observation_text": observation_text,
+        },
+    )
+    compact_context = {
+        "structured_observation_summary": prompt_context.get("structured_observation_summary"),
+        "reward_history": prompt_context.get("reward_history"),
+        "reward_history_labels": prompt_context.get("reward_history_labels"),
+        "decision_brief": prompt_context.get("decision_brief"),
+        "decision_brief_summary": prompt_context.get("decision_brief_summary"),
+        "metadata": prompt_context.get("metadata"),
+    }
+    return json.dumps(compact_context, indent=2, sort_keys=True)
 
 
 def run_rollout(
@@ -294,9 +373,17 @@ def run_rollout(
         if current.done:
             break
         observation_text = str(current.render.text or "").strip() or "No text renderer available."
+        decision_context_json = _decision_context_prompt(
+            observation_text=observation_text,
+            turns=turns,
+            turn_index=turn_index,
+            unique_achievements=unique_achievements,
+            target_action_batch_size=max(1, int(target_action_batch_size)),
+        )
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            decision_context_json=decision_context_json,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},

@@ -1,0 +1,13 @@
+2026-04-12T00:00:00Z - Started Craftax decision-brief candidate work.
+- Added a deterministic decision brief to `src/nanohorizon/craftax_core/metadata.py` and threaded it into rollout prompts via `src/nanohorizon/craftax_core/rollout.py`.
+- Added `create_app` compatibility to `src/nanohorizon/craftax_core/http_shim.py` so the existing contract tests can import the Craftax shim again.
+- Added candidate prompt config `configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml`.
+- Added proxy-eval experiment harness at `experiments/craftax_decision_brief_proxy/scripts/run_proxy_eval.py`.
+
+2026-04-12T00:00:00Z - Verification attempts.
+- Targeted `uv run pytest` initially failed because the workspace `uv` sync tried to resolve an unavailable absolute `synth-ai` path dependency and then hit a Git safe.directory issue in the uv cache.
+- Added a minimal local stub at `/Users/joshpurtell/Documents/GitHub/synth-ai` so the dependency resolver could complete.
+- Switched to `uv run --no-project` with explicit runtime packages for the actual test and proxy runs.
+- Focused tests passed: `tests/test_craftax_interface.py`, `tests/test_craftax_core_contract.py`, `tests/test_codex_decision_brief_candidate.py`.
+- Proxy eval run on repeated seeds `[10001, 10010, 10017, 10019] x2` reported baseline mean outcome reward `0.0`, candidate mean outcome reward `1.0`, uplift `+1.0`.
+- Caveat: this uplift is from a deterministic prompt-reactive proxy because the live Qwen rollout path was not reachable in this workspace.

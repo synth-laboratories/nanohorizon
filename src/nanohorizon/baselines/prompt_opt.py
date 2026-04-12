@@ -577,6 +577,18 @@ def todo_scratchpad_directive() -> str:
     return " ".join(TODO_SCRATCHPAD_REQUIREMENTS)
 
 
+DECISION_CONTEXT_REQUIREMENTS = [
+    "Read the compact decision brief before choosing actions.",
+    "Use the decision brief to decide whether the turn is stabilize, gather, craft, or explore.",
+    "Respect the loop-risk flag and change movement pattern immediately when it is high.",
+    "Keep the recent reward-history window short and use it to avoid repeating a dead-end batch.",
+]
+
+
+def decision_context_directive() -> str:
+    return " ".join(DECISION_CONTEXT_REQUIREMENTS)
+
+
 REFLECTION_PROMPT_TEMPLATE = f"""I provided an assistant with the following Craftax system prompt:
 ```
 <curr_param>
@@ -593,6 +605,7 @@ Hard requirements you must preserve:
 - The policy must think if needed, then use the `craftax_interact` tool exactly once.
 - The final answer must not be plain text actions, JSON, or prose outside the tool call.
 - The prompt must preserve this todo-tool contract: {todo_scratchpad_directive()}.
+- The prompt must preserve this decision-context contract: {decision_context_directive()}.
 - The prompt should ask for a short valid full-Craftax action batch unless the episode is already done.
 - The prompt should prioritize early-game resource gathering and avoid repeated movement loops.
 
@@ -742,7 +755,8 @@ def build_reflection_system_directive() -> str:
         "You rewrite Craftax system prompts for a tool-calling policy. "
         f"Preserve these hard requirements: the policy must use the `{PRIMARY_TOOL_NAME}` "
         "tool exactly once, must not answer with JSON or a plain-text action list, and must "
-        f"preserve this todo-tool contract: {todo_scratchpad_directive()} Return only the "
+        f"preserve this todo-tool contract: {todo_scratchpad_directive()} "
+        f"and this decision-context contract: {decision_context_directive()} Return only the "
         "revised prompt text."
     )
 

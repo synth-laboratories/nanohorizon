@@ -1,0 +1,41 @@
+{
+  "benchmark": "nanohorizon_craftax_hello_world",
+  "max_outcome_reward": 0.0,
+  "mean_llm_calls_per_rollout": 2,
+  "mean_outcome_reward": 0.0,
+  "model": "gpt-4.1-nano",
+  "num_errors": 0,
+  "num_rollouts": 1,
+  "requested_llm_calls_per_rollout": 1,
+  "requested_max_concurrent_rollouts": 1,
+  "requested_max_steps_per_rollout": 1,
+  "requested_min_action_batch_size": 3,
+  "requested_policy_preset": "state_aware_macro_v1",
+  "requested_rollout_concurrency": 1,
+  "requested_rollout_seeds": [
+    1100
+  ],
+  "requested_rollouts": 1,
+  "requested_target_action_batch_size": 4,
+  "requested_total_llm_calls": 1,
+  "rollout_concurrency": 1,
+  "rollout_summary": {
+    "active_rollout_high_watermark": 1,
+    "completed_rollouts": 1,
+    "elapsed_s": 22.954360533,
+    "max_outcome_reward": 0.0,
+    "max_request_latency_s": 22.954223824999644,
+    "mean_outcome_reward": 0.0,
+    "mean_request_latency_s": 22.954223824999644,
+    "num_errors": 0,
+    "num_structured_rollouts": 1,
+    "requested_rollouts": 1,
+    "rollout_concurrency": 1,
+    "rollout_requests_finished": 1,
+    "rollout_requests_started": 1,
+    "rollout_semaphore_limit": 1,
+    "rollouts_per_minute": 2.613882443544523
+  },
+  "selected_container_url": "direct://local",
+  "task": "craftax"
+}

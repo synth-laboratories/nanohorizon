@@ -1,0 +1,176 @@
+{
+  "baseline": {
+    "details": [
+      {
+        "achievements": [],
+        "actions": [
+          0
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [],
+        "actions": [
+          2
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10010
+      },
+      {
+        "achievements": [],
+        "actions": [
+          0
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10017
+      },
+      {
+        "achievements": [],
+        "actions": [
+          0
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10019
+      },
+      {
+        "achievements": [],
+        "actions": [
+          0
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [],
+        "actions": [
+          2
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10010
+      },
+      {
+        "achievements": [],
+        "actions": [
+          0
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10017
+      },
+      {
+        "achievements": [],
+        "actions": [
+          0
+        ],
+        "outcome_reward": 0.0,
+        "seed": 10019
+      }
+    ],
+    "label": "baseline",
+    "mean_outcome_reward": 0.0,
+    "num_rollouts": 8
+  },
+  "baseline_config": "configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml",
+  "candidate": {
+    "details": [
+      {
+        "achievements": [
+          "wake_up"
+        ],
+        "actions": [
+          6
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          5
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10010
+      },
+      {
+        "achievements": [
+          "wake_up"
+        ],
+        "actions": [
+          6
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10017
+      },
+      {
+        "achievements": [
+          "wake_up"
+        ],
+        "actions": [
+          6
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10019
+      },
+      {
+        "achievements": [
+          "wake_up"
+        ],
+        "actions": [
+          6
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          5
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10010
+      },
+      {
+        "achievements": [
+          "wake_up"
+        ],
+        "actions": [
+          6
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10017
+      },
+      {
+        "achievements": [
+          "wake_up"
+        ],
+        "actions": [
+          6
+        ],
+        "outcome_reward": 1.0,
+        "seed": 10019
+      }
+    ],
+    "label": "candidate",
+    "mean_outcome_reward": 1.0,
+    "num_rollouts": 8
+  },
+  "candidate_config": "configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml",
+  "evaluation_mode": "prompt_reactive_proxy",
+  "seed_schedule": [
+    10001,
+    10010,
+    10017,
+    10019,
+    10001,
+    10010,
+    10017,
+    10019
+  ],
+  "uplift": 1.0
+}

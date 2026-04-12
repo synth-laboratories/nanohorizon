@@ -1,62 +1,65 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Decision Brief Candidate
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+This run implemented a meaningfully different Craftax prompt policy for the NanoHorizon prompt-opt track by adding a deterministic decision brief and recent-history context to the rollout prompt. The objective was to keep the shared Craftax harness surfaces stable unless truly required, then validate the candidate against a baseline on repeated seeds and record the result honestly.
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+1. [Proxy eval bundle](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/experiments/craftax_decision_brief_proxy/results/proxy_eval.json)
+   - Question: does the decision-brief candidate outperform the baseline prompt on a repeated-seed eval slice?
+   - Outcome: supporting on the deterministic proxy slice.
+   - Evidence: baseline mean outcome reward `0.0`, candidate mean outcome reward `1.0`, uplift `+1.0` on seeds `[10001, 10010, 10017, 10019] x2`.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. [Targeted Craftax tests](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/tests/test_craftax_interface.py)
+   - Question: does the decision brief produce the intended structured prompt fields?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: tests now assert `decision_brief.mode`, `priority_targets`, `loop_risk`, and the updated structured prompt payload.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. [Rollout contract tests](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/tests/test_craftax_core_contract.py)
+   - Question: does the real `run_rollout` path include the new decision-context JSON and preserve the existing HTTP shim contract?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+   - Evidence: `create_app` works again, `/health` and `/task_info` respond, and the rollout prompt now carries a compact decision context block.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. [Candidate config](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml)
+   - Question: is the new prompt contract actually packaged as a reviewable candidate?
+   - Outcome: supporting.
+   - Evidence: the seed prompt explicitly requires reading the compact decision brief and recent reward-history window before choosing actions.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The new policy is behaviorally different, not just a wording tweak. It adds a decision brief with `mode`, `primary_focus`, `fallback_action`, `loop_risk`, and `priority_targets`, then threads that into the rollout prompt.
+2. The rollout path now carries more than the raw observation string. It includes a bounded recent-history window plus the decision brief JSON, which makes the candidate easier to steer away from repeated loops.
+3. The repo had a pre-existing `create_app` gap in `http_shim`; restoring that compatibility surface was necessary to keep the existing Craftax contract tests runnable.
+4. The only reward uplift observed in this run is the deterministic proxy slice. I did not reach a live Qwen rollout path in this workspace, so no production score claim is supported here.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+### Environments
+
+- Proxy evaluation script: [experiments/craftax_decision_brief_proxy/scripts/run_proxy_eval.py](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/experiments/craftax_decision_brief_proxy/scripts/run_proxy_eval.py)
+- Proxy eval result: [experiments/craftax_decision_brief_proxy/results/proxy_eval.json](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/experiments/craftax_decision_brief_proxy/results/proxy_eval.json)
+- The proxy ran with `PYTHONPATH=src uv run --no-project --with fastapi --with httpx --with pyyaml --with numpy ...` because the project resolver could not reach the workspace’s pinned training dependency path during the live sync path.
+
+### Data
+
+- Seeds used for the proxy slice: `[10001, 10010, 10017, 10019] x2`
+- Baseline config: [configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml)
+- Candidate config: [configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml)
+
+### Models / checkpoints
+
+- No weights or checkpoints were trained in this run.
+- The candidate is a prompt-policy configuration for `Qwen/Qwen3.5-4B`, not a model update.
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Passed: `PYTHONPATH=src uv run --no-project --with fastapi --with httpx --with pyyaml --with numpy python -m pytest tests/test_craftax_interface.py tests/test_craftax_core_contract.py tests/test_codex_decision_brief_candidate.py`
+- Passed: the proxy eval bundle reports baseline `0.0` vs candidate `1.0` mean outcome reward on the repeated-seed slice.
+- Not validated: live Craftax rollout against a real Qwen endpoint, Modal-backed policy serving, or any leaderboard score.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Exact proxy command: [experiments/craftax_decision_brief_proxy/command.txt](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/experiments/craftax_decision_brief_proxy/command.txt)
+- Candidate record bundle: [records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_decision_brief/](/synth/state/.out/smr/projects/a080a317-7b4e-4a88-b099-9215a30c9957/runs/9f36356d-015a-403f-818c-0e6985dedeed/workspace/records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_decision_brief/)
+- Main caveat: the uplift is proxy-verified only. The live model route was not reachable in this workspace, so the result should be treated as a structured code-and-policy improvement with a deterministic evaluation slice, not as a production score claim.

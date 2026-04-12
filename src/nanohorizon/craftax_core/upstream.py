@@ -59,6 +59,26 @@ def _fallback_state_text(state: Any) -> str:
     return "\n".join(lines)
 
 
+def _fallback_state_view(state: Any) -> dict[str, Any]:
+    inventory = getattr(state, "inventory", None)
+    inventory_items: dict[str, Any] = {}
+    if inventory is not None:
+        for name in dir(inventory):
+            if name.startswith("_"):
+                continue
+            value = getattr(inventory, name)
+            if isinstance(value, (int, float, bool, np.integer, np.floating)):
+                inventory_items[name] = value
+    achievements = achievement_names_from_state(state)
+    player_position = getattr(state, "player_position", None)
+    return {
+        "summary": _fallback_state_text(state),
+        "inventory": inventory_items,
+        "achievements": achievements,
+        "player_position": player_position,
+    }
+
+
 class CraftaxRendererFactory:
     def __init__(self, config: CraftaxRendererConfig) -> None:
         self.config = config
@@ -76,34 +96,38 @@ class CraftaxRendererFactory:
             _raise_missing(str(exc))
 
         text_fn = _fallback_state_text
-        structured_fn = None
+        structured_fn = _fallback_state_view
         try:
             if kind == "classic":
                 from craftaxlm.classic.state import render_craftax_classic_text_custom
 
                 def _text_fn(state: Any) -> str:
-                    view = render_craftax_classic_text_custom(state)
-                    return view.render_to_text_simple(
-                        verbose=self.config.verbose,
-                        formatting=self.config.formatting,
-                        map_format=self.config.map_format,
-                    )
+                    try:
+                        view = render_craftax_classic_text_custom(state)
+                        return view.render_to_text_simple(
+                            verbose=self.config.verbose,
+                            formatting=self.config.formatting,
+                            map_format=self.config.map_format,
+                        )
+                    except Exception:
+                        return _fallback_state_text(state)
 
                 text_fn = _text_fn
-                structured_fn = render_craftax_classic_text_custom
             else:
                 from craftaxlm.full.state import render_craftax_text_custom
 
                 def _text_fn(state: Any) -> str:
-                    view = render_craftax_text_custom(state)
-                    return view.render_to_text_simple(
-                        verbose=self.config.verbose,
-                        formatting=self.config.formatting,
-                        map_format=self.config.map_format,
-                    )
+                    try:
+                        view = render_craftax_text_custom(state)
+                        return view.render_to_text_simple(
+                            verbose=self.config.verbose,
+                            formatting=self.config.formatting,
+                            map_format=self.config.map_format,
+                        )
+                    except Exception:
+                        return _fallback_state_text(state)
 
                 text_fn = _text_fn
-                structured_fn = render_craftax_text_custom
         except Exception:
             pass
 
@@ -217,4 +241,3 @@ def achievement_names_from_state(state: Any) -> list[str]:
         if float(value) > 0:
             unlocked.append(FULL_ACHIEVEMENTS.get(index, f"achievement_{index}"))
     return unlocked
-

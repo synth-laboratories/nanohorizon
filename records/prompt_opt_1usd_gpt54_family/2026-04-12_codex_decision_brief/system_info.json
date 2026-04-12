@@ -1,0 +1,5 @@
+{
+  "platform": "linux",
+  "python": "3.11",
+  "evaluation_note": "Proxy run executed with uv no-project to avoid unresolved workspace path dependencies."
+}
