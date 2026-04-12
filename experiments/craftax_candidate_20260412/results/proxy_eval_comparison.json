@@ -1,0 +1,102 @@
+{
+  "baseline": {
+    "details": [
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=0|ticks=[0]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":0,\"ticks\":[0]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 22.0,
+        "outcome_reward": 1.0,
+        "seed": 0
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=1|ticks=[1]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":1,\"ticks\":[1]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 23.0,
+        "outcome_reward": 1.0,
+        "seed": 1
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=2|ticks=[2]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":2,\"ticks\":[2]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 28.0,
+        "outcome_reward": 1.0,
+        "seed": 2
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=0|ticks=[0]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":0,\"ticks\":[0]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 20.0,
+        "outcome_reward": 1.0,
+        "seed": 3
+      }
+    ],
+    "mean_llm_calls_per_rollout": 3.0,
+    "mean_native_env_reward_total": 23.25,
+    "mean_outcome_reward": 1.0
+  },
+  "candidate": {
+    "details": [
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=0|ticks=[0]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":0,\"ticks\":[0]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 142.0,
+        "outcome_reward": 2.0,
+        "seed": 0
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=1|ticks=[1]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":1,\"ticks\":[1]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 143.0,
+        "outcome_reward": 2.0,
+        "seed": 1
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=2|ticks=[2]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":2,\"ticks\":[2]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 148.0,
+        "outcome_reward": 2.0,
+        "seed": 2
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "first_prompt": "Current Craftax long-horizon observation:\nposition=0|ticks=[0]|achievements=[]\n\nStructured state view:\n{\"achievements\":[],\"position\":0,\"ticks\":[0]}\n\nUse the structured state view first; the raw observation text is fallback context.\n\nPlan a short useful macro-action. Use the craftax_interact tool exactly once. Return exactly 5 actions unless the environment is already done. Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        "native_env_reward_total": 140.0,
+        "outcome_reward": 2.0,
+        "seed": 3
+      }
+    ],
+    "mean_llm_calls_per_rollout": 3.0,
+    "mean_native_env_reward_total": 143.25,
+    "mean_outcome_reward": 2.0
+  },
+  "decision": "retain",
+  "delta_mean_llm_calls_per_rollout": 0.0,
+  "delta_mean_native_env_reward_total": 120.0,
+  "delta_mean_outcome_reward": 1.0,
+  "seeds": [
+    0,
+    1,
+    2,
+    3
+  ]
+}

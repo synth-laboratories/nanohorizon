@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-12 - Craftax rollout-history candidate
+- Added bounded recent reward/action history to `src/nanohorizon/craftax_core/rollout.py` so the prompt now carries prior action batches and reward trend context across turns.
+- Restored the Craftax HTTP shim surface in `src/nanohorizon/craftax_core/http_shim.py` with `create_app()`, `/health`, `/task_info`, `/rollout`, and `/rollouts` so the local tunnel/eval entrypoint works again.
+- Validated with `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml --with uvicorn python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py tests/test_craftax_interface.py -q` -> `19 passed`.
+- Proxy slice artifact: `experiments/craftax_candidate_20260412/results/proxy_eval_comparison.json`.
+- Proxy comparison on fixed seeds `0..3`: baseline mean outcome_reward `1.0`, candidate mean outcome_reward `2.0`, delta `+1.0`.
+- Caveat: live `craftax` / `craftaxlm` packages are absent locally, so the measured comparison used the fake Craftax runner and a deterministic mock policy endpoint rather than a real model rollout.
