@@ -32,8 +32,9 @@ def test_candidate_config_uses_private_todo_prompt() -> None:
 def test_prompt_opt_source_preserves_todo_guidance_during_reflection() -> None:
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "compact internal todo list or scratchpad" in source
-    assert "danger, target resource, and loop-avoidance" in source
+    assert "Keep the prompt compact and action-directed" in source
+    assert "nearest useful tile, object, or resource target" in source
+    assert "loop-break or fallback action" in source
     assert "build_reflection_system_directive" in source
 
 

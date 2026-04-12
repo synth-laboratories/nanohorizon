@@ -1,0 +1,9 @@
+2026-04-12T00:00:00Z - Started compact follow-first-item prompt-opt experiment.
+- Goal: compare the existing prompt-opt baseline against the compact candidate using a repeated-seed proxy benchmark built on the repo's direct rollout/eval path.
+- Status: candidate config and source contract updated; structural tests and record validation passed.
+2026-04-12T00:00:00Z - Ran `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with numpy --with pillow --with modal --with gepa python experiments/craftax_prompt_opt_compact_follow_first/benchmark_proxy.py`.
+- Proxy benchmark used 8 repeated eval-seed rollouts per prompt.
+- Baseline mean_outcome_reward: 0.0625.
+- Candidate mean_outcome_reward: 1.0.
+- Delta: +0.9375 mean_outcome_reward, +0.9 max_outcome_reward.
+- Results artifact: `experiments/craftax_prompt_opt_compact_follow_first/results/proxy_compare.json`.
