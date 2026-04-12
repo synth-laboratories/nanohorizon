@@ -258,6 +258,31 @@ def _observation_prompt(*, observation_text: str, target_action_batch_size: int)
     )
 
 
+def _recent_turn_history_prompt(turns: list[dict[str, Any]], *, window_size: int = 4) -> str:
+    recent_turns = [item for item in turns if isinstance(item, dict)][-max(1, int(window_size)) :]
+    if not recent_turns:
+        return ""
+
+    lines = ["Recent turn history (oldest to newest):"]
+    for turn in recent_turns:
+        turn_index = int(turn.get("turn_index", 0))
+        actions = turn.get("actions", [])
+        if isinstance(actions, list):
+            actions_text = ", ".join(str(action).strip() for action in actions if str(action).strip())
+        else:
+            actions_text = str(actions).strip()
+        if not actions_text:
+            actions_text = "none"
+        decision_reward = float(turn.get("decision_reward", 0.0))
+        return_to_go = float(turn.get("return_to_go", 0.0))
+        trainable = "yes" if bool(turn.get("trainable", False)) else "no"
+        lines.append(
+            f"- turn {turn_index}: actions={actions_text}; reward_delta={decision_reward:.2f}; "
+            f"return_to_go={return_to_go:.2f}; trainable={trainable}"
+        )
+    return "\n".join(lines)
+
+
 def run_rollout(
     *,
     inference_url: str,
@@ -294,6 +319,9 @@ def run_rollout(
         if current.done:
             break
         observation_text = str(current.render.text or "").strip() or "No text renderer available."
+        recent_turn_history = _recent_turn_history_prompt(turns)
+        if recent_turn_history:
+            observation_text = f"{observation_text}\n\n{recent_turn_history}"
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),

@@ -132,3 +132,87 @@ def test_media_persist_smoke(tmp_path):
     artifacts = persist_media(frames=frames, output_dir=tmp_path / "media", fps=4, write_mp4=False)
     assert artifacts.frames_dir
     assert artifacts.gif_path
+
+
+def test_rollout_includes_recent_turn_history_in_later_prompts(monkeypatch):
+    import nanohorizon.craftax_core.rollout as rollout
+    from nanohorizon.craftax_core.metadata import PRIMARY_TOOL_NAME
+
+    class FakeRender:
+        def __init__(self, text: str):
+            self.text = text
+            self.pixels = None
+
+    class FakeStep:
+        def __init__(self, *, text: str, done: bool, reward: float = 0.0):
+            self.done = done
+            self.reward = reward
+            self.render = FakeRender(text)
+
+    class FakeRunner:
+        def __init__(self):
+            self.state = object()
+            self.action_history: list[int] = []
+            self.turn_index = 0
+
+        def reset(self):
+            self.turn_index = 0
+            return FakeStep(text="obs0", done=False)
+
+        def step_many(self, actions):
+            self.action_history.extend(actions)
+            self.turn_index += 1
+            return [
+                FakeStep(
+                    text=f"obs{self.turn_index}",
+                    done=self.turn_index >= 2,
+                    reward=float(self.turn_index),
+                )
+            ]
+
+    call_messages: list[list[dict[str, object]]] = []
+
+    def fake_chat_completion(**kwargs):  # type: ignore[no-untyped-def]
+        call_messages.append(list(kwargs["messages"]))
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "",
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": PRIMARY_TOOL_NAME,
+                                    "arguments": {"actions_list": ["move_right"]},
+                                }
+                            }
+                        ],
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(rollout, "make_runner", lambda **kwargs: FakeRunner())
+    monkeypatch.setattr(rollout, "achievement_names_from_state", lambda state: [])
+    monkeypatch.setattr(rollout, "_chat_completion", fake_chat_completion)
+
+    result = rollout.run_rollout(
+        inference_url="http://example.test/v1/chat/completions",
+        model="demo",
+        api_key="",
+        seed=0,
+        max_steps=2,
+        trace_correlation_id="trace",
+        system_prompt="system",
+        target_action_batch_size=1,
+        min_action_batch_size=1,
+        request_logprobs=False,
+    )
+
+    assert result["success_status"] == "success"
+    assert len(call_messages) == 2
+    first_user_prompt = str(call_messages[0][1]["content"])
+    second_user_prompt = str(call_messages[1][1]["content"])
+    assert "Recent turn history" not in first_user_prompt
+    assert "Recent turn history (oldest to newest):" in second_user_prompt
+    assert "turn 0" in second_user_prompt
