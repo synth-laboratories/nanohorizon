@@ -20,6 +20,8 @@ from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
+    RewardHistoryEntry,
+    RewardHistoryWindow,
 )
 from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
@@ -247,15 +249,79 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _format_state_view(state_view: Any, *, limit: int = 1200) -> str:
+    if state_view is None:
+        return ""
+    try:
+        rendered = json.dumps(state_view, sort_keys=True, default=str, separators=(",", ":"))
+    except Exception:
+        rendered = str(state_view)
+    rendered = rendered.strip()
+    if len(rendered) <= limit:
+        return rendered
+    return rendered[: limit - 3].rstrip() + "..."
+
+
+def _shorten_text(value: Any, *, limit: int = 240) -> str:
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _format_reward_history(history: RewardHistoryWindow, *, limit: int = 5) -> str:
+    entries = history.entries[-max(0, int(limit)) :]
+    if not entries:
+        return ""
+    lines = ["Recent action history:"]
+    for index, entry in enumerate(entries, start=1):
+        action = _shorten_text(entry.action, limit=80) or "noop"
+        reward = f"{float(entry.reward_delta):+.2f}"
+        summary = _shorten_text(entry.observation_summary, limit=180) or "no observation summary"
+        lines.append(f"{index}. actions={action} | reward={reward} | next_state={summary}")
+    labels = ", ".join(history.labels())
+    if labels:
+        lines.append(f"Reward trend: {labels}")
+    lines.append("Use this history to avoid repeating unproductive loops.")
+    return "\n".join(lines)
+
+
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    state_view: Any | None = None,
+    reward_history: RewardHistoryWindow | None = None,
+) -> str:
+    parts = [
+        "Current Craftax long-horizon observation:",
+        observation_text,
+    ]
+    structured_state = _format_state_view(state_view)
+    if structured_state:
+        parts.extend(
+            [
+                "",
+                "Structured state view:",
+                structured_state,
+                "",
+                "Use the structured state view first; the raw observation text is fallback context.",
+            ]
+        )
+    if reward_history is not None:
+        reward_history_text = _format_reward_history(reward_history)
+        if reward_history_text:
+            parts.extend(["", reward_history_text])
+    parts.extend(
+        [
+            "",
+            "Plan a short useful macro-action. "
+            f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
+            f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
+            "Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        ]
     )
+    return "\n".join(parts)
 
 
 def run_rollout(
@@ -287,6 +353,7 @@ def run_rollout(
     total_reward = 0.0
     llm_call_count = 0
     frames: list[Any] = []
+    reward_history = RewardHistoryWindow()
     if current.render.pixels is not None:
         frames.append(current.render.pixels)
     turns: list[dict[str, Any]] = []
@@ -297,6 +364,8 @@ def run_rollout(
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            state_view=getattr(current.render, "state_view", None),
+            reward_history=reward_history,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -359,6 +428,13 @@ def run_rollout(
             frames.append(current.render.pixels)
         achievements = achievement_names_from_state(runner.state)
         unique_achievements.update(achievements)
+        reward_history.append(
+            RewardHistoryEntry(
+                action=", ".join(actions),
+                observation_summary=_shorten_text(current.render.text or observation_text, limit=240),
+                reward_delta=decision_reward,
+            )
+        )
         turns.append(
             {
                 "turn_index": turn_index,
