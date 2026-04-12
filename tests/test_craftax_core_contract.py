@@ -4,7 +4,14 @@ from fastapi.testclient import TestClient
 
 from nanohorizon.craftax_core.http_shim import create_app
 from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
-from nanohorizon.craftax_core.rollout import _chat_completion, _extract_reasoning_text, run_rollout
+from nanohorizon.craftax_core.rollout import (
+    _chat_completion,
+    _extract_reasoning_text,
+    _observation_prompt,
+    _roadmap_next_targets,
+    run_rollout,
+)
+from nanohorizon.shared.eval_model import _default_system_prompt, evaluate_model
 from nanohorizon.shared.openai_compat import extract_craftax_actions
 
 
@@ -39,6 +46,30 @@ def test_tool_parsing_accepts_craftax_tool_name():
 
 def test_reasoning_extraction_accepts_qwen_reasoning_field():
     assert _extract_reasoning_text({"content": None, "reasoning": "think first"}) == "think first"
+
+
+def test_default_system_prompt_mentions_achievement_roadmap():
+    prompt = _default_system_prompt(thinking_budget_tokens=256)
+    assert "Achievement roadmap:" in prompt
+    assert "Zero-reward-for-repeat rule" in prompt
+    assert "collect_wood -> collect_sapling -> place_table" in prompt
+
+
+def test_roadmap_next_targets_progresses_with_unlocked_achievements():
+    assert _roadmap_next_targets(set()) == ["collect_wood", "collect_sapling", "place_table"]
+    assert _roadmap_next_targets({"collect_wood", "collect_sapling", "place_table"})[0] == "make_wood_pickaxe"
+
+
+def test_observation_prompt_includes_progress_fields():
+    prompt = _observation_prompt(
+        observation_text="obs",
+        target_action_batch_size=4,
+        achievements_unlocked=["collect_wood"],
+        next_targets=["collect_sapling", "place_table"],
+    )
+    assert "Achievements unlocked: collect_wood" in prompt
+    assert "Next targets: collect_sapling, place_table" in prompt
+    assert "obs" in prompt
 
 
 def test_remote_rollout_requests_strip_vllm_only_request_overrides(monkeypatch):
@@ -206,3 +237,46 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_eval_model_default_prompt_mentions_achievement_roadmap(monkeypatch, tmp_path):
+    captured: dict[str, object] = {}
+
+    async def fake_collect_rollouts_concurrently(**kwargs):  # type: ignore[no-untyped-def]
+        captured["system_prompt"] = kwargs["system_prompt"]
+        return [
+            {
+                "success_status": "success",
+                "reward_info": {
+                    "outcome_reward": 1.0,
+                    "outcome_objectives": {"unique_achievements": 1.0},
+                    "details": {"achievements": ["collect_wood"]},
+                },
+                "trace": {"inference": {"turns": []}},
+                "metadata": {"achievements": ["collect_wood"]},
+                "artifact": [{"turns": []}],
+            }
+        ]
+
+    monkeypatch.setattr("nanohorizon.shared.eval_model.collect_rollouts_concurrently", fake_collect_rollouts_concurrently)
+
+    result = evaluate_model(
+        base_model="demo",
+        output_dir=tmp_path,
+        container_url="direct://local",
+        seed_start=10000,
+        num_rollouts=1,
+        max_steps=1,
+        max_concurrent_rollouts=1,
+        max_length=16,
+        max_new_tokens=1,
+        inference_url="http://example.test/v1/chat/completions",
+        request_model="demo",
+        request_timeout_seconds=1.0,
+    )
+
+    system_prompt = str(captured["system_prompt"])
+    assert "Achievement roadmap" in system_prompt
+    assert "collect_wood -> collect_sapling -> place_table -> make_wood_pickaxe" in system_prompt
+    assert "Zero-reward-for-repeat rule" in system_prompt
+    assert result["mean_outcome_reward"] == 1.0

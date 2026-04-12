@@ -1,0 +1,11 @@
+{
+  "candidate_name": "Achievement Roadmap v2",
+  "implementation_status": "candidate_implemented_but_unverified",
+  "task_key": "craftax_candidate_achievement_roadmap_v2",
+  "task_id": "a96996d6-74ae-4439-9ac1-47d435732dc7",
+  "track_id": "prompt_opt_1usd_gpt54_family",
+  "repo_root": "/workspace",
+  "verification_status": "blocked",
+  "baseline_reference": "records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/eval_summary.json",
+  "baseline_seed_subset": [10000, 10001, 10002, 10003, 10004]
+}

@@ -1,19 +1,14 @@
-2026-04-07 - Craftax todo-tool candidate packaging
-- Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
-- Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.
-- Updated the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix/` so `run_config.yaml` and `notes.md` reflect the same candidate wording.
-- Validation run: `uv run pytest tests/test_codex_durable_intent_candidate.py` passed on 2026-04-07.
-- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_durable_intent_fix` returned `ok: true` on 2026-04-07.
-- Local reviewable commit: `0434db4681ae114669540ab37dd4211c00f20645` (`Preserve Craftax todo guidance during prompt optimization`).
-- Push blocker: `workspace_push` failed with `workspace_push requires a live worker session; no live worker handle was found`, so this run can leave a local reviewable commit but cannot complete the required backend-tracked push flow.
-- Caveat: no live Craftax or Modal rollout run was executed in this task, so score impact remains unmeasured.
+2026-04-12 - Craftax Achievement Roadmap v2
+- Implemented prompt shaping in `src/nanohorizon/shared/eval_model.py` with an explicit achievement roadmap and zero-reward-for-repeat framing.
+- Implemented rollout context shaping in `src/nanohorizon/craftax_core/rollout.py` so each user prompt now carries `achievements_unlocked`, `next_targets`, and the current unique-achievement count.
+- Restored `create_app()` in `src/nanohorizon/craftax_core/http_shim.py` with `/health`, `/task_info`, `/rollout`, and `/rollouts` endpoints; kept `run_rollout_request` as a lazy proxy to avoid an import cycle.
+- Targeted Craftax tests passed: `python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py tests/test_craftax_interface.py`.
+- Benchmark verification blocked in this container: `jax`, `craftax`, `craftaxlm`, and `vllm` are absent, and `uv run` is pinned to a missing local `synth-ai` path.
+- Baseline context for seeds 10000-10004 from `records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/eval_summary.json`: mean unique achievements = `1.0`.
 
-2026-04-07 - Craftax todo refresh gate candidate
-- Kept the change inside `src/nanohorizon/baselines/prompt_opt.py`, one new prompt-opt config, one new record bundle, and a focused regression test; protected shared Craftax harness files remained unchanged.
-- Centralized the todo-tool contract in `src/nanohorizon/baselines/prompt_opt.py` via `TODO_SCRATCHPAD_REQUIREMENTS` so GEPA reflection and rollout feedback preserve the same private three-item scratchpad semantics instead of drifting across duplicated wording.
-- Added `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`, which asks the policy to refresh its private three-item todo list every turn, replace stale targets after no-progress loops, and make the 3-4 action batch follow the current first todo item.
-- Packaged the matching record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/` with `command.txt`, `metadata.json`, `metrics.json`, `notes.md`, `run_config.yaml`, and `system_info.json`.
-- Validation run: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py` passed on 2026-04-07.
-- Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
-- Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
-- Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+2026-04-12 - Craftax Achievement Roadmap v2 verification attempt
+- Baseline proxy eval: `.out/baseline_proxy_eval_9016/eval_summary.json` on seeds `10000-10004`, `max_steps=4`, `max_concurrent_rollouts=1`, `gpt-4.1-nano`, local Craftax server on port `9016`.
+- Candidate proxy eval: `.out/candidate_proxy_eval_9017/eval_summary.json` on the same seeds and proxy backend, local Craftax server on port `9017`.
+- Both evals returned mean unique achievements `0.0` and never completed an LLM call. Observed errors were `Server disconnected without sending a response` and `All connection attempts failed`.
+- The server-side 500s came from the local Craftax dependency state, not from the candidate prompt: the texture cache bundled with `craftax` had to be cleared, and the eval commands had to use `uv run --no-sync` to avoid rehydrating the broken cache.
+- The candidate prompt change is still the intended direction, but this run is blocked from a meaningful score comparison in this container.

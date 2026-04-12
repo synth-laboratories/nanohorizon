@@ -1,0 +1,6 @@
+uv run pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py tests/test_craftax_interface.py
+python -m pip install -e . pytest
+python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py tests/test_craftax_interface.py
+python -m compileall src/nanohorizon/craftax_core src/nanohorizon/shared/eval_model.py tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py
+baseline_subset_mean_unique_achievements=1.0 from records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/eval_summary.json for seeds 10000-10004
+candidate_eval_path=blocked because the current environment lacks jax, craftax, vllm, and craftaxlm, and uv sync is pinned to a missing local synth-ai path
