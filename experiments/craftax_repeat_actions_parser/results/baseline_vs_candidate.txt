@@ -1,0 +1,7 @@
+Baseline vs candidate (deterministic fixed-seed parser slice)
+Baseline mean outcome reward: 0.00
+Candidate mean outcome reward: 1.00
+Delta: 1.00
+Baseline mean action count: 1.00
+Candidate mean action count: 4.00
+Delta: 3.00

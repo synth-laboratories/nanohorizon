@@ -1,0 +1,13 @@
+2026-04-12T03:05:33Z - Start
+- Inspected Craftax task spec, current harness, and prior findings.
+- Identified a repeated-action sanitizer bug in `src/nanohorizon/craftax_core/rollout.py` and the shared `sanitize_craftax_actions` path.
+- Also found prompt-history augmentation already present in the dirty tree (`http_shim.py`, `metadata.py`, `tests/test_craftax_interface.py`); left it in place and validated it with unit tests.
+
+2026-04-12T03:11:32Z - Validation
+- Ran focused unit tests: `tests/test_craftax_core_runtime_guarantees.py` and `tests/test_craftax_interface.py`.
+- Ran a deterministic fixed-seed parser slice with seeds `[11, 23, 37]` using `run_rollout_request` and a fake runner/model stub.
+- Baseline sanitized repeated `move_right` into 1 action; candidate preserved all 4 actions.
+- Baseline mean outcome reward: 0.0.
+- Candidate mean outcome reward: 1.0.
+- Follow-up contract validation passed after wiring the HTTP shim wrapper expected by `tests/test_craftax_core_contract.py`.
+- Caveat: this slice isolates parser behavior; it is not a live Craftax model endpoint or full environment benchmark.

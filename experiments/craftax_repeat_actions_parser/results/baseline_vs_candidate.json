@@ -1,0 +1,127 @@
+{
+  "baseline": {
+    "mean_action_count": 1,
+    "mean_native_env_reward_total": 1.0,
+    "mean_outcome_reward": 0.0,
+    "seeds": [
+      11,
+      23,
+      37
+    ]
+  },
+  "candidate": {
+    "mean_action_count": 4,
+    "mean_native_env_reward_total": 4.0,
+    "mean_outcome_reward": 1.0,
+    "seeds": [
+      11,
+      23,
+      37
+    ]
+  },
+  "delta": {
+    "mean_action_count": 3,
+    "mean_native_env_reward_total": 3.0,
+    "mean_outcome_reward": 1.0
+  },
+  "evaluation_type": "deterministic fixed-seed parser slice",
+  "results": {
+    "baseline": {
+      "runs": [
+        {
+          "action_count": 1,
+          "actions": [
+            "move_right"
+          ],
+          "llm_call_count": 1,
+          "native_env_reward_total": 1.0,
+          "reward": 0.0,
+          "seed": 11
+        },
+        {
+          "action_count": 1,
+          "actions": [
+            "move_right"
+          ],
+          "llm_call_count": 1,
+          "native_env_reward_total": 1.0,
+          "reward": 0.0,
+          "seed": 23
+        },
+        {
+          "action_count": 1,
+          "actions": [
+            "move_right"
+          ],
+          "llm_call_count": 1,
+          "native_env_reward_total": 1.0,
+          "reward": 0.0,
+          "seed": 37
+        }
+      ],
+      "summary": {
+        "mean_action_count": 1,
+        "mean_native_env_reward_total": 1.0,
+        "mean_outcome_reward": 0.0,
+        "seeds": [
+          11,
+          23,
+          37
+        ]
+      }
+    },
+    "candidate": {
+      "runs": [
+        {
+          "action_count": 4,
+          "actions": [
+            "move_right",
+            "move_right",
+            "move_right",
+            "move_right"
+          ],
+          "llm_call_count": 1,
+          "native_env_reward_total": 4.0,
+          "reward": 1.0,
+          "seed": 11
+        },
+        {
+          "action_count": 4,
+          "actions": [
+            "move_right",
+            "move_right",
+            "move_right",
+            "move_right"
+          ],
+          "llm_call_count": 1,
+          "native_env_reward_total": 4.0,
+          "reward": 1.0,
+          "seed": 23
+        },
+        {
+          "action_count": 4,
+          "actions": [
+            "move_right",
+            "move_right",
+            "move_right",
+            "move_right"
+          ],
+          "llm_call_count": 1,
+          "native_env_reward_total": 4.0,
+          "reward": 1.0,
+          "seed": 37
+        }
+      ],
+      "summary": {
+        "mean_action_count": 4,
+        "mean_native_env_reward_total": 4.0,
+        "mean_outcome_reward": 1.0,
+        "seeds": [
+          11,
+          23,
+          37
+        ]
+      }
+    }
+  }
+}

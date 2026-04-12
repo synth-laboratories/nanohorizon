@@ -17,11 +17,11 @@ def sanitize_craftax_actions(values: list[object]) -> list[str]:
         raw = str(value).strip().lower()
         if not raw:
             continue
-        if raw in CRAFTAX_ACTIONS and raw not in sanitized:
+        if raw in CRAFTAX_ACTIONS:
             sanitized.append(raw)
             continue
         for token in re.findall(r"[a-z_]+", raw):
-            if token in CRAFTAX_ACTIONS and token not in sanitized:
+            if token in CRAFTAX_ACTIONS:
                 sanitized.append(token)
     return sanitized
 

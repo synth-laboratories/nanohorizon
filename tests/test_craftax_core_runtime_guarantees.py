@@ -364,8 +364,17 @@ def test_openai_compat_action_extraction_and_frequency_summary():
             }
         ]
     }
-    assert sanitize_craftax_actions(["MOVE_RIGHT", "move_right", "bad", "do"]) == ["move_right", "do"]
-    assert extract_craftax_actions(payload) == ["move_right", "do", "move_up"]
+    assert sanitize_craftax_actions(["MOVE_RIGHT", "move_right", "bad", "do"]) == [
+        "move_right",
+        "move_right",
+        "do",
+    ]
+    assert extract_craftax_actions(payload) == [
+        "move_right",
+        "move_right",
+        "do",
+        "move_up",
+    ]
 
     summary = summarize_achievement_frequencies(
         [
