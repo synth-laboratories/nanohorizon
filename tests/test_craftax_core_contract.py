@@ -206,3 +206,99 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_rollout_prompt_includes_recent_trajectory_history(monkeypatch):
+    import nanohorizon.craftax_core.rollout as rollout
+
+    class FakeRender:
+        text = "obs"
+        pixels = None
+
+    class FakeStep:
+        def __init__(self, *, done: bool, reward: float = 0.0):
+            self.done = done
+            self.reward = reward
+            self.render = FakeRender()
+
+    class FakeRunner:
+        def __init__(self):
+            self.state = object()
+            self.action_history: list[int] = []
+            self._steps = 0
+
+        def reset(self):
+            return FakeStep(done=False)
+
+        def step_many(self, actions):
+            self.action_history.extend(actions)
+            self._steps += len(actions)
+            return [FakeStep(done=self._steps >= 2, reward=float(self._steps))]
+
+    call_messages: list[list[dict[str, object]]] = []
+    payloads = iter(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_right"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_up"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+        ]
+    )
+
+    def fake_chat_completion(**kwargs):  # type: ignore[no-untyped-def]
+        call_messages.append(list(kwargs["messages"]))
+        return next(payloads)
+
+    monkeypatch.setattr(rollout, "make_runner", lambda **kwargs: FakeRunner())
+    monkeypatch.setattr(rollout, "achievement_names_from_state", lambda state: [])
+    monkeypatch.setattr(rollout, "_chat_completion", fake_chat_completion)
+
+    result = run_rollout(
+        inference_url="http://example.test/v1/chat/completions",
+        model="demo",
+        api_key="",
+        seed=0,
+        max_steps=2,
+        trace_correlation_id="trace",
+        system_prompt="system",
+        target_action_batch_size=1,
+        min_action_batch_size=1,
+        request_logprobs=False,
+    )
+
+    assert result["success_status"] == "success"
+    assert len(call_messages) == 2
+    second_user_prompt = call_messages[1][1]["content"]
+    assert "Recent trajectory:" in second_user_prompt
+    assert "actions=move_right" in second_user_prompt
+    assert "return_to_go=0.00" in second_user_prompt
