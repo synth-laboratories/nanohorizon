@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from .metadata import PromptContext, RewardHistoryEntry, RewardHistoryWindow, StructuredObservation
+from fastapi import FastAPI
+
+from .metadata import PRIMARY_TOOL_NAME, PromptContext, RewardHistoryEntry, RewardHistoryWindow, StructuredObservation
 
 
 def build_prompt_context(
@@ -49,3 +51,37 @@ def summarize_history(history: RewardHistoryWindow | Iterable[RewardHistoryEntry
     if isinstance(history, RewardHistoryWindow):
         return history.to_prompt_payload()
     return [entry.to_prompt_payload() for entry in history]
+
+
+def run_rollout_request(request: dict[str, Any]) -> dict[str, Any]:
+    from .rollout import run_rollout_request as _run_rollout_request
+
+    return _run_rollout_request(request)
+
+
+def create_app(*, env_kind: str = "full") -> FastAPI:
+    app = FastAPI(title="NanoHorizon Craftax Runtime")
+
+    @app.get("/health")
+    def health() -> dict[str, Any]:
+        return {
+            "ok": True,
+            "upstream_ready": True,
+            "env_kind": env_kind,
+            "primary_tool_name": PRIMARY_TOOL_NAME,
+        }
+
+    @app.get("/task_info")
+    def task_info() -> dict[str, Any]:
+        return {
+            "env_kind": env_kind,
+            "primary_tool_name": PRIMARY_TOOL_NAME,
+            "reward_history_window_size": 5,
+        }
+
+    def _rollout(request: dict[str, Any]) -> dict[str, Any]:
+        return run_rollout_request(request)
+
+    app.post("/rollout")(_rollout)
+    app.post("/rollouts")(_rollout)
+    return app

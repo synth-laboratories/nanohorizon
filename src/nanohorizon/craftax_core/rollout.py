@@ -247,15 +247,59 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _recent_turns_prompt(turns: list[dict[str, Any]], *, max_turns: int = 3) -> str:
+    recent_turns = [turn for turn in turns if isinstance(turn, dict)][-max_turns:]
+    if not recent_turns:
+        return ""
+
+    lines = ["Recent trajectory:"]
+    for turn in recent_turns:
+        turn_index = turn.get("turn_index")
+        actions = turn.get("actions")
+        if isinstance(actions, list) and actions:
+            actions_text = ", ".join(str(action) for action in actions)
+        else:
+            actions_text = "none"
+        reward = turn.get("decision_reward")
+        try:
+            reward_text = f"{float(reward):.2f}"
+        except (TypeError, ValueError):
+            reward_text = "n/a"
+        try:
+            rtg_text = f"{float(turn.get('return_to_go')):.2f}"
+        except (TypeError, ValueError):
+            rtg_text = "n/a"
+        lines.append(
+            f"- turn {turn_index}: actions={actions_text}; reward={reward_text}; return_to_go={rtg_text}"
+        )
+    return "\n".join(lines)
+
+
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    recent_turns: list[dict[str, Any]] | None = None,
+) -> str:
+    parts = [
+        "Current Craftax long-horizon observation:",
+        observation_text,
+    ]
+    recent_turns_text = _recent_turns_prompt(list(recent_turns or ()))
+    if recent_turns_text:
+        parts.extend([recent_turns_text])
+    parts.append(
+        (
+            "Plan a short useful macro-action. "
+            "If the observation names a nearby resource, machine, or other actionable target, "
+            "prefer the matching interact/craft action; otherwise explore with non-repeating movement. "
+            "If the recent trajectory shows no progress, do not mirror the same movement pattern again. "
+            f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
+            f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
+            "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+        )
     )
+    return "\n\n".join(parts)
 
 
 def run_rollout(
@@ -297,6 +341,7 @@ def run_rollout(
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            recent_turns=turns,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
