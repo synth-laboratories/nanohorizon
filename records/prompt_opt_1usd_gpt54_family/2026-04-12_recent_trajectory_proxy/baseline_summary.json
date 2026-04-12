@@ -1,0 +1,64 @@
+{
+  "completed_rollouts": 3,
+  "max_outcome_reward": 1.0,
+  "mean_outcome_reward": 1.0,
+  "num_errors": 0,
+  "num_structured_rollouts": 3,
+  "requested_rollouts": 3,
+  "seed_rewards": [
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "action_history": [
+        2,
+        4,
+        1,
+        3,
+        2,
+        4,
+        1,
+        3
+      ],
+      "llm_call_count": 2,
+      "outcome_reward": 1.0,
+      "seed": 10000
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "action_history": [
+        2,
+        4,
+        1,
+        3,
+        2,
+        4,
+        1,
+        3
+      ],
+      "llm_call_count": 2,
+      "outcome_reward": 1.0,
+      "seed": 10001
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "action_history": [
+        2,
+        4,
+        1,
+        3,
+        2,
+        4,
+        1,
+        3
+      ],
+      "llm_call_count": 2,
+      "outcome_reward": 1.0,
+      "seed": 10002
+    }
+  ]
+}

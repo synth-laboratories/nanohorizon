@@ -1,0 +1,7 @@
+{
+  "date": "2026-04-12",
+  "implementation_status": "candidate_smoke_verified",
+  "name": "recent_trajectory_proxy",
+  "notes": "Proxy eval on fake Craftax runner because the real craftax package was unavailable in this checkout.",
+  "task": "craftax"
+}

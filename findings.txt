@@ -18,6 +18,14 @@
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
 
+2026-04-12 - Craftax recent-trajectory prompt candidate
+- Added a compact recent-trajectory block to `src/nanohorizon/craftax_core/rollout.py` so each new user prompt can see the last few action batches with reward / return-to-go context and the loop-break guidance can react to actual trajectory history.
+- Restored the missing FastAPI shim in `src/nanohorizon/craftax_core/http_shim.py` with `/health`, `/task_info`, `/rollout`, and `/rollouts` while keeping the rollout handler as a lazy wrapper to avoid the `http_shim`/`runner` import cycle.
+- Focused verifier run: `PYTHONPATH=src python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_interface.py` passed after the shim fix.
+- Proxy baseline-vs-candidate comparison: `records/prompt_opt_1usd_gpt54_family/2026-04-12_recent_trajectory_proxy/` records a three-seed direct-rollout comparison on the fake Craftax runner because the real `craftax` package is not installed in this checkout.
+- Proxy result: baseline mean outcome reward `1.0`, candidate mean outcome reward `2.0`, delta `+1.0` on seeds `10000-10002`; the candidate reached `collect_sapling` in addition to `collect_wood` in all three proxy rollouts.
+- Caveat: no live Craftax runtime eval was possible in this workspace because the `craftax` dependency was unavailable, so the comparison is a prompt-shape proxy rather than a real-model leaderboard score.
+
 2026-04-12 - Craftax compact follow-first candidate
 - Added `configs/craftax_prompt_opt_qwen35_4b_codex_compact_follow_first.yaml` and the matching placeholder record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_compact_follow_first/`.
 - Tightened `src/nanohorizon/baselines/prompt_opt.py` so the todo contract and reflection feedback explicitly stay compact and action-directed instead of expanding into a general planning rubric.

@@ -1,73 +1,68 @@
-# Craftax Compact Follow-First Candidate
+# Craftax Recent-Trajectory Prompt Candidate
 
-## Context & objective
+## Context & Objective
 
-The task was to make the smallest honest Craftax improvement in the NanoHorizon repo without touching the protected shared harness surfaces unless absolutely necessary. I chose a prompt-opt change: keep the private todo contract compact and action-directed, then benchmark the baseline prompt against the new compact follow-first candidate using the repo's direct rollout/eval path.
+Implement the smallest honest Craftax improvement in the NanoHorizon repo that could plausibly improve policy quality, while keeping the shared harness surfaces stable unless a compatibility repair was genuinely required.
 
-## Experiments cited
+The chosen lever was prompt shaping in the rollout loop: expose a short recent-trajectory summary to the model on each turn so it can break repetition loops using actual action history instead of only the current observation text.
 
-1. [`src/nanohorizon/baselines/prompt_opt.py`](/workspace/src/nanohorizon/baselines/prompt_opt.py)
-   - Question: can GEPA reflection preserve a stable Craftax todo contract without inflating it into a generic planning rubric?
+## Experiments Cited
+
+1. `tests/test_craftax_core_contract.py` and `tests/test_craftax_interface.py`
+   - Question: did the rollout prompt change preserve the contract and expose the new recent-trajectory context?
    - Outcome: supporting.
-   - Evidence: `TODO_SCRATCHPAD_REQUIREMENTS`, `REFLECTION_PROMPT_TEMPLATE`, `build_reflection_system_directive`, and `_feedback_for_rollout` now all carry the compact, action-directed wording.
+   - Evidence: the focused verifier run passed after restoring the missing FastAPI shim and adding the new prompt-history test.
 
-2. [`configs/craftax_prompt_opt_qwen35_4b_codex_compact_follow_first.yaml`](/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_compact_follow_first.yaml)
-   - Question: does a compact follow-first-item prompt keep the same model and rollout shape while removing the extra end-position clause?
-   - Outcome: supporting.
-   - Evidence: the candidate uses the same model, budget, and seed split as the reference prompt-opt setup, but the action guidance now ends at "follows the first todo item".
-
-3. [`records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_compact_follow_first/`](/workspace/records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_compact_follow_first/)
-   - Question: is the candidate packaged reproducibly even before a live run?
-   - Outcome: supporting for packaging, inconclusive for live reward.
-   - Evidence: `command.txt`, `metadata.json`, `metrics.json`, `notes.md`, `run_config.yaml`, and `system_info.json` are present and validator-clean.
-
-4. [`experiments/craftax_prompt_opt_compact_follow_first/`](/workspace/experiments/craftax_prompt_opt_compact_follow_first/)
-   - Question: does the compact candidate beat the baseline on a small repeated-seed benchmark slice?
-   - Outcome: supporting on the proxy benchmark, not a live Craftax score.
-   - Evidence: [`results/proxy_compare.json`](/workspace/experiments/craftax_prompt_opt_compact_follow_first/results/proxy_compare.json) records 8 repeated eval-seed rollouts for baseline and candidate.
+2. `records/prompt_opt_1usd_gpt54_family/2026-04-12_recent_trajectory_proxy/`
+   - Question: does the prompt-history addition improve a rollout proxy when the policy can see the recent trajectory block?
+   - Outcome: supporting for the prompt-shape hypothesis, with the caveat that this is a fake-runner proxy rather than a live Craftax score.
+   - Evidence: `comparison.json`, `baseline_summary.json`, `candidate_summary.json`, `command.txt`, `notes.md`, `metrics.json`, `metadata.json`.
 
 ## Insights
 
-1. The useful part of the todo strategy is the stable three-item private contract, not extra planning prose. The compact wording in [`prompt_opt.py`](/workspace/src/nanohorizon/baselines/prompt_opt.py) keeps that contract intact while reducing overconstraint.
-2. The new candidate is narrower than the prior todo-refresh variant because it drops the "end next to a useful target for the next turn" requirement and keeps only the follow-first-item instruction.
-3. On the proxy benchmark, the compact candidate is materially better than the baseline: baseline mean outcome reward was `0.0625`, candidate mean outcome reward was `1.0`, for a delta of `+0.9375`.
-4. This run does not establish live leaderboard improvement. The benchmark is a local repeated-seed proxy built on the repo's direct rollout/eval path, so it is useful for directional comparison but not a substitute for the real Craftax harness.
+1. Recent action history is useful when it is actually provided to the model. In the three-seed proxy slice, the baseline mean outcome reward was `1.0` and the candidate mean outcome reward was `2.0`, a delta of `+1.0`.
+2. The candidate achieved `collect_sapling` in addition to `collect_wood` in all three proxy rollouts, while the baseline only reached `collect_wood`.
+3. The compatibility repair in `src/nanohorizon/craftax_core/http_shim.py` was necessary because the workspace snapshot was missing `create_app`, and the tests depended on that surface.
+4. The live Craftax runtime could not be exercised in this checkout because the `craftax` dependency was unavailable, so the benchmark result is a deterministic prompt-shape proxy, not a leaderboard score.
 
-## Research artifacts produced
+## Research Artifacts Produced
 
-- Environments:
-  - Direct rollout/eval proxy executed from [`experiments/craftax_prompt_opt_compact_follow_first/benchmark_proxy.py`](/workspace/experiments/craftax_prompt_opt_compact_follow_first/benchmark_proxy.py) via `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with numpy --with pillow --with modal --with gepa ...`
-  - The benchmark used 8 repeated eval-seed rollouts per prompt.
-- Data:
-  - Baseline prompt config: [`configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml`](/workspace/configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml)
-  - Candidate prompt config: [`configs/craftax_prompt_opt_qwen35_4b_codex_compact_follow_first.yaml`](/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_compact_follow_first.yaml)
-  - Result artifact: [`experiments/craftax_prompt_opt_compact_follow_first/results/proxy_compare.json`](/workspace/experiments/craftax_prompt_opt_compact_follow_first/results/proxy_compare.json)
-- Models / checkpoints:
-  - No weights were trained or promoted in this run.
-  - The candidate stays on `Qwen/Qwen3.5-4B` with the existing prompt-opt budget.
+### Environments
 
-## Quality & validation
+- `src/nanohorizon/craftax_core/rollout.py`
+  - prompt shaping now includes recent trajectory context
+- `src/nanohorizon/craftax_core/http_shim.py`
+  - restored FastAPI app factory and preserved the rollout route seam
 
-- Executed:
-  - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with numpy --with pillow --with modal --with gepa pytest tests/test_codex_compact_follow_first_candidate.py tests/test_codex_todo_refresh_gate_candidate.py tests/test_codex_durable_intent_candidate.py -q`
-  - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with numpy --with pillow --with modal --with gepa python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_compact_follow_first`
-  - `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with numpy --with pillow --with modal --with gepa python experiments/craftax_prompt_opt_compact_follow_first/benchmark_proxy.py`
-- Results:
-  - 9 prompt-opt tests passed.
-  - Record validation returned `ok: true`.
-  - Proxy benchmark summary: baseline mean outcome reward `0.0625`, candidate mean outcome reward `1.0`, delta `+0.9375`.
-- Explicitly not validated:
-  - live Craftax reward
-  - Modal runtime execution
-  - GEPA search output on the real model
+### Data
 
-## Reproduction & handoff
+- `records/prompt_opt_1usd_gpt54_family/2026-04-12_recent_trajectory_proxy/`
+  - baseline and candidate summaries
+  - per-seed rollouts
+  - command note and proxy-eval notes
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_compact_follow_first.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Benchmark entrypoint: `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with httpx --with fastapi --with numpy --with pillow --with modal --with gepa python experiments/craftax_prompt_opt_compact_follow_first/benchmark_proxy.py`
-- Durable evidence:
-  - [`findings.txt`](/workspace/findings.txt)
-  - [`experiments/craftax_prompt_opt_compact_follow_first/experiment_log.txt`](/workspace/experiments/craftax_prompt_opt_compact_follow_first/experiment_log.txt)
-  - [`experiments/craftax_prompt_opt_compact_follow_first/results/proxy_compare.json`](/workspace/experiments/craftax_prompt_opt_compact_follow_first/results/proxy_compare.json)
-- Open risk:
-  - The compact prompt may still be too sparse for the live Craftax harness, and the benchmark here is only a proxy.
+### Models / Checkpoints
+
+- No weights or checkpoints were produced in this run.
+
+## Quality & Validation
+
+- Executed: `PYTHONPATH=src python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_interface.py`
+- Result: `10 passed`
+- Executed: direct rollout proxy on seeds `10000`, `10001`, `10002` with the repo rollout path and a fake Craftax runner
+- Result:
+  - baseline mean outcome reward: `1.0`
+  - candidate mean outcome reward: `2.0`
+  - delta: `+1.0`
+- Not validated:
+  - live Craftax runtime
+  - real Qwen leaderboard score
+  - Modal / remote container execution
+
+## Reproduction & Handoff
+
+- Code entrypoint: `src/nanohorizon/craftax_core/rollout.py`
+- Harness repair: `src/nanohorizon/craftax_core/http_shim.py`
+- Proxy record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-12_recent_trajectory_proxy/`
+- Reproduction command for the proxy slice: inspect `command.txt` and `comparison.json` in the record bundle
+- Open risk: the improvement is only validated as a prompt-shape proxy until the real Craftax package and live policy endpoint are available in this workspace

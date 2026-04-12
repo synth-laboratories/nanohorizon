@@ -1,0 +1,10 @@
+{
+  "baseline_mean_outcome_reward": 1.0,
+  "candidate_mean_outcome_reward": 2.0,
+  "delta_mean_outcome_reward": 1.0,
+  "seeds": [
+    10000,
+    10001,
+    10002
+  ]
+}
