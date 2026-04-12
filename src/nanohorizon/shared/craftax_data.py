@@ -481,6 +481,7 @@ async def collect_rollouts_concurrently_with_summary(
                                     "rollout_requests_started": requests_started,
                                     "rollout_requests_finished": requests_finished,
                                     "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+                                    "mean_unique_achievements": mean(rewards) if rewards else 0.0,
                                     "max_outcome_reward": max(rewards) if rewards else 0.0,
                                     "latest_rollout": latest,
                                 }
@@ -507,6 +508,7 @@ async def collect_rollouts_concurrently_with_summary(
             "num_errors": len(completed_rollouts) - len(valid_rollouts),
             "num_structured_rollouts": len(valid_rollouts),
             "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+            "mean_unique_achievements": mean(rewards) if rewards else 0.0,
             "max_outcome_reward": max(rewards) if rewards else 0.0,
             "elapsed_s": elapsed_s,
             "rollouts_per_minute": len(valid_rollouts) / (elapsed_s / 60.0),
@@ -678,6 +680,7 @@ async def collect_rollouts_concurrently_with_summary(
                                 "rollout_requests_started": requests_started,
                                 "rollout_requests_finished": requests_finished,
                                 "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+                                "mean_unique_achievements": mean(rewards) if rewards else 0.0,
                                 "max_outcome_reward": max(rewards) if rewards else 0.0,
                                 "latest_rollout": latest,
                             }
@@ -716,6 +719,7 @@ async def collect_rollouts_concurrently_with_summary(
         "num_errors": len(completed_rollouts) - len(valid_rollouts),
         "num_structured_rollouts": len(valid_rollouts),
         "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+        "mean_unique_achievements": mean(rewards) if rewards else 0.0,
         "max_outcome_reward": max(rewards) if rewards else 0.0,
         "elapsed_s": elapsed_s,
         "rollouts_per_minute": len(valid_rollouts) / (elapsed_s / 60.0),
@@ -824,6 +828,7 @@ def summarize_rollouts(rollouts: list[dict[str, Any]]) -> dict[str, Any]:
         "num_rollouts": len(valid_rollouts),
         "num_errors": len(rollouts) - len(valid_rollouts),
         "mean_outcome_reward": mean(rewards) if rewards else 0.0,
+        "mean_unique_achievements": mean(rewards) if rewards else 0.0,
         "max_outcome_reward": max(rewards) if rewards else 0.0,
         "mean_llm_calls_per_rollout": mean(llm_calls) if llm_calls else 0.0,
     }

@@ -1,0 +1,49 @@
+{
+  "batch": "candidate",
+  "details": [
+    {
+      "achievements": [
+        "collect_drink",
+        "collect_sapling",
+        "collect_wood"
+      ],
+      "llm_call_count": 20,
+      "outcome_reward": 3.0,
+      "seed": 10000
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "llm_call_count": 20,
+      "outcome_reward": 1.0,
+      "seed": 10001
+    },
+    {
+      "achievements": [
+        "collect_sapling"
+      ],
+      "llm_call_count": 20,
+      "outcome_reward": 1.0,
+      "seed": 10002
+    },
+    {
+      "achievements": [
+        "collect_sapling",
+        "collect_wood"
+      ],
+      "llm_call_count": 20,
+      "outcome_reward": 2.0,
+      "seed": 10003
+    },
+    {
+      "achievements": [
+        "collect_sapling"
+      ],
+      "llm_call_count": 20,
+      "outcome_reward": 1.0,
+      "seed": 10004
+    }
+  ],
+  "mean_unique_achievements": 1.6
+}

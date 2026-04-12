@@ -20,6 +20,7 @@ from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
+    craftax_achievement_context,
 )
 from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
@@ -247,14 +248,33 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    achievement_context: Mapping[str, Any],
+) -> str:
+    context_lines = [
+        "Achievement context:",
+        f"- unique_achievement_count: {int(achievement_context.get('unique_achievement_count', 0) or 0)}",
+        f"- achievements_unlocked: {json.dumps(list(achievement_context.get('achievements_unlocked', [])), sort_keys=True)}",
+        f"- next_targets: {json.dumps(list(achievement_context.get('next_targets', [])), sort_keys=True)}",
+        f"- achievement_score_rule: {achievement_context.get('achievement_score_rule', '')}",
+    ]
+    return "\n".join(
+        [
+            "Current Craftax long-horizon observation:",
+            observation_text,
+            "",
+            *context_lines,
+            "",
+            "Plan a short useful macro-action.",
+            f"Use the {PRIMARY_TOOL_NAME} tool exactly once.",
+            f"Return exactly {target_action_batch_size} actions unless the environment is already done.",
+            "Use only valid full-Craftax actions.",
+            "Only new unique achievements matter; repeats are zero reward.",
+            "Do not return JSON or plain text actions.",
+        ]
     )
 
 
@@ -294,9 +314,13 @@ def run_rollout(
         if current.done:
             break
         observation_text = str(current.render.text or "").strip() or "No text renderer available."
+        achievements = achievement_names_from_state(runner.state)
+        unique_achievements.update(achievements)
+        achievement_context = craftax_achievement_context(unique_achievements)
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            achievement_context=achievement_context,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -357,8 +381,7 @@ def run_rollout(
         current = step_outputs[-1]
         if current.render.pixels is not None:
             frames.append(current.render.pixels)
-        achievements = achievement_names_from_state(runner.state)
-        unique_achievements.update(achievements)
+        unique_achievements.update(achievement_names_from_state(runner.state))
         turns.append(
             {
                 "turn_index": turn_index,
@@ -368,6 +391,9 @@ def run_rollout(
                 "actions": actions,
                 "decision_reward": decision_reward,
                 "return_to_go": float(len(unique_achievements)),
+                "achievements_unlocked": achievement_context["achievements_unlocked"],
+                "next_targets": achievement_context["next_targets"],
+                "unique_achievement_count": int(achievement_context["unique_achievement_count"]),
                 "trainable": not invalid_parse,
                 "invalid_parse": invalid_parse,
                 "behavior_sequence_logprob": _extract_sequence_logprob(payload) or 0.0,
@@ -405,6 +431,7 @@ def run_rollout(
             },
             "details": {
                 "achievements": sorted(unique_achievements),
+                "unique_achievement_count": int(len(unique_achievements)),
                 "native_env_reward_total": float(total_reward),
                 "llm_call_count": int(llm_call_count),
             },
@@ -413,6 +440,7 @@ def run_rollout(
         "metadata": {
             "llm_call_count": int(llm_call_count),
             "achievements": sorted(unique_achievements),
+            "unique_achievement_count": int(len(unique_achievements)),
             "action_history": list(runner.action_history),
             "seed": int(seed),
             "render_mode": render_mode.value,

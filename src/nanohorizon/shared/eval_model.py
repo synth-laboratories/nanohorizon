@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from nanohorizon.craftax_core.metadata import PRIMARY_TOOL_NAME
+from nanohorizon.craftax_core.metadata import craftax_system_prompt
 from nanohorizon.shared.common import ensure_dir, write_json, write_text
 from nanohorizon.shared.craftax_data import (
     CRAFTAX_CORE_ACHIEVEMENTS,
@@ -92,18 +92,9 @@ def evaluate_model(
         max_lora_rank = infer_lora_rank(lora_path)
 
     seeds = [int(seed_start) + idx for idx in range(max(1, int(num_rollouts)))]
-    resolved_system_prompt = (
-        system_prompt.strip()
-        or (
-            "You are a Craftax policy.\n"
-            f"You may think for up to about {int(thinking_budget_tokens)} tokens before answering.\n"
-            "Return a short useful macro-action with 5-10 valid full-Craftax actions.\n"
-            "Use movement to explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            f"Use the provided `{PRIMARY_TOOL_NAME}` tool exactly once for the final answer.\n"
-            "Do not return JSON or plain text actions."
-        )
+    resolved_system_prompt = craftax_system_prompt(
+        system_prompt or "You are a Craftax policy.",
+        thinking_budget_tokens=thinking_budget_tokens,
     )
     if resolved_inference_url:
         rollouts = asyncio.run(
@@ -194,7 +185,11 @@ def evaluate_model(
         "num_eval_rollouts": len(valid_rollouts),
         "num_rollout_errors": len(rollouts) - len(valid_rollouts),
         "mean_outcome_reward": (sum(rewards) / len(rewards)) if rewards else 0.0,
+        "mean_unique_achievements": (sum(rewards) / len(rewards)) if rewards else 0.0,
         "mean_outcome_reward_over_requested_rollouts": (
+            sum(rewards) / float(requested_rollout_count)
+        ) if requested_rollout_count else 0.0,
+        "mean_unique_achievements_over_requested_rollouts": (
             sum(rewards) / float(requested_rollout_count)
         ) if requested_rollout_count else 0.0,
         "max_outcome_reward": max(rewards) if rewards else 0.0,
@@ -214,6 +209,7 @@ def evaluate_model(
                 "outcome_reward": rollout_outcome_reward(item),
                 "llm_call_count": rollout_llm_call_count(item),
                 "achievements": rollout_achievements(item),
+                "unique_achievement_count": len(rollout_achievements(item)),
                 "success_status": item.get("success_status"),
                 "error": item.get("error"),
             }
