@@ -17,7 +17,6 @@ from nanohorizon.custom_vllm.runtime import build_thinking_budget_request_overri
 
 from .media import persist_media
 from .metadata import (
-    DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
 )
@@ -25,6 +24,33 @@ from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
 
 ACTION_NAME_TO_INDEX = action_name_to_index()
+
+ACHIEVEMENT_ROADMAP_ORDER = [
+    "collect_wood",
+    "collect_sapling",
+    "place_table",
+    "make_wood_pickaxe",
+    "collect_stone",
+    "place_stone",
+    "make_stone_pickaxe",
+    "place_furnace",
+    "collect_coal",
+    "make_torch",
+    "collect_iron",
+    "make_iron_pickaxe",
+    "make_iron_sword",
+    "collect_diamond",
+    "make_diamond_pickaxe",
+    "make_diamond_sword",
+    "make_iron_armour",
+    "make_diamond_armour",
+    "enter_gnomish_mines",
+    "enter_dungeon",
+    "defeat_zombie",
+    "defeat_skeleton",
+    "defeat_orc_soldier",
+    "defeat_orc_mage",
+]
 
 
 def _sanitize_actions(values: list[object]) -> list[str]:
@@ -134,6 +160,28 @@ def _extract_actions(payload: dict[str, Any]) -> list[str]:
             if actions:
                 return actions
     return []
+
+
+def _roadmap_next_targets(unlocked_achievements: set[str], *, limit: int = 3) -> list[str]:
+    next_targets: list[str] = []
+    for achievement_name in ACHIEVEMENT_ROADMAP_ORDER:
+        if achievement_name in unlocked_achievements or achievement_name in next_targets:
+            continue
+        next_targets.append(achievement_name)
+        if len(next_targets) >= max(1, int(limit)):
+            break
+    return next_targets
+
+
+def _roadmap_text() -> str:
+    return (
+        "Achievement roadmap:\n"
+        "- gather: collect_wood -> collect_sapling -> place_table -> make_wood_pickaxe\n"
+        "- stone: collect_stone -> place_stone -> make_stone_pickaxe -> place_furnace -> collect_coal -> make_torch\n"
+        "- iron and diamond: collect_iron -> make_iron_pickaxe -> make_iron_sword -> collect_diamond -> make_diamond_pickaxe -> make_diamond_sword -> make_iron_armour -> make_diamond_armour\n"
+        "- exploration and combat: enter_gnomish_mines -> enter_dungeon -> defeat_zombie -> defeat_skeleton -> defeat_orc_soldier -> defeat_orc_mage\n"
+        "Zero-reward-for-repeat rule: repeating the same loop without a new achievement or clearer progress is worth nothing, so switch targets immediately."
+    )
 
 
 def _tool_schema() -> list[dict[str, Any]]:
@@ -247,8 +295,21 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    achievements_unlocked: list[str],
+    next_targets: list[str],
+) -> str:
+    unlocked_text = ", ".join(achievements_unlocked) if achievements_unlocked else "none"
+    target_text = ", ".join(next_targets) if next_targets else "none"
     return (
+        "Craftax achievement roadmap:\n"
+        f"{_roadmap_text()}\n\n"
+        f"Unique achievements so far: {len(achievements_unlocked)}\n"
+        f"Achievements unlocked: {unlocked_text}\n"
+        f"Next targets: {target_text}\n\n"
         "Current Craftax long-horizon observation:\n"
         f"{observation_text}\n\n"
         "Plan a short useful macro-action. "
@@ -283,7 +344,7 @@ def run_rollout(
     runner = make_runner(kind="full" if env_kind == "full" else "classic", seed=int(seed), render_mode=render_mode)
     start = runner.reset()
     current = start
-    unique_achievements: set[str] = set()
+    unique_achievements: set[str] = set(achievement_names_from_state(runner.state))
     total_reward = 0.0
     llm_call_count = 0
     frames: list[Any] = []
@@ -294,9 +355,13 @@ def run_rollout(
         if current.done:
             break
         observation_text = str(current.render.text or "").strip() or "No text renderer available."
+        achievements_unlocked = sorted(unique_achievements)
+        next_targets = _roadmap_next_targets(unique_achievements)
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            achievements_unlocked=achievements_unlocked,
+            next_targets=next_targets,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -368,6 +433,9 @@ def run_rollout(
                 "actions": actions,
                 "decision_reward": decision_reward,
                 "return_to_go": float(len(unique_achievements)),
+                "unique_achievements": int(len(unique_achievements)),
+                "achievements_unlocked": achievements_unlocked,
+                "next_targets": next_targets,
                 "trainable": not invalid_parse,
                 "invalid_parse": invalid_parse,
                 "behavior_sequence_logprob": _extract_sequence_logprob(payload) or 0.0,
@@ -413,6 +481,9 @@ def run_rollout(
         "metadata": {
             "llm_call_count": int(llm_call_count),
             "achievements": sorted(unique_achievements),
+            "unique_achievements": int(len(unique_achievements)),
+            "achievements_unlocked": sorted(unique_achievements),
+            "next_targets": _roadmap_next_targets(unique_achievements),
             "action_history": list(runner.action_history),
             "seed": int(seed),
             "render_mode": render_mode.value,

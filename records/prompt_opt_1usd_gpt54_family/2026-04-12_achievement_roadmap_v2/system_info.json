@@ -1,0 +1,5 @@
+{
+  "platform": "linux",
+  "verification_environment": "workspace",
+  "notes": "System package bootstrap was used because uv sync could not resolve the cloud synth-ai dependency path in this container."
+}

@@ -1,0 +1,15 @@
+{
+  "status": "blocked_from_verification",
+  "baseline_mean_unique_achievements": 1.0,
+  "candidate_mean_unique_achievements": null,
+  "mean_unique_achievements_delta": null,
+  "baseline_seed_subset": [10000, 10001, 10002, 10003, 10004],
+  "baseline_reference": "records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/eval_summary.json",
+  "verification_blockers": [
+    "jax is not installed in the current environment",
+    "craftax is not installed in the current environment",
+    "craftaxlm is not installed in the current environment",
+    "vllm is not installed in the current environment",
+    "uv sync resolves the cloud dependency group to a missing local synth-ai path"
+  ]
+}

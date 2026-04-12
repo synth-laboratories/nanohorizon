@@ -27,6 +27,31 @@ def reward_heuristic(user_observation: str, assistant_text: str) -> float:
     return 0.0
 
 
+def _achievement_roadmap_text() -> str:
+    return (
+        "Achievement roadmap:\n"
+        "- gather: collect_wood -> collect_sapling -> place_table -> make_wood_pickaxe\n"
+        "- stone: collect_stone -> place_stone -> make_stone_pickaxe -> place_furnace -> collect_coal -> make_torch\n"
+        "- iron and diamond: collect_iron -> make_iron_pickaxe -> make_iron_sword -> collect_diamond -> make_diamond_pickaxe -> make_diamond_sword -> make_iron_armour -> make_diamond_armour\n"
+        "- exploration and combat: enter_gnomish_mines -> enter_dungeon -> defeat_zombie -> defeat_skeleton -> defeat_orc_soldier -> defeat_orc_mage\n"
+        "Zero-reward-for-repeat rule: if the current loop does not unlock a new achievement or move directly toward one, treat it as wasted progress and change course."
+    )
+
+
+def _default_system_prompt(*, thinking_budget_tokens: int) -> str:
+    return (
+        "You are a Craftax policy.\n"
+        f"You may think for up to about {int(thinking_budget_tokens)} tokens before answering.\n"
+        f"{_achievement_roadmap_text()}\n"
+        "Prefer short action batches that advance the roadmap, not repeated movement loops.\n"
+        "Use movement to explore when nothing useful is adjacent.\n"
+        "Use 'do' only when facing a useful nearby object or resource.\n"
+        "Read the recent action history and avoid repeating unproductive loops.\n"
+        f"Use the provided `{PRIMARY_TOOL_NAME}` tool exactly once for the final answer.\n"
+        "Do not return JSON or plain text actions."
+    )
+
+
 def evaluate_model(
     *,
     base_model: str,
@@ -94,16 +119,7 @@ def evaluate_model(
     seeds = [int(seed_start) + idx for idx in range(max(1, int(num_rollouts)))]
     resolved_system_prompt = (
         system_prompt.strip()
-        or (
-            "You are a Craftax policy.\n"
-            f"You may think for up to about {int(thinking_budget_tokens)} tokens before answering.\n"
-            "Return a short useful macro-action with 5-10 valid full-Craftax actions.\n"
-            "Use movement to explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            f"Use the provided `{PRIMARY_TOOL_NAME}` tool exactly once for the final answer.\n"
-            "Do not return JSON or plain text actions."
-        )
+        or _default_system_prompt(thinking_budget_tokens=thinking_budget_tokens)
     )
     if resolved_inference_url:
         rollouts = asyncio.run(

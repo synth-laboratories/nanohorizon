@@ -1,0 +1,18 @@
+task:
+  name: craftax
+
+candidate:
+  name: Achievement Roadmap v2
+  scope:
+    - src/nanohorizon/shared/eval_model.py
+    - src/nanohorizon/craftax_core/rollout.py
+    - src/nanohorizon/craftax_core/http_shim.py
+
+verification:
+  requested_seeds: [10000, 10001, 10002, 10003, 10004]
+  path: scripts/run_craftax_model_eval.sh
+  status: blocked
+
+baseline_reference:
+  path: records/offline_20min_1xa100_40gb/2026-03-22_modal_4b_nochange_baseline/eval_summary.json
+  subset_mean_unique_achievements: 1.0
