@@ -1,0 +1,1 @@
+{"error": "CraftaxFullState.__init__() missing 2 required positional arguments: 'map_full' and 'map_compact'", "seed": 1100, "trace_correlation_id": "nanohorizon_craftax_hello_world_00000_1100"}

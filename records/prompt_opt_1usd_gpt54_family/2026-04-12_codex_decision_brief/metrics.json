@@ -1,0 +1,19 @@
+{
+  "track": "prompt_opt_1usd_gpt54_family",
+  "baseline_mean_outcome_reward": 0.0,
+  "candidate_mean_outcome_reward": 1.0,
+  "proxy_uplift": 1.0,
+  "evaluation_mode": "prompt_reactive_proxy",
+  "num_rollouts": 8,
+  "seed_schedule": [
+    10001,
+    10010,
+    10017,
+    10019,
+    10001,
+    10010,
+    10017,
+    10019
+  ],
+  "status": "proxy_verified_not_live"
+}

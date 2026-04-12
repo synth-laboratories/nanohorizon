@@ -1,0 +1,6 @@
+{
+  "baseline_config": "configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml",
+  "candidate_config": "configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml",
+  "baseline_note": "Generic prompt without the decision brief contract.",
+  "candidate_note": "Reads the compact decision brief and recent reward-history window before choosing actions."
+}

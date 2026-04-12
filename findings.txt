@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-12 - Craftax decision brief candidate
+- Added a deterministic decision brief in `src/nanohorizon/craftax_core/metadata.py` and threaded it into rollout prompts via `src/nanohorizon/craftax_core/rollout.py`; `http_shim.py` also regained a minimal `create_app` compatibility surface for the existing contract tests.
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_decision_brief.yaml` to explicitly instruct the policy to read the decision brief and recent reward-history window before choosing actions.
+- Packaged a reproducible proxy-eval bundle under `experiments/craftax_decision_brief_proxy/` and `records/prompt_opt_1usd_gpt54_family/2026-04-12_codex_decision_brief/`.
+- Targeted Craftax tests passed with `PYTHONPATH=src uv run --no-project --with fastapi --with httpx --with pyyaml --with numpy python -m pytest tests/test_craftax_interface.py tests/test_craftax_core_contract.py tests/test_codex_decision_brief_candidate.py`.
+- Proxy eval on repeated seeds `[10001, 10010, 10017, 10019] x2` produced baseline mean outcome reward `0.0`, candidate mean outcome reward `1.0`, proxy uplift `+1.0`.
+- Caveat: the workspace could not execute the live Qwen rollout path, so the uplift is proxy-verified only and should not be reported as a production score claim.

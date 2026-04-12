@@ -32,3 +32,4 @@ records/*/*/artifacts/
 records/*/*/checkpoints/
 records/*/*/train.log
 records/*/*/eval_rollouts.jsonl
+.repo_cache/

@@ -206,3 +206,74 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_rollout_prompt_includes_decision_context_json(monkeypatch):
+    import nanohorizon.craftax_core.rollout as rollout
+
+    class FakeRender:
+        text = "health low, tree adjacent, daylight"
+        pixels = None
+
+    class FakeStep:
+        def __init__(self, *, done: bool, reward: float = 0.0):
+            self.done = done
+            self.reward = reward
+            self.render = FakeRender()
+
+    class FakeRunner:
+        def __init__(self):
+            self.state = object()
+            self.action_history: list[int] = []
+
+        def reset(self):
+            return FakeStep(done=False)
+
+        def step_many(self, actions):
+            self.action_history.extend(actions)
+            return [FakeStep(done=True)]
+
+    call_messages: list[list[dict[str, object]]] = []
+
+    def fake_chat_completion(**kwargs):  # type: ignore[no-untyped-def]
+        call_messages.append(list(kwargs["messages"]))
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "",
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": PRIMARY_TOOL_NAME,
+                                    "arguments": {"actions_list": ["move_right"]},
+                                }
+                            }
+                        ],
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(rollout, "make_runner", lambda **kwargs: FakeRunner())
+    monkeypatch.setattr(rollout, "_chat_completion", fake_chat_completion)
+    monkeypatch.setattr(rollout, "achievement_names_from_state", lambda state: [])
+
+    result = run_rollout(
+        inference_url="http://example.test/v1/chat/completions",
+        model="demo",
+        api_key="",
+        seed=0,
+        max_steps=1,
+        trace_correlation_id="trace",
+        system_prompt="system",
+        target_action_batch_size=1,
+        min_action_batch_size=1,
+        request_logprobs=False,
+    )
+
+    assert result["success_status"] == "success"
+    assert len(call_messages) == 1
+    user_prompt = call_messages[0][1]["content"]
+    assert "Decision context JSON:" in user_prompt
+    assert "decision_brief" in user_prompt
