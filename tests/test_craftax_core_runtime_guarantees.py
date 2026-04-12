@@ -241,6 +241,15 @@ def test_run_rollout_request_consumes_every_model_action(monkeypatch):
     assert result["metadata"]["llm_call_count"] == 2
     assert len(result["metadata"]["action_history"]) == proposed_actions
     assert result["metadata"]["achievements"] == ["collect_wood"]
+    assert turns[0]["achievements_unlocked"] == []
+    assert turns[0]["next_targets"] == [
+        "collect_wood",
+        "collect_sapling",
+        "collect_drink",
+        "eat_cow",
+        "eat_plant",
+    ]
+    assert turns[0]["unique_achievement_count"] == 0
     assert turns[0]["invalid_parse"] is False
     assert turns[1]["invalid_parse"] is False
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from nanohorizon.craftax_core.http_shim import create_app
-from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
+from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME, craftax_system_prompt
 from nanohorizon.craftax_core.rollout import _chat_completion, _extract_reasoning_text, run_rollout
 from nanohorizon.shared.openai_compat import extract_craftax_actions
 
@@ -206,3 +206,11 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_craftax_system_prompt_spells_out_progression_and_score_rule():
+    prompt = craftax_system_prompt("You are a Craftax policy agent.", thinking_budget_tokens=128)
+    assert "Score = the number of unique achievements unlocked" in prompt
+    assert "Tier 0 (free)" in prompt
+    assert "Tier 3 (need iron)" in prompt
+    assert "repeating an already-unlocked achievement is zero reward" in prompt

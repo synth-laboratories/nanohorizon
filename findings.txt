@@ -17,3 +17,20 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-12 - Craftax achievement-roadmap candidate
+- Updated the Craftax prompt path to surface per-episode `achievements_unlocked` and `next_targets` in the prompt payload and rollout trace, and to make the system prompt explicitly score unique achievements rather than repeats.
+- Added `mean_unique_achievements` aliases to the Craftax eval summaries so the held-out metric is visible without inferring it from `mean_outcome_reward`.
+- Fixed the local Craftax HTTP shim entrypoint so `scripts/run_craftax_model_eval.sh` can start the local shims instead of importing `http_shim.py` and exiting.
+- Fixed `scripts/run_craftax_model_eval.sh` to respect `UV_BIN` instead of hardcoding `/opt/homebrew/bin/uv`.
+- Validation run: `PYTHONPATH=/workspace/src:/workspace uv run --python 3.11 --no-group cloud pytest tests/test_craftax_interface.py tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py -q` passed (18 tests).
+- Eval attempt: `UV_BIN=$(command -v uv) NANOHORIZON_EVAL_SEED_START=10000 NANOHORIZON_EVAL_NUM_ROLLOUTS=5 NANOHORIZON_EVAL_MAX_STEPS=8 NANOHORIZON_EVAL_MAX_CONCURRENT_ROLLOUTS=1 NANOHORIZON_EVAL_THINKING_BUDGET_TOKENS=0 NANOHORIZON_EVAL_MAX_NEW_TOKENS=256 NANOHORIZON_EVAL_BASE_MODEL=Qwen/Qwen3.5-4B NANOHORIZON_EVAL_OUTPUT_DIR=/workspace/.out/craftax_eval_baseline bash scripts/run_craftax_model_eval.sh`.
+- Eval blocker: Modal authentication is not materialized in this workspace, so the command fails with `Token missing. Could not authenticate client.` before any baseline/candidate rollouts run.
+2026-04-12 - Craftax achievement roadmap + tracker candidate
+- Implemented the prompt candidate in `src/nanohorizon/craftax_core/metadata.py`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/runner.py`, `src/nanohorizon/craftax_core/rollout.py`, and `src/nanohorizon/shared/eval_model.py`.
+- Added explicit achievement progression tiers, zero-reward-for-repeat framing, and per-turn `achievements_unlocked` / `next_targets` context.
+- Restored the `create_app()` HTTP shim contract so the existing `/health`, `/task_info`, and `/rollout` tests can run again.
+- Focused tests passed: `uv run --no-project --with pytest --with numpy --with fastapi --with httpx --with pillow --with pyyaml python -m pytest tests/test_craftax_interface.py tests/test_craftax_core_contract.py` and `uv run --no-project --with pytest --with numpy --with fastapi --with httpx --with pillow --with pyyaml python -m pytest tests/test_craftax_core_runner.py -k 'not texture_cache'`.
+- Baseline vs candidate eval on seeds 10000-10004 used `gpt-5.4-mini` via `https://api.openai.com/v1/chat/completions` with `max_steps=10` and `request_logprobs=False`.
+- Measured mean unique achievements: baseline `1.2`, candidate `1.6`, delta `+0.4`.
+- Durable eval artifacts written to `artifacts/craftax_achievement_roadmap/{baseline_eval.json,candidate_eval.json,eval_comparison.json}`.

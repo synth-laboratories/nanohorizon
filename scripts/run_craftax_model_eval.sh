@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_MODEL="${NANOHORIZON_EVAL_BASE_MODEL:-Qwen/Qwen3.5-4B}"
 ADAPTER_DIR="${NANOHORIZON_EVAL_ADAPTER_DIR:-}"
 OUTPUT_DIR="${NANOHORIZON_EVAL_OUTPUT_DIR:-}"
+UV_BIN="${UV_BIN:-$(command -v uv)}"
 SEED_START="${NANOHORIZON_EVAL_SEED_START:-10000}"
 NUM_ROLLOUTS="${NANOHORIZON_EVAL_NUM_ROLLOUTS:-8}"
 MAX_STEPS="${NANOHORIZON_EVAL_MAX_STEPS:-48}"
@@ -21,7 +22,7 @@ trap nanohorizon_cleanup_craftax_tunnel EXIT
 nanohorizon_open_craftax_tunnel_if_needed "$ROOT"
 
 cmd=(
-  /opt/homebrew/bin/uv run --group modal modal run src/nanohorizon/shared/modal_eval.py
+  "$UV_BIN" run --group modal modal run src/nanohorizon/shared/modal_eval.py
   --base-model "$BASE_MODEL"
   --adapter-dir "$ADAPTER_DIR"
   --container-url "${NANOHORIZON_CRAFTAX_CONTAINER_URL:-${NANOHORIZON_CRAFTAX_CONTAINER_URL:-}}"
