@@ -1,0 +1,9 @@
+2026-04-12T01:23:07Z - Started bootstrap-verify pass for prompt-opt track.
+- Restored deleted tracked Craftax files from HEAD so the local worktree could run the repo's own tests and rollout path.
+- `uv run` with the project environment failed because the inherited `cloud` dependency points at an absolute `file:///Users/joshpurtell/Documents/GitHub/synth-ai` path that does not exist in this workspace.
+
+2026-04-12T01:23:07Z - Verification slice completed.
+- Proxy baseline vs candidate comparison used `PYTHONPATH=src uv run --no-project --with httpx --with numpy --with pyyaml python experiments/prompt_opt_bootstrap_verify/compare_proxy_eval.py`.
+- Repeated seeds: `10000` through `10005`.
+- Result: baseline mean reward `1.0`, candidate mean reward `2.0`, delta `+1.0` on the deterministic proxy slice.
+- Contract smoke: `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_interface.py` passed.

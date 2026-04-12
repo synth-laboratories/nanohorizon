@@ -1,0 +1,25 @@
+{
+  "baseline": {
+    "mean_native_env_reward_total": 18.25,
+    "mean_outcome_reward": 2.0,
+    "num_rollouts": 8
+  },
+  "candidate": {
+    "mean_native_env_reward_total": 23.25,
+    "mean_outcome_reward": 2.0,
+    "num_rollouts": 8
+  },
+  "delta_mean_native_env_reward_total": 5.0,
+  "delta_mean_outcome_reward": 0.0,
+  "interpretation": "proxy_eval_using_repo_rollout_and_fake_policy",
+  "seeds": [
+    10001,
+    10001,
+    10010,
+    10010,
+    10017,
+    10017,
+    10019,
+    10019
+  ]
+}

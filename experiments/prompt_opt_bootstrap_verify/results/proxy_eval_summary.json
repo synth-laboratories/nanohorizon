@@ -1,0 +1,196 @@
+{
+  "baseline": {
+    "details": [
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          0,
+          1,
+          2
+        ],
+        "reward": 1.0,
+        "seed": 10000
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          0,
+          1,
+          2
+        ],
+        "reward": 1.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          0,
+          1,
+          2
+        ],
+        "reward": 1.0,
+        "seed": 10002
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          0,
+          1,
+          2
+        ],
+        "reward": 1.0,
+        "seed": 10003
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          0,
+          1,
+          2
+        ],
+        "reward": 1.0,
+        "seed": 10004
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "actions": [
+          0,
+          1,
+          2
+        ],
+        "reward": 1.0,
+        "seed": 10005
+      }
+    ],
+    "mean_outcome_reward": 1.0,
+    "prompt_path": "configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml",
+    "rewards": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "candidate": {
+    "details": [
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          3,
+          5,
+          4
+        ],
+        "reward": 2.0,
+        "seed": 10000
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          3,
+          5,
+          4
+        ],
+        "reward": 2.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          3,
+          5,
+          4
+        ],
+        "reward": 2.0,
+        "seed": 10002
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          3,
+          5,
+          4
+        ],
+        "reward": 2.0,
+        "seed": 10003
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          3,
+          5,
+          4
+        ],
+        "reward": 2.0,
+        "seed": 10004
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "actions": [
+          2,
+          3,
+          5,
+          4
+        ],
+        "reward": 2.0,
+        "seed": 10005
+      }
+    ],
+    "mean_outcome_reward": 2.0,
+    "prompt_path": "configs/craftax_prompt_opt_qwen35_4b_codex_bootstrap_verify.yaml",
+    "rewards": [
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0
+    ]
+  },
+  "delta_mean_outcome_reward": 1.0,
+  "note": "Proxy only. Uses existing run_rollout path with a deterministic fake runner and chat stub because no live Craftax model endpoint was available in this workspace.",
+  "seeds": [
+    10000,
+    10001,
+    10002,
+    10003,
+    10004,
+    10005
+  ]
+}

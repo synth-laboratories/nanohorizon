@@ -564,11 +564,17 @@ async def collect_rollouts_concurrently_with_summary(
     return normalized_results, summary
 
 TRACK_ID = "prompt_opt_1usd_gpt54_family"
+END_ADJACENT_TARGET_REQUIREMENT = (
+    "When safe, end the batch adjacent to a useful target or resource so the next turn can continue immediately."
+)
 TODO_SCRATCHPAD_REQUIREMENTS = [
     "Keep a tiny private todo list with exactly three items before the tool call.",
     "The three items must track (1) the immediate danger or blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
-    "Refresh completed todo items every turn.",
+    "Refresh completed todo items every turn and keep the fallback item distinct from the main target.",
     "If the policy repeats the same movement pattern without progress or new information, replace the stale target item instead of continuing the loop.",
+    "Prefer 3-action batches by default, but keep the batch non-redundant because repeated identical actions collapse during parsing.",
+    "Use 4 only when the local state is obvious and a longer move sequence is clearly better.",
+    END_ADJACENT_TARGET_REQUIREMENT,
     "Do not reveal the todo list or scratchpad in the final answer.",
 ]
 
@@ -595,6 +601,9 @@ Hard requirements you must preserve:
 - The prompt must preserve this todo-tool contract: {todo_scratchpad_directive()}.
 - The prompt should ask for a short valid full-Craftax action batch unless the episode is already done.
 - The prompt should prioritize early-game resource gathering and avoid repeated movement loops.
+- The prompt should prefer 3-action batches by default, but keep the batch non-redundant because repeated identical actions collapse during parsing.
+- The prompt should use 4 only when the local state is obvious and a longer move sequence is clearly better.
+- When safe, the batch should end adjacent to a useful target or resource so the next turn can continue immediately.
 
 Return only the revised system prompt inside ``` blocks."""
 
@@ -717,7 +726,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
         if action_summary:
             parts.append(f"Observed action sequence: {action_summary}.")
         parts.append(
-            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this todo-tool contract: {todo_scratchpad_directive()} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, and avoiding repeated no-op movement loops."
+            f"Keep the tool-calling contract strict: think if needed, then use the `{PRIMARY_TOOL_NAME}` tool exactly once with a short valid full-Craftax action batch. Preserve this todo-tool contract: {todo_scratchpad_directive()} Strengthen instructions about gathering nearby resources, using `do` only when adjacent to a useful target, avoiding repeated no-op movement loops, and ending the batch adjacent to a useful target when safe."
         )
         return " ".join(parts)
     parts = [f"This rollout achieved reward {score:.2f} and failed to make progress."]
@@ -732,7 +741,7 @@ def _feedback_for_rollout(rollout: dict[str, Any], score: float) -> str:
     if action_summary:
         parts.append(f"Observed action sequence: {action_summary}.")
     parts.append(
-        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, and break out of repeated movement loops. Add this todo-tool contract before the final action choice: {todo_scratchpad_directive()} The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
+        f"Emphasize early-game progression: move toward trees, use `do` when adjacent, avoid sleep or crafting unless the inventory and local state justify it, break out of repeated movement loops, and prefer 3-action batches by default while keeping the batch non-redundant. Add this todo-tool contract before the final action choice: {todo_scratchpad_directive()} When safe, finish the batch adjacent to a useful target so the next turn has a clear follow-up. The final answer must be one `{PRIMARY_TOOL_NAME}` tool call, not a plain-text action list or JSON blob."
     )
     return " ".join(parts)
 
@@ -742,7 +751,7 @@ def build_reflection_system_directive() -> str:
         "You rewrite Craftax system prompts for a tool-calling policy. "
         f"Preserve these hard requirements: the policy must use the `{PRIMARY_TOOL_NAME}` "
         "tool exactly once, must not answer with JSON or a plain-text action list, and must "
-        f"preserve this todo-tool contract: {todo_scratchpad_directive()} Return only the "
+        f"preserve this todo-tool contract: {todo_scratchpad_directive()} When safe, prefer short non-redundant 3-action batches that end adjacent to a useful target or resource so the next turn can continue immediately. Return only the "
         "revised prompt text."
     )
 

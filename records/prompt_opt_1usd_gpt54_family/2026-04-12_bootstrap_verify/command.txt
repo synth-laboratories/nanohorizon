@@ -1,0 +1,1 @@
+PYTHONPATH=src:. uv run --no-project --with numpy --with fastapi --with httpx --with pyyaml python - <<'PY'
