@@ -1,0 +1,20 @@
+track: prompt_opt_1usd_gpt54_family
+task: craftax
+base_model: Qwen/Qwen3.5-4B
+optimizer_budget_usd: 1.0
+optimizer_models:
+  - gpt-5.4
+  - gpt-5.4-mini
+  - gpt-5.4-nano
+candidate_config: configs/craftax_prompt_opt_qwen35_4b_codex_bootstrap_verify.yaml
+baseline_config: configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml
+evaluation_mode: proxy_fake_runner
+seeds:
+  - 10001
+  - 10001
+  - 10010
+  - 10010
+  - 10017
+  - 10017
+  - 10019
+  - 10019

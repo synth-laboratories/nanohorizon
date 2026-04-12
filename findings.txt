@@ -17,3 +17,15 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-12 - Craftax bootstrap verify candidate
+- Restored the missing Craftax HTTP app factory in `src/nanohorizon/craftax_core/http_shim.py` so the existing `/health`, `/task_info`, `/rollout`, and `/rollouts` smoke contract can import and run again without a circular import.
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_bootstrap_verify.yaml` and tightened `src/nanohorizon/baselines/prompt_opt.py` so the prompt contract now says batches should be short, non-redundant, and still end adjacent to a useful target when safe.
+- Added `tests/test_bootstrap_verify_candidate.py` to pin the new config/source wording.
+- Validation run: `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml python -m pytest tests/test_bootstrap_verify_candidate.py tests/test_craftax_interface.py tests/test_craftax_core_contract.py` passed on 2026-04-12.
+- Proxy evaluation run: repeated seeds `10001`, `10010`, `10017`, and `10019` repeated twice, routed through `nanohorizon.craftax_core.rollout.run_rollout` with a deterministic fake runner/chat stub.
+- Proxy result: `mean_outcome_reward` tied at `2.0`, while `mean_native_env_reward_total` improved from `18.25` to `23.25` (`+5.0`) for the candidate.
+- Evidence bundle written to `reports/bootstrap_verify_proxy_eval.json`, `reports/bootstrap_verify_proxy_eval.md`, and `records/prompt_opt_1usd_gpt54_family/2026-04-12_bootstrap_verify/`.
+- Caveat: the proxy is not a live Qwen or Modal validation run, and the workspace `uv` project env is still blocked by the inherited absolute `synth-ai` file dependency.
+- Local reviewable commit: `e85a62a0478f0e7a8d1b9c8a5a4f5d8f4d91aa0b`
+- GitHub PR: `https://github.com/synth-laboratories/nanohorizon/pull/31`

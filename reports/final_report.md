@@ -1,62 +1,95 @@
-# Craftax Todo Refresh Gate Candidate
+# Bootstrap Verify Report
 
-## Context & objective
+## Context & Objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+This run targeted the Craftax prompt-opt track in NanoHorizon. The objective was to make the smallest honest candidate change that could plausibly improve the `Qwen/Qwen3.5-4B` leaderboard candidate, keep the shared Craftax harness stable, and back the change with a repeated-seed comparison.
 
-## Experiments cited
+The candidate change is prompt-shaped rather than weight-based:
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
+- keep the private three-item todo contract
+- prefer short non-redundant 3-action batches by default
+- avoid duplicate actions in a batch because the parser collapses repeats
+- keep the batch ending adjacent to a useful target when safe
+
+## Experiments Cited
+
+1. `records/prompt_opt_1usd_gpt54_family/2026-04-12_bootstrap_verify/`
+   - Question: does the candidate prompt outperform the baseline on a repeated-seed slice through the repo rollout path?
+   - Outcome: supporting on the proxy metric, inconclusive on the official leaderboard metric.
+   - Evidence: `metrics.json`, `notes.md`, `prompt_bundle.json`, and `reports/bootstrap_verify_proxy_eval.json`.
+   - Result: repeated-seed proxy slice over seeds `10001`, `10010`, `10017`, and `10019` repeated twice. `mean_outcome_reward` tied at `2.0`, but `mean_native_env_reward_total` improved from `18.25` to `23.25` (`+5.0`).
+   - Caveat: deterministic proxy policy and fake runner, not a live Qwen rollout.
+
+2. `tests/test_bootstrap_verify_candidate.py`
+   - Question: are the candidate config and prompt contract aligned with the short-batch / non-redundant guidance?
    - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+   - Evidence: the test passes and checks the config seed prompt and the centralized source contract.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+3. `tests/test_craftax_core_contract.py` and `tests/test_craftax_interface.py`
+   - Question: did restoring the Craftax HTTP surface accidentally break the existing contract?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: `11 passed` under `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml python -m pytest tests/test_bootstrap_verify_candidate.py tests/test_craftax_interface.py tests/test_craftax_core_contract.py`.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
-
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. `uv run` with the default project environment
+   - Question: can the normal project env be used directly for verification?
+   - Outcome: negative.
+   - Evidence: the inherited `cloud` dependency points at `file:///Users/joshpurtell/Documents/GitHub/synth-ai`, which does not exist in this workspace. Verification therefore used `--no-project` plus explicit packages.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The Craftax shim had a real contract gap: `create_app` was missing, so the existing HTTP smoke tests could not import the module. Restoring a minimal FastAPI app factory fixed that without changing the rollout semantics.
+2. The prompt-opt candidate improves the repo’s own rollout proxy when the prompt explicitly says the action batch must be non-redundant, not just short. That matters because repeated actions are collapsed before execution.
+3. The official leaderboard metric remains unmeasured in this run. The repeated-seed result is therefore a proxy signal, not proof of a submission lift.
+4. The default `uv` project environment is currently blocked by an absolute local dependency path. Any future verification in this workspace should keep using `--no-project` unless that dependency is normalized.
 
-## Research artifacts produced
+## Research Artifacts Produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+### Environments
 
-## Quality & validation
+- Proxy benchmark: inline `uv run --no-project` Python script exercising `nanohorizon.craftax_core.rollout.run_rollout`
+- Smoke-test environment: `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml`
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+### Data
 
-## Reproduction & handoff
+- Repeated proxy seeds: `10001`, `10010`, `10017`, `10019` repeated twice
+- Baseline config: `configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml`
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_bootstrap_verify.yaml`
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+### Models / Checkpoints
+
+- No weights or checkpoints were trained or promoted in this run.
+- The candidate is prompt/config based only.
+
+## Quality & Validation
+
+- Passed: `tests/test_bootstrap_verify_candidate.py`
+- Passed: `tests/test_craftax_core_contract.py`
+- Passed: `tests/test_craftax_interface.py`
+- Passed: repeated-seed proxy comparison over the existing `run_rollout` path
+- Not validated: live Craftax rollout reward, Modal execution, or a real OpenAI-compatible policy endpoint
+
+Known failure modes and caveats:
+
+- The proxy result is informative but not equivalent to a leaderboard run.
+- The default `uv` project environment is currently blocked by an absolute file dependency path, so the verification path here is intentionally `--no-project`.
+
+## Reproduction & Handoff
+
+Commands:
+
+```bash
+PYTHONPATH=src:. uv run --no-project --with numpy --with fastapi --with httpx --with pyyaml python - <<'PY'
+PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml python -m pytest tests/test_bootstrap_verify_candidate.py tests/test_craftax_interface.py tests/test_craftax_core_contract.py
+```
+
+Artifacts to inspect:
+
+- `reports/bootstrap_verify_proxy_eval.json`
+- `reports/bootstrap_verify_proxy_eval.md`
+- `records/prompt_opt_1usd_gpt54_family/2026-04-12_bootstrap_verify/`
+- `findings.txt`
+
+Commit / PR:
+
+- Local reviewable commit: `e85a62a0478f0e7a8d1b9c8a5a4f5d8f4d91aa0b`
+- GitHub PR: `https://github.com/synth-laboratories/nanohorizon/pull/31`

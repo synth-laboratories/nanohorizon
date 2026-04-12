@@ -1,0 +1,45 @@
+{
+  "baseline_mean_native_env_reward_total": 18.25,
+  "baseline_mean_outcome_reward": 2.0,
+  "baseline_seed_cycle": [
+    10001,
+    10001,
+    10010,
+    10010,
+    10017,
+    10017,
+    10019,
+    10019
+  ],
+  "bootstrap_score": 2.0,
+  "command": "PYTHONPATH=src:. uv run --no-project --with numpy --with fastapi --with httpx --with pyyaml python - <<PY",
+  "delta_mean_native_env_reward_total": 5.0,
+  "delta_mean_outcome_reward": 0.0,
+  "evaluation_mode": "proxy_fake_runner",
+  "primary_achievement_frequencies": {
+    "collect_sapling": {
+      "count": 8,
+      "frequency": 1.0
+    },
+    "collect_wood": {
+      "count": 8,
+      "frequency": 1.0
+    }
+  },
+  "primary_score": 2.0,
+  "proxy_metric": "mean_native_env_reward_total",
+  "proxy_metric_delta": 5.0,
+  "status": "proxy_validated",
+  "submission_achievement_frequencies": {
+    "collect_sapling": {
+      "count": 8,
+      "frequency": 1.0
+    },
+    "collect_wood": {
+      "count": 8,
+      "frequency": 1.0
+    }
+  },
+  "submission_mean_native_env_reward_total": 23.25,
+  "submission_mean_outcome_reward": 2.0
+}
