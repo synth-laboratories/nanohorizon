@@ -1,0 +1,111 @@
+{
+  "baseline": {
+    "details": [
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 4.0,
+        "outcome_reward": 1.0,
+        "seed": 10000
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 4.0,
+        "outcome_reward": 1.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 4.0,
+        "outcome_reward": 1.0,
+        "seed": 10002
+      },
+      {
+        "achievements": [
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 4.0,
+        "outcome_reward": 1.0,
+        "seed": 10003
+      }
+    ],
+    "mean_llm_calls": 2.0,
+    "mean_native_env_reward_total": 4.0,
+    "mean_outcome_reward": 1.0,
+    "seeds": [
+      10000,
+      10001,
+      10002,
+      10003
+    ],
+    "use_history": false
+  },
+  "candidate": {
+    "details": [
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 5.0,
+        "outcome_reward": 2.0,
+        "seed": 10000
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 5.0,
+        "outcome_reward": 2.0,
+        "seed": 10001
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 5.0,
+        "outcome_reward": 2.0,
+        "seed": 10002
+      },
+      {
+        "achievements": [
+          "collect_sapling",
+          "collect_wood"
+        ],
+        "llm_call_count": 2,
+        "native_env_reward_total": 5.0,
+        "outcome_reward": 2.0,
+        "seed": 10003
+      }
+    ],
+    "mean_llm_calls": 2.0,
+    "mean_native_env_reward_total": 5.0,
+    "mean_outcome_reward": 2.0,
+    "seeds": [
+      10000,
+      10001,
+      10002,
+      10003
+    ],
+    "use_history": true
+  },
+  "delta": {
+    "mean_llm_calls": 0.0,
+    "mean_native_env_reward_total": 1.0,
+    "mean_outcome_reward": 1.0
+  }
+}

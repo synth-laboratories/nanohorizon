@@ -1,0 +1,12 @@
+2026-04-12T01:00:00Z - Candidate: recent-turn history prompt block
+- Change: `src/nanohorizon/craftax_core/rollout.py` now appends a compact recent-turn history block to each user prompt before calling the policy.
+- Test coverage: added `tests/test_craftax_core_runner.py::test_rollout_includes_recent_turn_history_in_later_prompts`.
+- Verification command:
+  `PYTHONPATH=src uv run --no-project --with pytest --with httpx --with fastapi --with numpy --with pillow --with pyyaml python -m pytest tests/test_craftax_interface.py tests/test_craftax_core_runner.py::test_rollout_includes_recent_turn_history_in_later_prompts`
+- Verification result: 4 passed.
+- Proxy eval command:
+  `PYTHONPATH=src uv run --no-project --with httpx --with numpy --with pyyaml python experiments/craftax_recent_turn_history_prompt/scripts/compare_recent_turn_history_eval.py --output-dir experiments/craftax_recent_turn_history_prompt/results --seeds 10000 10001 10002 10003`
+- Proxy eval result:
+  baseline mean outcome reward `1.0` over 4 seeds; candidate mean outcome reward `2.0`; delta `+1.0`.
+  baseline mean native env reward total `4.0`; candidate `5.0`; delta `+1.0`.
+- Caveat: this is a harness-level proxy eval using a deterministic fake policy/env to exercise the repo's rollout path. It supports the prompt-shaping change but does not establish a real leaderboard score.
