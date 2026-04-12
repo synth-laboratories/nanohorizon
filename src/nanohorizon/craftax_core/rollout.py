@@ -16,10 +16,13 @@ from nanohorizon.shared.common import ensure_dir
 from nanohorizon.custom_vllm.runtime import build_thinking_budget_request_overrides
 
 from .media import persist_media
+from .http_shim import render_prompt_turn_text
 from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
+    RewardHistoryEntry,
+    RewardHistoryWindow,
 )
 from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
@@ -247,14 +250,16 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    history: RewardHistoryWindow,
+) -> str:
+    return render_prompt_turn_text(
+        observation_text,
+        history=history.entries,
+        target_action_batch_size=target_action_batch_size,
     )
 
 
@@ -287,6 +292,7 @@ def run_rollout(
     total_reward = 0.0
     llm_call_count = 0
     frames: list[Any] = []
+    reward_history = RewardHistoryWindow()
     if current.render.pixels is not None:
         frames.append(current.render.pixels)
     turns: list[dict[str, Any]] = []
@@ -297,6 +303,7 @@ def run_rollout(
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            history=reward_history,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -362,6 +369,7 @@ def run_rollout(
         turns.append(
             {
                 "turn_index": turn_index,
+                "observation_summary": observation_text,
                 "prompt_messages": prompt_messages,
                 "assistant_text": str(message.get("content") or ""),
                 "reasoning_text": _extract_reasoning_text(message),
@@ -372,6 +380,13 @@ def run_rollout(
                 "invalid_parse": invalid_parse,
                 "behavior_sequence_logprob": _extract_sequence_logprob(payload) or 0.0,
             }
+        )
+        reward_history.append(
+            RewardHistoryEntry(
+                action=" ".join(actions) if actions else "noop",
+                observation_summary=observation_text,
+                reward_delta=decision_reward,
+            )
         )
         if current.done:
             break

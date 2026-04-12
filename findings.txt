@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-12 - Craftax repeat-action parser candidate
+- Found that `src/nanohorizon/craftax_core/rollout.py` and `src/nanohorizon/shared/openai_compat.py` were deduplicating repeated valid actions inside tool calls.
+- Changed the sanitizers to preserve repeated actions while still lowercasing and filtering invalid tokens.
+- Added a focused regression assertion in `tests/test_craftax_core_runtime_guarantees.py` that repeated `move_right` entries survive extraction.
+- A deterministic fixed-seed slice using `run_rollout_request` with seeds `[11, 23, 37]` and a fake runner showed baseline mean outcome reward `0.0` vs candidate `1.0`, with mean executed actions `1` vs `4`.
+- The worktree also contained prompt-history augmentation in `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/metadata.py`, and `tests/test_craftax_interface.py`; it passed unit tests but was not isolated in the reward slice.
+- Validation commands: `uv run --no-project --with httpx --with numpy --with pyyaml --with pytest python -m pytest tests/test_craftax_core_runtime_guarantees.py tests/test_craftax_interface.py -q` and the deterministic comparison command recorded in `experiments/craftax_repeat_actions_parser/command.txt`.
