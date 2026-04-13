@@ -1,0 +1,27 @@
+{
+  "baseline": {
+    "details": [],
+    "error": "Craftax rollout bootstrap reached the inference call, but the recorded modal endpoint returned 404: modal-http: invalid function call.",
+    "label": "baseline",
+    "mean_outcome_reward": null,
+    "requested_rollouts": 4
+  },
+  "baseline_config": "configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml",
+  "candidate": {
+    "details": [],
+    "error": "Craftax rollout bootstrap reached the inference call, but the recorded modal endpoint returned 404: modal-http: invalid function call.",
+    "label": "candidate",
+    "mean_outcome_reward": null,
+    "requested_rollouts": 4
+  },
+  "candidate_config": "configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml",
+  "delta_mean_outcome_reward": null,
+  "environment": {
+    "container_url": "direct://local",
+    "uv_command": "uv run --no-sync --with pytest --with pyyaml --with httpx --with gepa --with modal --with numpy --with pillow --with craftax --with jax --with flax --with chex --with distrax --with optax --with orbax-checkpoint --with gymnax --with imageio --with-editable /workspace python experiments/codex_load_a/scripts/compare_prompt_opt.py"
+  },
+  "inference_url": "https://synth-laboratories--nanohorizon-craftax-prompt-opt-p-a5e20a-dev.modal.run/v1/chat/completions",
+  "request_api_key": "nanohorizon-prompt-opt-key",
+  "request_model": "qwen35-4b-prompt-opt",
+  "status": "blocked"
+}

@@ -23,9 +23,10 @@ def test_candidate_config_uses_refresh_gate_prompt() -> None:
 
     assert "tiny private" in seed_prompt
     assert "todo list with exactly three items" in seed_prompt
+    assert "survival blocker" in seed_prompt
     assert "fallback action that breaks a loop" in seed_prompt
-    assert "replace the stale target item" in seed_prompt
-    assert "follows the first todo item" in seed_prompt
+    assert "replace item 2 before acting" in seed_prompt
+    assert "spend the first action on `do`" in seed_prompt
     assert "Do not reveal the todo list" in seed_prompt
 
 

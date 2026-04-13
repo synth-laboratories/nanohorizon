@@ -1,0 +1,8 @@
+{
+  "cuda_visible_devices": "",
+  "hostname": "66f26aa82785",
+  "optimizer": "prompt_opt",
+  "python": "3.11.14",
+  "rollout_inference_url": "https://synth-laboratories--nanohorizon-craftax-prompt-opt-p-a5e20a-dev.modal.run/v1/chat/completions",
+  "timestamp_utc": "2026-04-13T05:13:05Z"
+}

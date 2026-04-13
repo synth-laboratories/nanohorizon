@@ -1,0 +1,4 @@
+- Candidate prompt tightens the private three-item todo contract and makes the adjacent-target action order explicit.
+- Repeated-seed baseline-vs-candidate comparison used seeds 10001, 10010, 10017, and 10019 through the repo rollout path.
+- The local dev environment required layering the classic Craftax dependencies before the rollout path could start.
+- The recorded modal inference URL then failed with `404 modal-http: invalid function call`, so no reward delta was measurable.
