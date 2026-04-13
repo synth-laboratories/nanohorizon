@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax single-step progress candidate
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_single_step_progress.yaml` and a matching not-run record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_single_step_progress/`.
+- The candidate intentionally drops the 3/4-action todo scaffold and returns to a 1-action macro step with direct resource-progress guidance, based on the earlier checked-in prompt-opt record showing the 1-action seed prompt outperformed the 4-action todo prompt.
+- Real Craftax runtime packages (`craftax`, `jax`, `modal`) were unavailable in this workspace, so a proxy comparison was run instead at `experiments/2026-04-13_codex_local_rerun2_2/proxy_eval.py` using the repo rollout path, a fake runner, and a local HTTP proxy.
+- Proxy comparison result over repeated seeds `10001`, `10010`, `10017`, `10019` twice each: mean outcome reward tied at `2.000` for baseline and candidate, while candidate mean `llm_call_count` dropped from `12.000` to `5.750`.
+- Validation run: `uv run --no-project --no-sync --with pytest --with pyyaml --with httpx --with numpy python -m pytest tests/test_codex_single_step_progress_candidate.py tests/test_codex_todo_refresh_gate_candidate.py` passed on 2026-04-13.
+- Validation run: `uv run --no-project --no-sync python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_single_step_progress` returned `ok: true` on 2026-04-13.
