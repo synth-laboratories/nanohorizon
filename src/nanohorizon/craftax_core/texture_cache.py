@@ -61,7 +61,10 @@ def _module_texture_cache_target(
     if texture_cache_file:
         return Path(str(texture_cache_file)).expanduser().resolve()
 
-    spec = importlib.util.find_spec(package_name)
+    try:
+        spec = importlib.util.find_spec(package_name)
+    except ModuleNotFoundError:
+        return None
     origin = getattr(spec, "origin", None) if spec is not None else None
     if not origin:
         return None

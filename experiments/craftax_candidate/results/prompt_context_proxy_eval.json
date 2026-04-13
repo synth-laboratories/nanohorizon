@@ -1,0 +1,142 @@
+{
+  "baseline": [
+    {
+      "action_history": [
+        2,
+        2
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "e02ad157e0e70adc729f83be65d9a256b853365a5c3dddbe2dd764aa79ba8442",
+      "llm_call_count": 2,
+      "mode": "baseline",
+      "native_env_reward_total": 19.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "bdcec03acf5a11e8f39926e3aea1bbc88abb4a867a8f667d506eb4dd0d63e35e",
+      "seed": 11
+    },
+    {
+      "action_history": [
+        2,
+        2
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "e02ad157e0e70adc729f83be65d9a256b853365a5c3dddbe2dd764aa79ba8442",
+      "llm_call_count": 2,
+      "mode": "baseline",
+      "native_env_reward_total": 19.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "bdcec03acf5a11e8f39926e3aea1bbc88abb4a867a8f667d506eb4dd0d63e35e",
+      "seed": 11
+    },
+    {
+      "action_history": [
+        2,
+        2
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "9ef43ff137efbc284d6f006746602e7e9c11004433cd1b824d9faf3d7c966462",
+      "llm_call_count": 2,
+      "mode": "baseline",
+      "native_env_reward_total": 19.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "6d0469574242476562b76c46818aecfc2b8290865167bd84881e72579648fa05",
+      "seed": 29
+    },
+    {
+      "action_history": [
+        2,
+        2
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "9ef43ff137efbc284d6f006746602e7e9c11004433cd1b824d9faf3d7c966462",
+      "llm_call_count": 2,
+      "mode": "baseline",
+      "native_env_reward_total": 19.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "6d0469574242476562b76c46818aecfc2b8290865167bd84881e72579648fa05",
+      "seed": 29
+    }
+  ],
+  "candidate": [
+    {
+      "action_history": [
+        2,
+        5
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "e02ad157e0e70adc729f83be65d9a256b853365a5c3dddbe2dd764aa79ba8442",
+      "llm_call_count": 2,
+      "mode": "candidate",
+      "native_env_reward_total": 22.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "bdcec03acf5a11e8f39926e3aea1bbc88abb4a867a8f667d506eb4dd0d63e35e",
+      "seed": 11
+    },
+    {
+      "action_history": [
+        2,
+        5
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "e02ad157e0e70adc729f83be65d9a256b853365a5c3dddbe2dd764aa79ba8442",
+      "llm_call_count": 2,
+      "mode": "candidate",
+      "native_env_reward_total": 22.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "bdcec03acf5a11e8f39926e3aea1bbc88abb4a867a8f667d506eb4dd0d63e35e",
+      "seed": 11
+    },
+    {
+      "action_history": [
+        2,
+        5
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "9ef43ff137efbc284d6f006746602e7e9c11004433cd1b824d9faf3d7c966462",
+      "llm_call_count": 2,
+      "mode": "candidate",
+      "native_env_reward_total": 22.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "6d0469574242476562b76c46818aecfc2b8290865167bd84881e72579648fa05",
+      "seed": 29
+    },
+    {
+      "action_history": [
+        2,
+        5
+      ],
+      "first_prompt_contains_structured_context": true,
+      "first_prompt_hash": "9ef43ff137efbc284d6f006746602e7e9c11004433cd1b824d9faf3d7c966462",
+      "llm_call_count": 2,
+      "mode": "candidate",
+      "native_env_reward_total": 22.0,
+      "outcome_reward": 1.0,
+      "second_prompt_contains_reward_history": true,
+      "second_prompt_hash": "6d0469574242476562b76c46818aecfc2b8290865167bd84881e72579648fa05",
+      "seed": 29
+    }
+  ],
+  "seeds": [
+    11,
+    11,
+    29,
+    29
+  ],
+  "summary": {
+    "baseline_mean_native_env_reward_total": 19.0,
+    "baseline_mean_outcome_reward": 1.0,
+    "baseline_repeat_seed_hash_match": true,
+    "candidate_mean_native_env_reward_total": 22.0,
+    "candidate_mean_outcome_reward": 1.0,
+    "candidate_repeat_seed_hash_match": true,
+    "candidate_reward_history_present": true,
+    "candidate_structured_context_present": true
+  }
+}
