@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import importlib.util
 import json
 import os
@@ -18,6 +19,7 @@ from nanohorizon.shared.common import write_json
 from nanohorizon.shared.eval_model import evaluate_model
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+PUBLICATION_SMOKE_NOTE = "PUBLICATION_SMOKE_NOTE: keep this submission minimal and stable."
 
 
 def _env_int(name: str, default: int) -> int:
@@ -64,6 +66,7 @@ def define() -> dict[str, Any]:
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
+            f"{PUBLICATION_SMOKE_NOTE}\n"
             "Call the action tool exactly once in the final answer."
         ),
     }
@@ -93,6 +96,12 @@ def _can_capture_video() -> bool:
     return importlib.util.find_spec("imageio_ffmpeg") is not None
 
 
+def _evaluate_model_compat(**kwargs: Any) -> dict[str, Any]:
+    supported = inspect.signature(evaluate_model).parameters
+    filtered_kwargs = {key: value for key, value in kwargs.items() if key in supported}
+    return evaluate_model(**filtered_kwargs)
+
+
 def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = checkpoint_dir / "checkpoint.json"
@@ -118,7 +127,7 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
         rollout_dir = rollout_root / f"{index:05d}_{seed}"
         rollout_dir.mkdir(parents=True, exist_ok=True)
         capture_video = _can_capture_video()
-        summary = evaluate_model(
+        summary = _evaluate_model_compat(
             base_model=str(config.get("base_model", "Qwen/Qwen3.5-4B")),
             output_dir=rollout_dir,
             container_url=str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")),
