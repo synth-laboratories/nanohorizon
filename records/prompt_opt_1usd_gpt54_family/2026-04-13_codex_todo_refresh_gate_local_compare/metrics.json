@@ -1,0 +1,9 @@
+{
+  "baseline_mean_outcome_reward": 0.0,
+  "baseline_mean_search_score": 0.0234375,
+  "candidate_mean_outcome_reward": 1.5,
+  "candidate_mean_search_score": 1.7625000000000002,
+  "outcome_reward_delta": 1.5,
+  "search_score_delta": 1.7390625000000002,
+  "status": "local_verifier_only"
+}

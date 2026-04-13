@@ -1,0 +1,24 @@
+{
+  "baseline_config": "/synth/state/.out/smr/projects/ba227908-e136-46eb-8973-e2bc6675ed25/runs/0163c520-c459-4ab4-9267-f445947f40b5/workspace/configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml",
+  "candidate_config": "/synth/state/.out/smr/projects/ba227908-e136-46eb-8973-e2bc6675ed25/runs/0163c520-c459-4ab4-9267-f445947f40b5/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml",
+  "eval_seeds": [
+    10001,
+    10010,
+    10017,
+    10019
+  ],
+  "repeats": 2,
+  "rollout": {
+    "enable_thinking": true,
+    "max_concurrent_rollouts": 4,
+    "max_steps": 10,
+    "max_tokens": 3072,
+    "min_action_batch_size": 3,
+    "request_timeout_seconds": 900,
+    "rollout_concurrency": 4,
+    "rollout_semaphore_limit": 2,
+    "target_action_batch_size": 4,
+    "temperature": 0.0,
+    "thinking_budget_tokens": 2000
+  }
+}

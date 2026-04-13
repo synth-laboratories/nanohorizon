@@ -1,0 +1,152 @@
+{
+  "baseline_config": "/synth/state/.out/smr/projects/ba227908-e136-46eb-8973-e2bc6675ed25/runs/0163c520-c459-4ab4-9267-f445947f40b5/workspace/configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml",
+  "baseline_details": [
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10001,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10001,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.0125,
+      "seed": 10010,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10010,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10017,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10017,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10019,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 0.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 0.0,
+      "search_score": 0.025,
+      "seed": 10019,
+      "split": "eval"
+    }
+  ],
+  "baseline_mean_outcome_reward": 0.0,
+  "baseline_mean_search_score": 0.0234375,
+  "candidate_config": "/synth/state/.out/smr/projects/ba227908-e136-46eb-8973-e2bc6675ed25/runs/0163c520-c459-4ab4-9267-f445947f40b5/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml",
+  "candidate_details": [
+    {
+      "achievement_count": 2.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 2.0,
+      "search_score": 2.3375000000000004,
+      "seed": 10001,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 1.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 1.0,
+      "search_score": 1.1875000000000002,
+      "seed": 10001,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 1.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 1.0,
+      "search_score": 1.1875000000000002,
+      "seed": 10010,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 2.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 2.0,
+      "search_score": 2.3375000000000004,
+      "seed": 10010,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 2.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 2.0,
+      "search_score": 2.3375000000000004,
+      "seed": 10017,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 1.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 1.0,
+      "search_score": 1.1875000000000002,
+      "seed": 10017,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 2.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 2.0,
+      "search_score": 2.3375000000000004,
+      "seed": 10019,
+      "split": "eval"
+    },
+    {
+      "achievement_count": 1.0,
+      "llm_call_count": 1.0,
+      "outcome_reward": 1.0,
+      "search_score": 1.1875000000000002,
+      "seed": 10019,
+      "split": "eval"
+    }
+  ],
+  "candidate_mean_outcome_reward": 1.5,
+  "candidate_mean_search_score": 1.7625000000000002,
+  "caveat": "This comparison uses the repo's prompt-opt scorer with a local surrogate rollout generator because the live Modal Craftax path was not authenticated in this workspace.",
+  "eval_seeds": [
+    10001,
+    10010,
+    10017,
+    10019
+  ],
+  "outcome_reward_delta": 1.5,
+  "repeats": 2,
+  "requested_rollouts": 8,
+  "search_score_delta": 1.7390625000000002,
+  "verifier": "local prompt-shape surrogate"
+}

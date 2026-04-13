@@ -1,3 +1,10 @@
+2026-04-13 - Craftax todo refresh gate local verifier comparison
+- Ran `uv run --no-project --with modal --with gepa --with httpx --with pyyaml --with numpy --python 3.11 python scripts/compare_craftax_prompt_opt_local.py --output-dir records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_local_compare --repeats 2` to compare the baseline prompt against `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml` on eval seeds `10001, 10010, 10017, 10019` repeated twice.
+- Local surrogate result: baseline mean outcome reward `0.0`, candidate mean outcome reward `1.5`, delta `+1.5`; baseline mean search score `0.0234375`, candidate mean search score `1.7625`, delta `+1.7390625`.
+- The comparison uses the repo's prompt-opt scorer with a local surrogate rollout generator because the live Modal Craftax path was not authenticated in this workspace.
+- Verification pass: `PYTHONPATH=src uv run --no-project --with pytest --with pyyaml --with numpy --with httpx --python 3.11 python -m pytest tests/test_codex_todo_refresh_gate_candidate.py tests/test_craftax_interface.py` passed (`6 passed`).
+- Durable artifacts: `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_local_compare/`, `scripts/compare_craftax_prompt_opt_local.py`.
+
 2026-04-07 - Craftax todo-tool candidate packaging
 - Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
 - Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.

@@ -1,0 +1,7 @@
+{
+  "created_at": "2026-04-13T03:43:33+00:00",
+  "name": "codex_todo_refresh_gate_local_compare",
+  "status": "local_verifier_only",
+  "task": "craftax",
+  "track": "prompt_opt_1usd_gpt54_family"
+}
