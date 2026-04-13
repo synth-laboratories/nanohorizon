@@ -245,6 +245,114 @@ def test_run_rollout_request_consumes_every_model_action(monkeypatch):
     assert turns[1]["invalid_parse"] is False
 
 
+def test_run_rollout_prompts_carry_structured_context_and_history(monkeypatch):
+    import nanohorizon.craftax_core.rollout as rollout_module
+
+    class FakeRunner:
+        def __init__(self) -> None:
+            self.state = {"steps": 0}
+            self.action_history: list[int] = []
+
+        def reset(self):
+            return SimpleNamespace(
+                done=False,
+                render=RenderBundle(mode=RenderMode.TEXT, text="obs 0", pixels=None, state_view={"steps": 0}),
+                reward=0.0,
+                info={},
+                step_index=0,
+                episode_index=0,
+            )
+
+        def step_many(self, actions):
+            outputs = []
+            for action in actions:
+                self.action_history.append(int(action))
+                self.state["steps"] += 1
+                outputs.append(
+                    SimpleNamespace(
+                        done=False,
+                        reward=0.5,
+                        render=RenderBundle(
+                            mode=RenderMode.TEXT,
+                            text=f"obs {self.state['steps']}",
+                            pixels=None,
+                            state_view={"steps": self.state["steps"]},
+                        ),
+                    )
+                )
+            return outputs
+
+    call_messages: list[list[dict[str, object]]] = []
+    payloads = iter(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_right"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": PRIMARY_TOOL_NAME,
+                                        "arguments": {"actions_list": ["move_right"]},
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+        ]
+    )
+
+    def fake_chat_completion(**kwargs):  # type: ignore[no-untyped-def]
+        call_messages.append(list(kwargs["messages"]))
+        return next(payloads)
+
+    monkeypatch.setattr(rollout_module, "make_runner", lambda **_: FakeRunner())
+    monkeypatch.setattr(rollout_module, "achievement_names_from_state", lambda state: [])
+    monkeypatch.setattr(rollout_module, "_chat_completion", fake_chat_completion)
+
+    result = rollout_module.run_rollout(
+        inference_url="http://example.test/v1/chat/completions",
+        model="demo",
+        api_key="",
+        seed=13,
+        max_steps=2,
+        trace_correlation_id="trace",
+        system_prompt="system",
+        target_action_batch_size=1,
+        min_action_batch_size=1,
+        request_logprobs=False,
+    )
+
+    assert result["success_status"] == "success"
+    assert len(call_messages) == 2
+    first_prompt = call_messages[0][1]["content"]
+    second_prompt = call_messages[1][1]["content"]
+    assert "Structured prompt context:" in first_prompt
+    assert '"reward_history":[]' in first_prompt
+    assert '"turn_index":0' in first_prompt
+    assert '"reward_history":[{"action":["move_right"],"observation_summary":"obs 0","reward_delta":0.5' in second_prompt
+
+
 def test_run_rollout_request_repairs_short_action_batches(monkeypatch):
     import nanohorizon.craftax_core.rollout as rollout_module
 

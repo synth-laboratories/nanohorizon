@@ -20,6 +20,8 @@ from .metadata import (
     DEFAULT_ACHIEVEMENT_NAMES,
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
+    RewardHistoryEntry,
+    RewardHistoryWindow,
 )
 from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
@@ -247,15 +249,34 @@ def _chat_completion(
     return payload
 
 
-def _observation_prompt(*, observation_text: str, target_action_batch_size: int) -> str:
-    return (
-        "Current Craftax long-horizon observation:\n"
-        f"{observation_text}\n\n"
-        "Plan a short useful macro-action. "
-        f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
-        f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
-        "Use only valid full-Craftax actions. Do not return JSON or plain text actions."
+def _observation_prompt(
+    *,
+    observation_text: str,
+    target_action_batch_size: int,
+    prompt_context: Mapping[str, Any] | None = None,
+) -> str:
+    prompt = [
+        "Current Craftax long-horizon observation:",
+        observation_text,
+    ]
+    if prompt_context is not None:
+        prompt.extend(
+            [
+                "",
+                "Structured prompt context:",
+                json.dumps(prompt_context, sort_keys=True, separators=(",", ":")),
+            ]
+        )
+    prompt.extend(
+        [
+            "",
+            "Plan a short useful macro-action. "
+            f"Use the {PRIMARY_TOOL_NAME} tool exactly once. "
+            f"Return exactly {target_action_batch_size} actions unless the environment is already done. "
+            "Use only valid full-Craftax actions. Do not return JSON or plain text actions.",
+        ]
     )
+    return "\n".join(prompt)
 
 
 def run_rollout(
@@ -281,12 +302,15 @@ def run_rollout(
     request_logprobs: bool = True,
 ) -> dict[str, Any]:
     runner = make_runner(kind="full" if env_kind == "full" else "classic", seed=int(seed), render_mode=render_mode)
+    from .http_shim import render_prompt_turn
+
     start = runner.reset()
     current = start
     unique_achievements: set[str] = set()
     total_reward = 0.0
     llm_call_count = 0
     frames: list[Any] = []
+    prompt_history = RewardHistoryWindow()
     if current.render.pixels is not None:
         frames.append(current.render.pixels)
     turns: list[dict[str, Any]] = []
@@ -294,9 +318,25 @@ def run_rollout(
         if current.done:
             break
         observation_text = str(current.render.text or "").strip() or "No text renderer available."
+        structured_observation = getattr(current.render, "state_view", None)
+        if structured_observation is None:
+            structured_observation = current.render.text
+        prompt_context = render_prompt_turn(
+            structured_observation,
+            prompt_history.entries,
+            metadata={
+                "env_kind": env_kind,
+                "render_mode": render_mode.value,
+                "seed": int(seed),
+                "turn_index": turn_index,
+                "llm_call_count": llm_call_count,
+                "native_env_reward_total": float(total_reward),
+            },
+        )
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
+            prompt_context=prompt_context,
         )
         prompt_messages = [
             {"role": "system", "content": system_prompt},
@@ -359,6 +399,13 @@ def run_rollout(
             frames.append(current.render.pixels)
         achievements = achievement_names_from_state(runner.state)
         unique_achievements.update(achievements)
+        prompt_history.append(
+            RewardHistoryEntry(
+                action=actions,
+                observation_summary=observation_text,
+                reward_delta=decision_reward,
+            )
+        )
         turns.append(
             {
                 "turn_index": turn_index,

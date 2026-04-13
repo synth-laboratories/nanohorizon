@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax candidate recovery and proxy eval
+- Restored `create_app`, `app`, and `main` in `src/nanohorizon/craftax_core/http_shim.py` so the Craftax HTTP contract matches the existing tests and `/health`/`/task_info` surfaces again.
+- Made `src/nanohorizon/craftax_core/rollout.py` include `render_prompt_turn(...)` output plus bounded reward history in the user prompt, while keeping the repair path and tool-call contract intact.
+- Added a backward-compatible texture-cache guard in `src/nanohorizon/craftax_core/texture_cache.py` so `ensure_texture_cache()` does not raise when Craftax packages are absent in the test environment.
+- The Craftax test baseline failed before the fix because `create_app` was missing; after the fix, `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with pyyaml --with pillow --with uvicorn --with numpy -- python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_interface.py tests/test_craftax_core_runtime_guarantees.py -q` passed (`18 passed`).
+- A repeated-seed proxy benchmark under `experiments/craftax_candidate/results/prompt_context_proxy_eval.json` showed deterministic prompt hashes for repeated seeds and higher native env reward totals for the candidate prompt-aware policy (`22.0` vs `19.0` baseline mean) on the fake Craftax loop.
+- Fresh verification on 2026-04-13 repeated the same test command and proxy benchmark with `experiments/craftax_candidate/results/prompt_context_proxy_eval_fresh.json`; both results matched the earlier summary, including deterministic repeated-seed hashes and `22.0` vs `19.0` native env reward totals.
