@@ -22,6 +22,7 @@ The intended public evaluation loop is:
 4. score held-out episodes with a pinned eval harness
 
 The in-repo Craftax runtime lives under [src/nanohorizon/craftax_core](/Users/joshpurtell/Documents/GitHub/nanohorizon/src/nanohorizon/craftax_core).
+The interface-shaped prompt payload now also carries a compact `rollout_evidence` summary so downstream policy code can see recent reward history as explicit planning evidence without changing the environment score contract.
 
 ## Official Model
 

@@ -25,6 +25,7 @@ from .modalities import RenderMode
 from .upstream import achievement_names_from_state, action_name_to_index, make_runner
 
 ACTION_NAME_TO_INDEX = action_name_to_index()
+INDEX_TO_ACTION_NAME = {index: action for action, index in ACTION_NAME_TO_INDEX.items()}
 
 
 def _sanitize_actions(values: list[object]) -> list[str]:
@@ -258,6 +259,31 @@ def _observation_prompt(*, observation_text: str, target_action_batch_size: int)
     )
 
 
+def _recent_action_names(action_history: list[int], limit: int = 5) -> list[str]:
+    return [INDEX_TO_ACTION_NAME.get(int(action), str(int(action))) for action in action_history[-limit:]]
+
+
+def _rollout_evidence_prompt(
+    *,
+    action_count: int,
+    recent_actions: list[str],
+    recent_achievements: list[str],
+    total_reward: float,
+    last_reward: float,
+) -> str:
+    recent_action_text = ", ".join(recent_actions) if recent_actions else "none"
+    recent_achievement_text = ", ".join(recent_achievements) if recent_achievements else "none"
+    return (
+        "Recent rollout evidence:\n"
+        f"action_count={int(action_count)}\n"
+        f"recent_actions={recent_action_text}\n"
+        f"unique_achievements={recent_achievement_text}\n"
+        f"last_reward={float(last_reward):.3f}\n"
+        f"total_reward={float(total_reward):.3f}\n"
+        "Use this evidence to avoid repeating unproductive loops and to pick the next useful macro-action."
+    )
+
+
 def run_rollout(
     *,
     inference_url: str,
@@ -294,10 +320,18 @@ def run_rollout(
         if current.done:
             break
         observation_text = str(current.render.text or "").strip() or "No text renderer available."
+        prompt_evidence = {
+            "action_count": len(runner.action_history),
+            "recent_actions": _recent_action_names(list(runner.action_history)),
+            "recent_achievements": sorted(unique_achievements),
+            "last_reward": 0.0 if turn_index == 0 else float(turns[-1]["decision_reward"]),
+            "total_reward": total_reward,
+        }
         user_prompt = _observation_prompt(
             observation_text=observation_text,
             target_action_batch_size=max(1, int(target_action_batch_size)),
         )
+        user_prompt = f"{user_prompt}\n\n{_rollout_evidence_prompt(**prompt_evidence)}"
         prompt_messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -363,6 +397,7 @@ def run_rollout(
             {
                 "turn_index": turn_index,
                 "prompt_messages": prompt_messages,
+                "planning_context": prompt_evidence,
                 "assistant_text": str(message.get("content") or ""),
                 "reasoning_text": _extract_reasoning_text(message),
                 "actions": actions,

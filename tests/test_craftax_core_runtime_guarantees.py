@@ -174,6 +174,7 @@ def test_run_rollout_request_consumes_every_model_action(monkeypatch):
             return outputs
 
     fake_runner = FakeRunner()
+    call_messages: list[list[dict[str, object]]] = []
     payloads = [
         {
             "choices": [
@@ -212,7 +213,12 @@ def test_run_rollout_request_consumes_every_model_action(monkeypatch):
     ]
 
     monkeypatch.setattr(rollout_module, "make_runner", lambda **_: fake_runner)
-    monkeypatch.setattr(rollout_module, "_chat_completion", lambda **_: payloads.pop(0))
+
+    def fake_chat_completion(**kwargs):  # type: ignore[no-untyped-def]
+        call_messages.append(list(kwargs["messages"]))
+        return payloads.pop(0)
+
+    monkeypatch.setattr(rollout_module, "_chat_completion", fake_chat_completion)
     monkeypatch.setattr(
         rollout_module,
         "achievement_names_from_state",
@@ -243,6 +249,8 @@ def test_run_rollout_request_consumes_every_model_action(monkeypatch):
     assert result["metadata"]["achievements"] == ["collect_wood"]
     assert turns[0]["invalid_parse"] is False
     assert turns[1]["invalid_parse"] is False
+    assert "Recent rollout evidence:" in str(call_messages[0][1]["content"])
+    assert "recent_actions=move_right, move_up, do, move_left" in str(call_messages[1][1]["content"])
 
 
 def test_run_rollout_request_repairs_short_action_batches(monkeypatch):

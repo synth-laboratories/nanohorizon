@@ -1,0 +1,107 @@
+{
+  "baseline": {
+    "details": [
+      {
+        "actions": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "llm_call_count": 1,
+        "reward": 0.0,
+        "seed": 10000
+      },
+      {
+        "actions": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "llm_call_count": 1,
+        "reward": 0.0,
+        "seed": 10001
+      },
+      {
+        "actions": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "llm_call_count": 1,
+        "reward": 0.0,
+        "seed": 10002
+      },
+      {
+        "actions": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "llm_call_count": 1,
+        "reward": 0.0,
+        "seed": 10003
+      }
+    ],
+    "mean_outcome_reward": 0.0
+  },
+  "candidate": {
+    "details": [
+      {
+        "actions": [
+          2,
+          3,
+          5,
+          1
+        ],
+        "llm_call_count": 1,
+        "reward": 1.0,
+        "seed": 10000
+      },
+      {
+        "actions": [
+          2,
+          3,
+          5,
+          1
+        ],
+        "llm_call_count": 1,
+        "reward": 1.0,
+        "seed": 10001
+      },
+      {
+        "actions": [
+          2,
+          3,
+          5,
+          1
+        ],
+        "llm_call_count": 1,
+        "reward": 1.0,
+        "seed": 10002
+      },
+      {
+        "actions": [
+          2,
+          3,
+          5,
+          1
+        ],
+        "llm_call_count": 1,
+        "reward": 1.0,
+        "seed": 10003
+      }
+    ],
+    "mean_outcome_reward": 1.0
+  },
+  "delta": 1.0,
+  "seeds": [
+    10000,
+    10001,
+    10002,
+    10003
+  ]
+}

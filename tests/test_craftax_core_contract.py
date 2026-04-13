@@ -204,5 +204,16 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
 
     assert result["success_status"] == "success"
     assert len(call_messages) == 2
+    assert "Recent rollout evidence:" in str(call_messages[0][1]["content"])
+    assert "action_count=0" in str(call_messages[0][1]["content"])
+    assert "recent_actions=none" in str(call_messages[0][1]["content"])
+    assert "last_reward=0.000" in str(call_messages[0][1]["content"])
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+    assert result["trace"]["inference"]["turns"][0]["planning_context"] == {
+        "action_count": 0,
+        "recent_actions": [],
+        "recent_achievements": [],
+        "last_reward": 0.0,
+        "total_reward": 0.0,
+    }
