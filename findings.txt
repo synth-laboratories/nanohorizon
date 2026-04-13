@@ -17,3 +17,10 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax native reward fallback candidate
+- Candidate change: `rollout_outcome_reward()` now falls back to `reward_info.details.native_env_reward_total` when achievement-based score fields are absent; mirrored in `src/nanohorizon/baselines/{offline_sft,prompt_opt,rlvr}.py`.
+- Added regression coverage in `tests/test_craftax_reward_fallback.py` for the eval-summary path and for source-level propagation of the fallback.
+- Repeated synthetic rollout comparison through `nanohorizon.shared.eval_model.evaluate_model`: baseline mean outcome reward `0.0`, candidate mean outcome reward `2.0` on three repeated rollouts with only `native_env_reward_total` populated.
+- Verification commands: `PYTHONPATH=src python3 -m pytest tests/test_craftax_reward_fallback.py tests/test_craftax_interface.py`; `uv run pytest ...` failed because the workspace points at an unavailable local `synth-ai` path dependency.
+- Caveat: `tests/test_craftax_core_contract.py` also fails in this workspace on an unrelated `create_app` import issue in `src/nanohorizon/craftax_core/http_shim.py`, so I did not use it as a readiness signal.

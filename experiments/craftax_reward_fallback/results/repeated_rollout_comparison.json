@@ -1,0 +1,71 @@
+{
+  "baseline_details": [
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 2,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_0",
+      "seed": 0,
+      "success_status": "success",
+      "trace_correlation_id": ""
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 3,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_1",
+      "seed": 0,
+      "success_status": "success",
+      "trace_correlation_id": ""
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 4,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_2",
+      "seed": 0,
+      "success_status": "success",
+      "trace_correlation_id": ""
+    }
+  ],
+  "baseline_mean_outcome_reward": 0.0,
+  "candidate_details": [
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 2,
+      "outcome_reward": 1.0,
+      "rollout_id": "rollout_0",
+      "seed": 0,
+      "success_status": "success",
+      "trace_correlation_id": ""
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 3,
+      "outcome_reward": 2.0,
+      "rollout_id": "rollout_1",
+      "seed": 0,
+      "success_status": "success",
+      "trace_correlation_id": ""
+    },
+    {
+      "achievements": [],
+      "error": null,
+      "llm_call_count": 4,
+      "outcome_reward": 3.0,
+      "rollout_id": "rollout_2",
+      "seed": 0,
+      "success_status": "success",
+      "trace_correlation_id": ""
+    }
+  ],
+  "candidate_mean_outcome_reward": 2.0,
+  "delta": 2.0,
+  "eval_path": "nanohorizon.shared.eval_model.evaluate_model",
+  "setup": "3 repeated synthetic rollouts; success_status=success; only reward_info.details.native_env_reward_total populated; no achievement fields present"
+}

@@ -169,6 +169,12 @@ def rollout_outcome_reward(rollout: dict[str, Any]) -> float:
                 }
                 if unique:
                     return float(len(unique))
+            try:
+                native_reward_total = details.get("native_env_reward_total")
+                if native_reward_total is not None:
+                    return float(native_reward_total)
+            except (TypeError, ValueError):
+                pass
         try:
             return float(reward_info.get("outcome_reward", 0.0))
         except (TypeError, ValueError):
