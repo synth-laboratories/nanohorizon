@@ -15,9 +15,11 @@ Evidence gathered before choosing this change:
 - `configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml` still uses a minimal seed prompt with no explicit todo or loop-break structure.
 
 Validation performed in this task:
-- Structural source/config/record validation only. No live Craftax, Modal, or GEPA reward run was executed, so reward impact remains unmeasured.
+- Structural source/config/record validation passed.
+- `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py` passed.
+- A live baseline-vs-candidate prompt-opt comparison was attempted with the repo's existing Craftax eval path, but the public rollout/reflection endpoint returned `404 modal-http: invalid function call` during GEPA reflection, so the reward comparison could not complete in this workspace.
 
 Residual risks:
-- The stronger "follow the first todo item" wording could overconstrain action batches in situations where a different short tactical sequence is better.
-- Preserving the todo contract during reflection may still not survive if reward signal is too noisy on the small seed split.
-- Because no live rollout run was executed, this remains a packaging and prompt-shaping candidate rather than a measured improvement.
+- The stronger exact-4-action wording could overconstrain action batches in situations where a different short tactical sequence is better.
+- The prompt-opt eval path remains blocked here until the rollout/reflection endpoint is reachable again or Modal bootstrap/auth is available.
+- Because no live reward comparison completed, this remains a packaging and prompt-shaping candidate rather than a measured improvement.

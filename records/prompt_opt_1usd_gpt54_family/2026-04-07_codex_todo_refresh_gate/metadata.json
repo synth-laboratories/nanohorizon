@@ -6,5 +6,5 @@
   "optimizer_budget_usd": 1.0,
   "optimizer_models": ["gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano"],
   "created_at": "2026-04-07",
-  "implementation_status": "candidate_not_run"
+  "implementation_status": "candidate_blocked"
 }

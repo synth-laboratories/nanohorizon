@@ -25,7 +25,9 @@ def test_candidate_config_uses_refresh_gate_prompt() -> None:
     assert "todo list with exactly three items" in seed_prompt
     assert "fallback action that breaks a loop" in seed_prompt
     assert "replace the stale target item" in seed_prompt
-    assert "follows the first todo item" in seed_prompt
+    assert "take an obvious upgrade or crafting step" in seed_prompt
+    assert "avoids immediate backtracking" in seed_prompt
+    assert "Return exactly 4 valid full-Craftax actions" in seed_prompt
     assert "Do not reveal the todo list" in seed_prompt
 
 
@@ -38,11 +40,11 @@ def test_prompt_opt_source_centralizes_todo_contract() -> None:
     assert "Do not reveal the todo list or scratchpad" in source
 
 
-def test_candidate_record_bundle_is_present_and_marked_not_run() -> None:
+def test_candidate_record_bundle_is_present_and_marked_blocked() -> None:
     metadata = json.loads((RECORD_DIR / "metadata.json").read_text(encoding="utf-8"))
     metrics = json.loads((RECORD_DIR / "metrics.json").read_text(encoding="utf-8"))
     command = (RECORD_DIR / "command.txt").read_text(encoding="utf-8").strip()
 
-    assert metadata["implementation_status"] == "candidate_not_run"
-    assert metrics["status"] == "not_run"
+    assert metadata["implementation_status"] == "candidate_blocked"
+    assert metrics["status"] == "blocked"
     assert "run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh" in command
