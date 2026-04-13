@@ -1,4 +1,193 @@
+"""Stable prompt metadata for Craftax interface shaping.
+
+The goal is to keep the harness surfaces narrow while making the prompt input
+more semantically legible for downstream policy code:
+
+* Craftax observations are converted into labeled fields.
+* Reward context is tracked as a rolling five-step window.
+* Each history element keeps the action, a brief observation summary, and the
+  signed reward delta so the model sees recent trajectory, not only the present
+  frame.
+"""
+
 from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
+from typing import Any, Mapping, Sequence
+
+OBSERVATION_FIELD_ORDER = (
+    "health",
+    "food",
+    "energy",
+    "nearby_entities",
+    "inventory",
+)
+
+REWARD_WINDOW_SIZE = 5
+
+
+def _sign_label(reward_delta: float) -> str:
+    if reward_delta > 0:
+        return "+"
+    if reward_delta < 0:
+        return "-"
+    return "neutral"
+
+
+def _shorten_text(value: Any, limit: int = 140) -> str:
+    text = repr(value) if not isinstance(value, str) else value
+    if len(text) <= limit:
+        return text
+    return f"{text[: limit - 3]}..."
+
+
+@dataclass(slots=True)
+class StructuredObservation:
+    """Semantic view of a Craftax observation."""
+
+    health: Any = None
+    food: Any = None
+    energy: Any = None
+    nearby_entities: Any = None
+    inventory: Any = None
+    extras: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_observation(cls, observation: Any) -> "StructuredObservation":
+        if isinstance(observation, Mapping):
+            known = {field: observation.get(field) for field in OBSERVATION_FIELD_ORDER}
+            extras = {
+                key: value
+                for key, value in observation.items()
+                if key not in OBSERVATION_FIELD_ORDER
+            }
+            return cls(**known, extras=extras)
+
+        if hasattr(observation, "tolist") and not isinstance(observation, (str, bytes, bytearray)):
+            try:
+                observation = observation.tolist()
+            except Exception:
+                pass
+
+        if isinstance(observation, Sequence) and not isinstance(observation, (str, bytes, bytearray)):
+            values = list(observation)
+            known = {
+                field: values[idx] if idx < len(values) else None
+                for idx, field in enumerate(OBSERVATION_FIELD_ORDER)
+            }
+            extras = {
+                "remaining_features": {
+                    f"feature_{idx}": value
+                    for idx, value in enumerate(values[len(OBSERVATION_FIELD_ORDER) :], start=len(OBSERVATION_FIELD_ORDER))
+                }
+            }
+            return cls(**known, extras=extras)
+
+        return cls(extras={"raw_observation": observation})
+
+    def to_prompt_payload(self) -> dict[str, Any]:
+        payload = {field: getattr(self, field) for field in OBSERVATION_FIELD_ORDER}
+        payload["extras"] = self.extras
+        return payload
+
+    def brief_summary(self) -> str:
+        parts = []
+        for field in OBSERVATION_FIELD_ORDER:
+            value = getattr(self, field)
+            if value is not None:
+                parts.append(f"{field}={_shorten_text(value)}")
+        if self.extras:
+            parts.append(f"extras={_shorten_text(self.extras)}")
+        return ", ".join(parts) if parts else "no structured observation available"
+
+
+@dataclass(slots=True)
+class RewardHistoryEntry:
+    """One reward-tagged trajectory step."""
+
+    action: Any
+    observation_summary: str
+    reward_delta: float
+
+    @property
+    def sign_label(self) -> str:
+        return _sign_label(self.reward_delta)
+
+    def to_prompt_payload(self) -> dict[str, Any]:
+        return {
+            "action": self.action,
+            "observation_summary": self.observation_summary,
+            "reward_delta": self.reward_delta,
+            "sign": self.sign_label,
+        }
+
+
+@dataclass(slots=True)
+class RewardHistoryWindow:
+    """Rolling window of the most recent reward-tagged steps."""
+
+    entries: list[RewardHistoryEntry] = field(default_factory=list)
+
+    def append(self, entry: RewardHistoryEntry) -> None:
+        self.entries.append(entry)
+        if len(self.entries) > REWARD_WINDOW_SIZE:
+            self.entries = self.entries[-REWARD_WINDOW_SIZE:]
+
+    def extend(self, entries: Sequence[RewardHistoryEntry]) -> None:
+        for entry in entries:
+            self.append(entry)
+
+    def to_prompt_payload(self) -> list[dict[str, Any]]:
+        return [entry.to_prompt_payload() for entry in self.entries]
+
+    def labels(self) -> list[str]:
+        return [entry.sign_label for entry in self.entries]
+
+    def evidence_summary(self) -> dict[str, Any]:
+        reward_total = sum(entry.reward_delta for entry in self.entries)
+        positive_steps = sum(1 for entry in self.entries if entry.reward_delta > 0)
+        negative_steps = sum(1 for entry in self.entries if entry.reward_delta < 0)
+        latest_entry = self.entries[-1] if self.entries else None
+        return {
+            "step_count": len(self.entries),
+            "reward_total": reward_total,
+            "positive_steps": positive_steps,
+            "negative_steps": negative_steps,
+            "recent_actions": [entry.action for entry in self.entries[-3:]],
+            "recent_reward_signs": self.labels(),
+            "latest_action": latest_entry.action if latest_entry else None,
+            "latest_reward_delta": latest_entry.reward_delta if latest_entry else 0.0,
+            "latest_reward_sign": latest_entry.sign_label if latest_entry else "neutral",
+        }
+
+
+@dataclass(slots=True)
+class PromptContext:
+    """Prompt-ready Craftax interface payload."""
+
+    observation: StructuredObservation
+    reward_history: RewardHistoryWindow = field(default_factory=RewardHistoryWindow)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_prompt_payload(self) -> dict[str, Any]:
+        return {
+            "structured_observation": self.observation.to_prompt_payload(),
+            "structured_observation_summary": self.observation.brief_summary(),
+            "reward_history": self.reward_history.to_prompt_payload(),
+            "reward_history_labels": self.reward_history.labels(),
+            "rollout_evidence": self.reward_history.evidence_summary(),
+            "metadata": dict(self.metadata),
+        }
+
+    def to_jsonable(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+# ---------------------------------------------------------------------------
+# Legacy constants — preserved for backward compatibility with rollout.py,
+# eval_model.py, and other modules that import these names directly from
+# nanohorizon.craftax_core.metadata.
+# ---------------------------------------------------------------------------
 
 PRIMARY_TOOL_NAME = "craftax_interact"
 

@@ -17,3 +17,12 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax rollout evidence candidate
+- Added `rollout_evidence` to `PromptContext.to_prompt_payload()` in `src/nanohorizon/craftax_core/metadata.py` so the prompt payload now carries a compact evidence summary from the bounded reward window.
+- Added `create_app()` and a lazy `run_rollout_request()` wrapper in `src/nanohorizon/craftax_core/http_shim.py` so the HTTP contract tests can exercise `/health`, `/task_info`, and `/rollout` without a circular import.
+- Updated `src/nanohorizon/craftax_core/rollout.py` to include a readable `Recent rollout evidence:` block in the user prompt and to store the same structured `planning_context` in each turn trace.
+- Verification: `PYTHONPATH=src:. uv run --no-project --with pytest --with fastapi --with httpx --with pillow --with pyyaml --with numpy pytest tests/test_craftax_interface.py tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py` passed with 18 tests.
+- Evaluation smoke: repeated seeded rollouts for seeds 7, 8, and 9 using a monkeypatched runner and fake policy produced identical reward (`0.0`) across baseline and candidate, while the candidate recorded `planning_context` and the baseline did not.
+- Baseline comparison: executed the checked-in `HEAD` version of `src/nanohorizon/craftax_core/rollout.py` side by side with the edited version via `git show HEAD:src/nanohorizon/craftax_core/rollout.py` and `exec`.
+- Validation: `PYTHONPATH=src:. uv run --no-project --with pyyaml python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true`.
