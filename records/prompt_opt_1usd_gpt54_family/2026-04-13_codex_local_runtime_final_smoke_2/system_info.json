@@ -1,0 +1,6 @@
+{
+  "command": "PYTHONPATH=src python records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/scripts/proxy_smoke.py",
+  "machine": "aarch64",
+  "platform": "Linux-6.8.0-64-generic-aarch64-with-glibc2.41",
+  "python_version": "3.12.13"
+}

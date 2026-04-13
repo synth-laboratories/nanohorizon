@@ -1,0 +1,1 @@
+PYTHONPATH=src python records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/scripts/proxy_smoke.py

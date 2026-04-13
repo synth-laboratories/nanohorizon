@@ -17,3 +17,14 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax local runtime final smoke 2
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_local_runtime_final_smoke_2.yaml`, a wood-first bootstrap prompt that keeps the private three-item todo list but makes early-game resource collection explicit (`collect_wood -> place_table -> make_wood_pickaxe -> collect_stone`).
+- Added `tests/test_codex_local_runtime_final_smoke_2_candidate.py` to pin the prompt wording and the generated record bundle contract.
+- Packaged `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/` with a proxy smoke script, command log, prompt bundle, metrics, metadata, run config, notes, and system info.
+- Proxy evaluation used `nanohorizon.shared.craftax_data.collect_rollouts_concurrently_with_summary` with a deterministic responder over the held-out starter eval seeds `[10001, 10010, 10017, 10019]`.
+- Proxy result: baseline mean outcome reward `65.5`, candidate mean outcome reward `89.5`, delta `+24.0`.
+- Validation run: direct Python assertions for `tests/test_codex_local_runtime_final_smoke_2_candidate.py` passed on 2026-04-13.
+- Validation run: `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2` returned `ok: true` on 2026-04-13.
+- Caveat: `uv run` hit a workspace dependency-resolution error (`Distribution not found at: file:///Users/joshpurtell/Documents/GitHub/synth-ai`), so the smoke was executed with `PYTHONPATH=src python` instead of the broken `uv` sync path.
+- Caveat: this is a proxy smoke, not a live Qwen/Craftax rollout, so the score evidence is directional rather than leaderboard-grade.
