@@ -1,0 +1,17 @@
+{
+  "baseline": "filtered_behavior_cloning",
+  "baseline_row_count": 6,
+  "candidate_row_count": 4,
+  "repeated_seeds": 6,
+  "reward_delta": 0.5833333333333335,
+  "seed_end": 10005,
+  "seed_start": 10000,
+  "submission_achievement_frequencies": {
+    "rollouts_dropped": 2,
+    "rollouts_kept": 4,
+    "rollouts_total": 6
+  },
+  "submission_mean_outcome_reward": 3.25,
+  "track": "offline_20min_1xa100_40gb",
+  "verification_passed": true
+}

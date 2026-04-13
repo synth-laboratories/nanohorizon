@@ -1,0 +1,136 @@
+{
+  "baseline": {
+    "kept_rollouts": [
+      "rollout_10000",
+      "rollout_10001",
+      "rollout_10002",
+      "rollout_10003",
+      "rollout_10004",
+      "rollout_10005"
+    ],
+    "kept_rows": 6,
+    "mean_priority_achievement_hits": 0.0,
+    "mean_unique_achievement_count": 2.6666666666666665
+  },
+  "candidate": {
+    "kept_rollouts": [
+      "rollout_10001",
+      "rollout_10002",
+      "rollout_10003",
+      "rollout_10005"
+    ],
+    "kept_rows": 4,
+    "mean_priority_achievement_hits": 1.25,
+    "mean_unique_achievement_count": 3.25,
+    "ranked_rollouts": [
+      "rollout_10002",
+      "rollout_10001",
+      "rollout_10005",
+      "rollout_10003"
+    ]
+  },
+  "comparison": {
+    "mean_priority_achievement_hits_delta": 1.25,
+    "mean_unique_achievement_count_delta": 0.5833333333333335,
+    "row_count_delta": -2
+  },
+  "rollout_details": [
+    {
+      "achievements": [
+        "collect_wood",
+        "place_table"
+      ],
+      "outcome_reward": 2.0,
+      "rollout_id": "rollout_10000",
+      "seed": 10000,
+      "unique_achievement_count": 2
+    },
+    {
+      "achievements": [
+        "collect_wood",
+        "defeat_zombie",
+        "eat_cow"
+      ],
+      "outcome_reward": 3.0,
+      "rollout_id": "rollout_10001",
+      "seed": 10001,
+      "unique_achievement_count": 3
+    },
+    {
+      "achievements": [
+        "collect_wood",
+        "collect_sapling",
+        "defeat_zombie",
+        "eat_cow"
+      ],
+      "outcome_reward": 4.0,
+      "rollout_id": "rollout_10002",
+      "seed": 10002,
+      "unique_achievement_count": 4
+    },
+    {
+      "achievements": [
+        "collect_wood",
+        "collect_sapling",
+        "place_table"
+      ],
+      "outcome_reward": 3.0,
+      "rollout_id": "rollout_10003",
+      "seed": 10003,
+      "unique_achievement_count": 3
+    },
+    {
+      "achievements": [
+        "collect_wood"
+      ],
+      "outcome_reward": 1.0,
+      "rollout_id": "rollout_10004",
+      "seed": 10004,
+      "unique_achievement_count": 1
+    },
+    {
+      "achievements": [
+        "collect_wood",
+        "defeat_zombie",
+        "place_table"
+      ],
+      "outcome_reward": 3.0,
+      "rollout_id": "rollout_10005",
+      "seed": 10005,
+      "unique_achievement_count": 3
+    }
+  ],
+  "rollout_summary": {
+    "active_rollout_high_watermark": 2,
+    "completed_rollouts": 6,
+    "elapsed_s": 0.012125000997912139,
+    "max_outcome_reward": 4.0,
+    "max_request_latency_s": 0.008960145998571534,
+    "mean_outcome_reward": 2.6666666666666665,
+    "mean_request_latency_s": 0.0027737555004326473,
+    "num_errors": 0,
+    "num_structured_rollouts": 6,
+    "requested_rollouts": 6,
+    "rollout_concurrency": 2,
+    "rollout_requests_finished": 6,
+    "rollout_requests_started": 6,
+    "rollout_semaphore_limit": 2,
+    "rollouts_per_minute": 29690.719205878013
+  },
+  "seeds": [
+    10000,
+    10001,
+    10002,
+    10003,
+    10004,
+    10005
+  ],
+  "verification": {
+    "evidence": [
+      "candidate_rows_require_min_unique_achievements=3",
+      "rare_achievement_priority_orders_rollout_10002_ahead_of_rollout_10003",
+      "rare_achievement_priority_orders_rollout_10001_ahead_of_rollout_10003"
+    ],
+    "passed": true
+  }
+}

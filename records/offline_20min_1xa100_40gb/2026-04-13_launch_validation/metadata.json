@@ -1,0 +1,6 @@
+{
+  "candidate_label": "Launch Validation 2026-04-13",
+  "comparison_type": "direct rollout-path synthetic repeated-seed comparison",
+  "objective": "offline-trace filtering to 3+ unique achievements with rare-achievement bias",
+  "run_id": "launch_validation_2026_04_13_repo"
+}

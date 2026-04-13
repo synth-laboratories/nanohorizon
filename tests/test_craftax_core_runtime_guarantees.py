@@ -6,7 +6,7 @@ from nanohorizon.craftax_core.checkpoint import CheckpointCodec, state_digest
 from nanohorizon.craftax_core.metadata import PRIMARY_TOOL_NAME
 from nanohorizon.craftax_core.modalities import RenderBundle, RenderMode
 from nanohorizon.craftax_core.rollout import ACTION_NAME_TO_INDEX, run_rollout_request
-from nanohorizon.baselines.offline_sft import build_openai_sft_rows_from_rollouts
+from nanohorizon.baselines.offline_sft import build_openai_sft_rows_from_rollouts, _filter_rows_by_priority
 from nanohorizon.shared.craftax_data import summarize_achievement_frequencies
 from nanohorizon.shared.openai_compat import extract_craftax_actions, sanitize_craftax_actions
 from tests._craftax_fakes import make_test_runner
@@ -135,6 +135,110 @@ def test_sft_rows_keep_tool_only_turns_with_reasoning():
         "move_right",
         "do",
     ]
+
+
+def test_offline_sft_filters_to_three_plus_unique_achievements_and_prefers_rare_ones():
+    rollouts = [
+        {
+            "rollout_id": "rollout_low_value",
+            "trace_correlation_id": "trace_low_value",
+            "success_status": "success",
+            "reward_info": {
+                "outcome_reward": 2.0,
+                "outcome_objectives": {"unique_achievements": 2.0},
+                "details": {"achievements": ["collect_wood", "place_table"]},
+            },
+            "trace": {
+                "inference": {
+                    "turns": [
+                        {
+                            "turn_index": 0,
+                            "prompt_messages": [{"role": "user", "content": "low"}],
+                            "assistant_text": "low",
+                            "reasoning_text": "",
+                            "actions": ["move_right"],
+                            "decision_reward": 1.0,
+                            "return_to_go": 2.0,
+                            "trainable": True,
+                            "invalid_parse": False,
+                        }
+                    ]
+                }
+            },
+            "metadata": {"achievements": ["collect_wood", "place_table"]},
+        },
+        {
+            "rollout_id": "rollout_rare",
+            "trace_correlation_id": "trace_rare",
+            "success_status": "success",
+            "reward_info": {
+                "outcome_reward": 3.0,
+                "outcome_objectives": {"unique_achievements": 3.0},
+                "details": {"achievements": ["collect_wood", "defeat_zombie", "eat_cow"]},
+            },
+            "trace": {
+                "inference": {
+                    "turns": [
+                        {
+                            "turn_index": 0,
+                            "prompt_messages": [{"role": "user", "content": "rare"}],
+                            "assistant_text": "rare",
+                            "reasoning_text": "",
+                            "actions": ["move_right"],
+                            "decision_reward": 1.0,
+                            "return_to_go": 3.0,
+                            "trainable": True,
+                            "invalid_parse": False,
+                        }
+                    ]
+                }
+            },
+            "metadata": {"achievements": ["collect_wood", "defeat_zombie", "eat_cow"]},
+        },
+        {
+            "rollout_id": "rollout_plain_three",
+            "trace_correlation_id": "trace_plain_three",
+            "success_status": "success",
+            "reward_info": {
+                "outcome_reward": 3.0,
+                "outcome_objectives": {"unique_achievements": 3.0},
+                "details": {"achievements": ["collect_wood", "collect_sapling", "place_table"]},
+            },
+            "trace": {
+                "inference": {
+                    "turns": [
+                        {
+                            "turn_index": 0,
+                            "prompt_messages": [{"role": "user", "content": "plain"}],
+                            "assistant_text": "plain",
+                            "reasoning_text": "",
+                            "actions": ["move_right"],
+                            "decision_reward": 1.0,
+                            "return_to_go": 3.0,
+                            "trainable": True,
+                            "invalid_parse": False,
+                        }
+                    ]
+                }
+            },
+            "metadata": {"achievements": ["collect_wood", "collect_sapling", "place_table"]},
+        },
+    ]
+
+    rows = build_openai_sft_rows_from_rollouts(
+        rollouts,
+        reward_threshold=0.0,
+        min_unique_achievements=3,
+        priority_achievements=["defeat_zombie", "eat_cow"],
+    )
+
+    assert len(rows) == 2
+    assert {row["metadata"]["rollout_id"] for row in rows} == {"rollout_rare", "rollout_plain_three"}
+    assert all(row["metadata"]["unique_achievement_count"] >= 3 for row in rows)
+
+    ranked = _filter_rows_by_priority(rows, keep_count=2)
+    assert [row["metadata"]["rollout_id"] for row in ranked] == ["rollout_rare", "rollout_plain_three"]
+    assert ranked[0]["metadata"]["priority_achievement_hits"] == 2
 
 
 def test_run_rollout_request_consumes_every_model_action(monkeypatch):
