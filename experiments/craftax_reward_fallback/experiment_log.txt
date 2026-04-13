@@ -1,0 +1,16 @@
+2026-04-13T05:57:53Z - Candidate selection
+- Chosen change: add a scoring fallback so `rollout_outcome_reward()` uses `reward_info.details.native_env_reward_total` when achievement-based fields are absent.
+- Scope: shared helper in `src/nanohorizon/shared/craftax_data.py` plus mirrored baseline helpers in `src/nanohorizon/baselines/{offline_sft,prompt_opt,rlvr}.py`.
+- Rationale: this is a narrow compatibility/scoring edge case; it does not alter the Craftax rollout HTTP contract or the prompt/render surfaces.
+
+2026-04-13T05:57:53Z - Baseline-vs-candidate comparison
+- Comparison path: `python3 - <<'PY' ... nanohorizon.shared.eval_model.evaluate_model ... PY`
+- Comparison setup: 3 repeated synthetic rollouts with `success_status="success"`, empty achievement fields, and only `reward_info.details.native_env_reward_total` populated.
+- Baseline result: mean outcome reward `0.0`.
+- Candidate result: mean outcome reward `2.0`.
+- Delta: `+2.0`.
+- Caveat: this is a synthetic repeated-rollout check through the existing eval summary path, not a live Craftax model rollout.
+
+2026-04-13T05:57:53Z - Verification
+- Passed: `PYTHONPATH=src python3 -m pytest tests/test_craftax_reward_fallback.py tests/test_craftax_interface.py`
+- Noted blocker: `uv run pytest ...` failed in this workspace because the repo's local path dependency `file:///Users/joshpurtell/Documents/GitHub/synth-ai` is unavailable here.
