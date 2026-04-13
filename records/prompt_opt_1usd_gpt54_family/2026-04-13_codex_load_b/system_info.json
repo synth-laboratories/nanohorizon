@@ -1,0 +1,12 @@
+{
+  "eval_seeds": [
+    10001,
+    10010,
+    10017,
+    10019
+  ],
+  "platform": "Linux-6.8.0-64-generic-aarch64-with-glibc2.41",
+  "proxy_eval": true,
+  "python": "3.11.14",
+  "repeat_count": 2
+}

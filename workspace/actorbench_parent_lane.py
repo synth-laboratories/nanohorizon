@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -61,9 +62,11 @@ def resolve_parent_runner(config: dict[str, Any], wrapper_path: Path) -> Path:
 def run_parent_action(config: dict[str, Any], wrapper_path: Path, action: str, output_root: Path, verifier_mode: str | None = None) -> int:
     parent_runner = resolve_parent_runner(config, wrapper_path)
     command = [sys.executable, str(parent_runner), action, "--output-root", str(output_root)]
+    env = os.environ.copy()
+    env.setdefault("NANOHORIZON_REPO_ROOT", str(wrapper_path.resolve().parents[1]))
     if verifier_mode:
         command.extend(["--verifier-mode", verifier_mode])
-    completed = subprocess.run(command, cwd=str(output_root), check=False)
+    completed = subprocess.run(command, cwd=str(output_root), env=env, check=False)
     return int(completed.returncode)
 
 
