@@ -1,0 +1,16 @@
+{
+  "built_at": "2026-04-13T18:32:39+00:00",
+  "primary_repo_name": "nanohorizon",
+  "repos": [
+    {
+      "archive_key": "smr-project-repos/00000000-0000-0000-0000-000000000001/82364cca-8f01-43a6-9517-10896c590b79/image-cache/repos/nanohorizon/1e6f477a09008ea207b39e29f694fd23fda8bc7a.tar.gz",
+      "commit_sha": "1e6f477a09008ea207b39e29f694fd23fda8bc7a",
+      "default_branch": "craftax-interface-v1",
+      "name": "nanohorizon",
+      "role": "primary",
+      "size_bytes": 13153533,
+      "url": "https://github.com/synth-laboratories/nanohorizon.git"
+    }
+  ],
+  "schema_version": 1
+}

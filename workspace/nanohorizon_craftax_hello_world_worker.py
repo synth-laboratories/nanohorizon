@@ -16,6 +16,7 @@ SYSTEM_PROMPT = (
     "actions unless the episode is already done. Use only the tool call as the "
     "final answer. Do not output JSON, prose, or a plain-text action list."
 )
+# Keep the fixed 10-seed contract intact so baseline-vs-candidate comparisons stay reproducible.
 DEFAULT_SEEDS = [1100 + idx for idx in range(10)]
 
 

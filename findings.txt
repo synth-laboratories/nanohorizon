@@ -1,3 +1,14 @@
+2026-04-13 - repo_candidate Craftax hello-world comment-only candidate
+- No `submission/agent.py` exists in this checkout; the nearest runnable candidate entrypoint is `workspace/nanohorizon_craftax_hello_world_worker.py`.
+- Added one clarifying comment above `DEFAULT_SEEDS`; behavior and seed coverage stayed unchanged.
+- Fresh baseline-vs-candidate comparison was run with a fake Craftax module to keep the repeated-seed contract honest in this environment. Both baseline and candidate used the 10 held-out seeds `1100..1109` and produced identical outputs: `mean_outcome_reward=0.2`, `num_rollouts=10`, `delta=0.0`, verdict `inconclusive`.
+- Comparison artifact: `.out/actorbench_nh_repo_candidate/comparison.json`.
+- Validation: `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with pyyaml --with numpy --with pillow python -m pytest tests/test_craftax_interface.py tests/test_craftax_core_runtime_guarantees.py` passed.
+- Validation caveat: `tests/test_craftax_core_runner.py::test_texture_cache_is_idempotent` still fails here because `craftax` is not installed; `tests/test_craftax_core_contract.py` collection also fails because `create_app` is not exported from `nanohorizon.craftax_core.http_shim` in this checkout.
+- GitHub push: `pr/worker/run-e0b7c70c-cd2a-4c3b-bc4c-62bd3c1174f8` on `synth-laboratories/nanohorizon`, head commit `15a9dba44271dada43ad4e54c366146699038a57`.
+- PR: `https://github.com/synth-laboratories/nanohorizon/pull/52`.
+- Task-state finalization still needs to be completed separately in the run control plane.
+
 2026-04-07 - Craftax todo-tool candidate packaging
 - Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
 - Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.
