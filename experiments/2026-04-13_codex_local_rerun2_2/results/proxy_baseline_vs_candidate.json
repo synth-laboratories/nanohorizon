@@ -1,0 +1,426 @@
+{
+  "baseline": {
+    "details": [
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "move_right",
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10001
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10010
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "move_right",
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10017
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "move_right",
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10019
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "move_right",
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10001
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10010
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "move_right",
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10017
+      },
+      {
+        "actions": [
+          [
+            "noop"
+          ],
+          [
+            "move_right",
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ],
+          [
+            "noop"
+          ]
+        ],
+        "llm_call_count": 12,
+        "outcome_reward": 2.0,
+        "seed": 10019
+      }
+    ],
+    "max_outcome_reward": 2.0,
+    "mean_llm_call_count": 12.0,
+    "mean_outcome_reward": 2.0
+  },
+  "baseline_config": "/synth/state/.out/smr/projects/41b0b50c-f7b9-4eb3-928c-82fb3b412174/runs/c67cf812-e669-4382-89f6-81ecc2ec27d7/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml",
+  "candidate": {
+    "details": [
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 6,
+        "outcome_reward": 2.0,
+        "seed": 10001
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 5,
+        "outcome_reward": 2.0,
+        "seed": 10010
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 6,
+        "outcome_reward": 2.0,
+        "seed": 10017
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 6,
+        "outcome_reward": 2.0,
+        "seed": 10019
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 6,
+        "outcome_reward": 2.0,
+        "seed": 10001
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 5,
+        "outcome_reward": 2.0,
+        "seed": 10010
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 6,
+        "outcome_reward": 2.0,
+        "seed": 10017
+      },
+      {
+        "actions": [
+          [
+            "move_right"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ],
+          [
+            "do"
+          ]
+        ],
+        "llm_call_count": 6,
+        "outcome_reward": 2.0,
+        "seed": 10019
+      }
+    ],
+    "max_outcome_reward": 2.0,
+    "mean_llm_call_count": 5.75,
+    "mean_outcome_reward": 2.0
+  },
+  "candidate_config": "/synth/state/.out/smr/projects/41b0b50c-f7b9-4eb3-928c-82fb3b412174/runs/c67cf812-e669-4382-89f6-81ecc2ec27d7/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_single_step_progress.yaml",
+  "delta_mean_outcome_reward": 0.0,
+  "repeats": 2,
+  "seeds": [
+    10001,
+    10010,
+    10017,
+    10019
+  ]
+}

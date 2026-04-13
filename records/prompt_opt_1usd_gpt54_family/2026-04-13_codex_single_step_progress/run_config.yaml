@@ -1,0 +1,43 @@
+track: prompt_opt_1usd_gpt54_family
+task: craftax
+base_model: Qwen/Qwen3.5-4B
+optimizer_budget_usd: 1.0
+optimizer_models:
+  - gpt-5.4
+  - gpt-5.4-mini
+  - gpt-5.4-nano
+rollout:
+  max_steps: 10
+  max_concurrent_rollouts: 4
+  rollout_concurrency: 4
+  rollout_semaphore_limit: 2
+  request_timeout_seconds: 900
+  target_action_batch_size: 1
+  min_action_batch_size: 1
+  temperature: 0.0
+  max_tokens: 3072
+  enable_thinking: true
+  thinking_budget_tokens: 2000
+train_seeds:
+  - 10007
+  - 10008
+  - 10011
+  - 10014
+eval_seeds:
+  - 10001
+  - 10010
+  - 10017
+  - 10019
+prompt:
+  component_name: system_prompt
+  seed_prompt: >
+    You are a Craftax policy agent. Think carefully, then use the
+    `craftax_interact` tool exactly once. Return 1 valid full-Craftax action
+    unless the episode is already done. Prefer the action that most directly
+    improves immediate survival or resource progress: move toward nearby trees
+    or other gatherable resources, use `do` only when adjacent to a useful
+    target, and avoid sleep, crafting, or inventory-only actions unless the
+    current state clearly supports them. If the local state looks stuck, choose
+    the smallest useful movement change that breaks the loop. Use only the tool
+    call as the final answer. Do not output JSON, prose, or a plain-text action
+    list.

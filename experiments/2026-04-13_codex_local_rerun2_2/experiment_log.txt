@@ -1,0 +1,5 @@
+2026-04-13T00:00:00Z - Started proxy comparison for Craftax prompt-opt candidate.
+2026-04-13T00:00:00Z - Baseline under comparison: 4-action todo-refresh config.
+2026-04-13T00:00:00Z - Candidate under comparison: 1-action progress config with direct resource guidance.
+2026-04-13T00:00:00Z - Real Craftax runtime packages are unavailable here, so the comparison will use the repo's rollout scoring path with a local proxy model and fake runner.
+2026-04-13T00:00:00Z - Proxy result: mean_outcome_reward tied at 2.000 on both baseline and candidate across 8 repeat rollouts; candidate reduced mean_llm_call_count from 12.000 to 5.750.
