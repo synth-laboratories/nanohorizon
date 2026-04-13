@@ -1,0 +1,20 @@
+{
+  "baseline": {
+    "num_seeds": 8,
+    "num_matches": 0,
+    "rewind_matches_reset": false,
+    "summary": "copy_state=False aliases mutable runtime state; restore diverges after later in-place mutations."
+  },
+  "candidate": {
+    "num_seeds": 8,
+    "num_matches": 8,
+    "rewind_matches_reset": true,
+    "summary": "checkpoint() snapshots mutable runtime state by default; restore returns the saved state across repeated seeds."
+  },
+  "evaluation_command": "PYTHONPATH=src uv run --no-sync python - <<'PY' ... compare checkpoint(copy_state=False) vs checkpoint() over seeds 0..7",
+  "unit_test_command": "PYTHONPATH=src uv run --no-sync python -m pytest -q tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default tests/test_craftax_core_runner.py::test_runner_checkpoint_restore_and_rewind",
+  "notes": [
+    "Mutable-state harness used a custom in-place env and fake jax to isolate runner state handling.",
+    "Baseline and candidate comparisons used the same repeated seeds and action sequence; the baseline used the explicit aliasing path to represent the pre-fix semantics."
+  ]
+}

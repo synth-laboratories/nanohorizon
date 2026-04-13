@@ -1,62 +1,60 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Local State Handling Candidate
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+The objective was to make the smallest honest Craftax change that improves reliability by clarifying local runtime state handling, while keeping the shared harness surfaces stable. The specific risk under review was whether `DeterministicCraftaxRunner` checkpoint/restore could alias mutable environment state and leak later mutations into repeated rollouts.
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+1. `PYTHONPATH=src uv run --no-sync python - <<'PY' ...` repeated-seed mutable-state rewind check on seeds `0..7` using `checkpoint(copy_state=False)` as the aliasing baseline
+   - Question: does the pre-change aliasing path preserve rewind correctness when the environment mutates state in place?
+   - Outcome: negative.
+   - Evidence: `experiments/craftax_candidate_local_state_handling/results/state_rewind_reliability.json` records `0/8` matches for the baseline.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. `tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default`
+   - Question: does the candidate keep checkpoint/restore isolated from in-place mutation across repeated seeds?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: the regression test passes under the candidate code path.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. `PYTHONPATH=src uv run --no-sync python -m pytest -q tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default tests/test_craftax_core_runner.py::test_runner_checkpoint_restore_and_rewind`
+   - Question: do the candidate change and the pre-existing Craftax runner tests still pass together?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+   - Evidence: 2 tests passed.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. `PYTHONPATH=src uv run --no-sync python - <<'PY' ...` repeated-seed mutable-state rewind check on seeds `0..7` using `checkpoint()` as the candidate path
+   - Question: does the candidate actually repair the aliasing issue across repeated seeds?
+   - Outcome: supporting.
+   - Evidence: `experiments/craftax_candidate_local_state_handling/results/state_rewind_reliability.json` records `8/8` matches for the candidate.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The failure mode was real: the aliasing checkpoint path let later in-place mutations leak into restore.
+2. The smallest reliable fix is local to `src/nanohorizon/craftax_core/runner.py`: make `checkpoint()` snapshot state by default and restore the saved `last_info` alongside the state payload.
+3. The change is behaviorally meaningful rather than cosmetic: on the same repeated-seed mutable-state harness, rewind moved from `0/8` correct matches to `8/8`.
+4. The existing Craftax interface surfaces stayed stable. The fix did not require changes to `docs/task-craftax.md`, `src/nanohorizon/craftax_core/http_shim.py`, `src/nanohorizon/craftax_core/metadata.py`, or `scripts/run_craftax_model_eval.sh`.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Source change: `src/nanohorizon/craftax_core/runner.py`
+- Regression test: `tests/test_craftax_core_runner.py`
+- Experiment log: `experiments/craftax_candidate_local_state_handling/experiment_log.txt`
+- Result artifact: `experiments/craftax_candidate_local_state_handling/results/state_rewind_reliability.json`
+- Repo handoff notes: `findings.txt`
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Validated the candidate against a repeated-seed mutable-state harness using 8 seeds.
+- Validated the code with `PYTHONPATH=src uv run --no-sync python -m pytest -q tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default tests/test_craftax_core_runner.py::test_runner_checkpoint_restore_and_rewind`.
+- Known caveat: the repository’s normal `uv` project sync path is blocked by a machine-specific `cloud` source in `pyproject.toml` that points at `/Users/joshpurtell/Documents/GitHub/synth-ai`. Verification therefore used `--no-sync` plus explicitly installed runtime packages.
+- Not validated: live Craftax leaderboard score, Modal execution, or any broader harness changes beyond the runner checkpoint/restore path.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Candidate change: `src/nanohorizon/craftax_core/runner.py` now snapshots `checkpoint()` by default and copies checkpoint payloads plus `last_info` during restore.
+- Regression command:
+  - `PYTHONPATH=src uv run --no-sync python -m pytest -q tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default tests/test_craftax_core_runner.py::test_runner_checkpoint_restore_and_rewind`
+- Rewind comparison command:
+  - `PYTHONPATH=src uv run --no-sync python - <<'PY' ...` repeated-seed mutable-state rewind check over seeds `0..7`, comparing `checkpoint(copy_state=False)` to `checkpoint()`
+- Open risk: if external callers intentionally depend on aliasing checkpoints for performance, they now need to opt out explicitly with `copy_state=False`.
+- Commit: `5709fe5700d3191f6152f9b777debbe4135aa7e0`
+- GitHub PR: [#44](https://github.com/synth-laboratories/nanohorizon/pull/44)
