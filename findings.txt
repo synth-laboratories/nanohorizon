@@ -17,3 +17,28 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax load-b candidate
+- Added `configs/craftax_prompt_opt_qwen35_4b_codex_load_b.yaml` with a tighter load-order prompt that makes the private 3-item plan explicit: danger/blocker, next target, and loop-break fallback.
+- Added `scripts/compare_craftax_prompt_opt_candidates_proxy.py` so the candidate comparison is reproducible and records the exact command line in the record bundle.
+- Updated `src/nanohorizon/baselines/prompt_opt.py` scratchpad wording so the reflection contract now says "compact internal todo list or scratchpad" and names the "danger, target resource, and loop-avoidance" focus explicitly.
+- Proxy repeated-seed comparison on held-out seeds `10001, 10010, 10017, 10019` with two repeats produced baseline mean outcome reward `1.385` vs candidate `3.485` and baseline mean search score `1.385` vs candidate `3.660`.
+- Caveat: the Modal/Craftax live stack was unavailable in this workspace, so the comparison used the repo's prompt-opt evaluation path with a deterministic stub rollout backend instead of live Craftax rollouts.
+
+2026-04-13 - ActorBench Craftax hello-world slot candidate
+- Fixed `workspace/actorbench_parent_lane.py` so `run_parent_action()` injects `NANOHORIZON_REPO_ROOT` into the parent-runner subprocess. This lets nested `--output-root` values work instead of failing repo discovery when the cwd is `/workspace/artifacts/...`.
+- Fixed `workspace/parent_runner.py` to import `sys`; `_run_baseline()` uses `sys.executable`, and the missing import previously crashed the nested-slot run after the repo-root fix.
+- Added `tests/test_actorbench_parent_lane.py` to verify the parent-action subprocess receives `NANOHORIZON_REPO_ROOT=/workspace` and still runs from the requested output root.
+- Baseline evidence: `uv run --no-sync python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root /workspace/artifacts/codex_load_b_baseline` failed with `RuntimeError: Unable to find the local nanohorizon checkout. Set NANOHORIZON_REPO_ROOT.`
+- Post-fix evidence: `uv run --no-sync --with httpx --with numpy --with pyyaml python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py run --output-root /workspace/artifacts/codex_load_b_candidate_run4` succeeded and wrote the full 10-rollout artifact bundle.
+- Verifier evidence: `uv run --no-sync --with httpx --with numpy --with pyyaml python3 workspace/run_actorbench_nh_craftax_hello_world_worker_v1.py score --output-root /workspace/artifacts/codex_load_b_candidate_run4 --verifier-mode precheck` returned `verifier_score = 1.0` and `actor_score = 1.0`.
+- Caveat: the final benchmark still required temporary `uv --with httpx --with numpy --with pyyaml` overlays because `--no-sync` avoids the broken `cloud` path dependency but does not install those runtime packages in this workspace by default.
+2026-04-13 - Craftax load-b candidate verification
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_load_b.yaml`.
+- Candidate comparison helper: `scripts/compare_craftax_prompt_opt_candidates_proxy.py`.
+- Repeated-seed proxy comparison on held-out seeds `10001, 10010, 10017, 10019` with `repeat_count=2` produced baseline mean outcome reward `1.385` vs candidate `3.485` and baseline mean search score `1.385` vs candidate `3.660`.
+- Verifier/test run: `PYTHONPATH=src uv run --no-sync --with pytest --with pyyaml pytest tests/test_codex_load_b_candidate.py` passed.
+- Record validation: `PYTHONPATH=src uv run --no-sync python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_load_b` returned `ok: true` with a warning that `metrics.json` does not include achievement frequencies.
+- Environment caveat: plain `uv run` still resolves the broken local path dependency to `/Users/joshpurtell/Documents/GitHub/synth-ai`; the working command pattern in this checkout is `PYTHONPATH=src uv run --no-sync ...`.
+- Workspace push: commit `a146480ee060a2e7a9631544b1c227d8ca52dcc7` was pushed on branch `worker/run-9ec5a08a-3d2e-49ca-95c8-1f271b4d8472`.
+- GitHub PR: `https://github.com/synth-laboratories/nanohorizon/pull/48` on branch `pr/worker/run-9ec5a08a-3d2e-49ca-95c8-1f271b4d8472` with head commit `ae99e1e267737a75ff6e207d3e1d31237ea03993` (reused existing PR).

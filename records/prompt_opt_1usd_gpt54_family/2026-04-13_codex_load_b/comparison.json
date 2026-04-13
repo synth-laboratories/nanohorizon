@@ -1,0 +1,17 @@
+{
+  "baseline_mean_outcome_reward": 1.385,
+  "baseline_mean_search_score": 1.385,
+  "candidate_mean_outcome_reward": 3.4850000000000003,
+  "candidate_mean_search_score": 3.66,
+  "eval_seeds": [
+    10001,
+    10010,
+    10017,
+    10019
+  ],
+  "evaluation_mode": "proxy_stubbed_prompt_opt_eval",
+  "num_eval_rollouts": 8,
+  "repeat_count": 2,
+  "reward_delta": 2.1000000000000005,
+  "search_score_delta": 2.2750000000000004
+}

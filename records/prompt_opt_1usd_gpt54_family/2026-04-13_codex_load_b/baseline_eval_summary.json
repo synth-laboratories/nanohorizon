@@ -1,0 +1,344 @@
+{
+  "achievement_frequencies": {
+    "cast_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "cast_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_coal": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_diamond": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_drink": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_iron": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_ruby": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapling": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_sapphire": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "collect_wood": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "damage_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_deep_thing": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_fire_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_frost_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_archer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_gnome_warrior": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_ice_elemental": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_knight": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_kobold": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_lizard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_necromancer": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_mage": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_orc_soldier": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_pigman": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_skeleton": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_troll": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "defeat_zombie": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "drink_potion": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_bat": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_cow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "eat_snail": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enchant_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_dungeon": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_fire_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_gnomish_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_graveyard": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_ice_realm": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_sewers": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_troll_mines": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "enter_vault": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "find_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "fire_bow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_fireball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "learn_iceball": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_arrow": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_diamond_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_armour": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_iron_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_stone_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_pickaxe": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "make_wood_sword": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "open_chest": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_furnace": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_plant": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_stone": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_table": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "place_torch": {
+      "count": 0,
+      "frequency": 0.0
+    },
+    "wake_up": {
+      "count": 0,
+      "frequency": 0.0
+    }
+  },
+  "details": [
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10001",
+      "score": 1.37,
+      "search_score": 1.37,
+      "seed": 10001,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10010",
+      "score": 1.35,
+      "search_score": 1.35,
+      "seed": 10010,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10017",
+      "score": 1.39,
+      "search_score": 1.39,
+      "seed": 10017,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10019",
+      "score": 1.43,
+      "search_score": 1.43,
+      "seed": 10019,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10001",
+      "score": 1.37,
+      "search_score": 1.37,
+      "seed": 10001,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10010",
+      "score": 1.35,
+      "search_score": 1.35,
+      "seed": 10010,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10017",
+      "score": 1.39,
+      "search_score": 1.39,
+      "seed": 10017,
+      "success_status": "success"
+    },
+    {
+      "llm_call_count": 1,
+      "rollout_id": "proxy_rollout_10019",
+      "score": 1.43,
+      "search_score": 1.43,
+      "seed": 10019,
+      "success_status": "success"
+    }
+  ],
+  "max_outcome_reward": 1.43,
+  "mean_outcome_reward": 1.385,
+  "mean_outcome_reward_over_requested_rollouts": 1.385,
+  "name": "baseline_eval",
+  "num_rollouts": 8,
+  "requested_num_rollouts": 8
+}

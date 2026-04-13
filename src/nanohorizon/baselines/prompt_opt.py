@@ -565,8 +565,8 @@ async def collect_rollouts_concurrently_with_summary(
 
 TRACK_ID = "prompt_opt_1usd_gpt54_family"
 TODO_SCRATCHPAD_REQUIREMENTS = [
-    "Keep a tiny private todo list with exactly three items before the tool call.",
-    "The three items must track (1) the immediate danger or blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
+    "Keep a compact internal todo list or scratchpad with exactly three items before the tool call.",
+    "The three items must track (1) the immediate danger, target resource, and loop-avoidance blocker, (2) the next tile, object, or resource target, and (3) the loop-break or fallback progress action.",
     "Refresh completed todo items every turn.",
     "If the policy repeats the same movement pattern without progress or new information, replace the stale target item instead of continuing the loop.",
     "Do not reveal the todo list or scratchpad in the final answer.",

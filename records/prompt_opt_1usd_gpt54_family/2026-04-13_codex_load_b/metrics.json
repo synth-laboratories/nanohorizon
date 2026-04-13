@@ -1,0 +1,23 @@
+{
+  "baseline": "gepa_craftax_prompt_optimization",
+  "baseline_mean_outcome_reward": 1.385,
+  "baseline_mean_search_score": 1.385,
+  "best_candidate_idx": 0,
+  "elapsed_minutes": 0.0,
+  "evaluation_mode": "proxy_stubbed_prompt_opt_eval",
+  "num_candidates": 1,
+  "optimizer_budget_usd": 1.0,
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "primary_score": 3.4850000000000003,
+  "reflection_backend": "policy_inference",
+  "reflection_model": "gpt-5.4-mini",
+  "repeat_count": 2,
+  "request_model": "qwen35-4b-prompt-opt",
+  "score_delta": 2.1000000000000005,
+  "search_score_delta": 2.2750000000000004,
+  "seed_count": 4,
+  "status": "proxy_evaluated",
+  "submission_mean_outcome_reward": 3.4850000000000003,
+  "submission_mean_search_score": 3.66,
+  "total_metric_calls": 0
+}
