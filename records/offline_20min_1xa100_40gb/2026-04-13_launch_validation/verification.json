@@ -1,0 +1,8 @@
+{
+  "evidence": [
+    "candidate_rows_require_min_unique_achievements=3",
+    "rare_achievement_priority_orders_rollout_10002_ahead_of_rollout_10003",
+    "rare_achievement_priority_orders_rollout_10001_ahead_of_rollout_10003"
+  ],
+  "passed": true
+}

@@ -1,0 +1,8 @@
+candidate_label: Launch Validation 2026-04-13
+comparison: direct rollout-path synthetic repeated-seed comparison
+seeds: [10000, 10001, 10002, 10003, 10004, 10005]
+baseline_filter: min_unique_achievements=0
+candidate_filter: min_unique_achievements=3
+priority_achievements:
+  - defeat_zombie
+  - eat_cow

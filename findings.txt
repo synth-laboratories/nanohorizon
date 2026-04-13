@@ -17,3 +17,18 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax offline trace filter validation
+- Implemented the offline SFT filter in `src/nanohorizon/baselines/offline_sft.py`: rows below `min_unique_achievements` are dropped, row metadata now carries `unique_achievement_count` and `priority_achievement_hits`, and ranking prefers rare achievements like `defeat_zombie` / `eat_cow`.
+- Updated `configs/craftax_offline_reference.yaml` to set `teacher_generation.min_unique_achievements: 3` and `teacher_generation.priority_achievements: [defeat_zombie, eat_cow]`.
+- Regression evidence: synthetic direct-path repeated-seed comparison bundle at `records/offline_20min_1xa100_40gb/2026-04-13_launch_validation/` shows baseline kept 6 rollouts vs candidate 4, mean unique achievements 2.6667 -> 3.25, mean priority hits 0.0 -> 1.25, verifier passed.
+- Additional caveat: `data/craftax/cpt_rollouts_text.jsonl` currently contains 0 rollouts with 3+ unique achievements, so this filter is stricter than the archived corpus and depends on richer future teacher rollouts.
+- Local verification used direct `PYTHONPATH=src python3` assertion scripts because system `pytest` was unavailable and `uv run` hit a missing local-path dependency in this checkout.
+
+2026-04-13 - Offline-trace filtering candidate
+- Implemented `min_unique_achievements` + `priority_achievements` in `src/nanohorizon/baselines/offline_sft.py`; teacher rollouts with <3 unique achievements are dropped before SFT row construction.
+- Updated `configs/craftax_offline_reference.yaml` to set `teacher_generation.min_unique_achievements: 3` and prioritize `defeat_zombie` and `eat_cow`.
+- Added regression coverage in `tests/test_craftax_core_runtime_guarantees.py` for the 3+ achievement filter and rare-achievement ranking.
+- Synthetic repeated-seed comparison over the direct rollout path kept 4/6 rollouts under the candidate filter vs 6/6 baseline; candidate mean unique achievement count rose from 2.6667 to 3.25.
+- Record bundle: `records/offline_20min_1xa100_40gb/2026-04-13_launch_validation/` with `comparison_summary.json`, `verification.json`, and validated record shape.
+- Caveat: `PYTHONPATH=src python3 -m pytest tests/test_craftax_core_contract.py -q` still fails in this checkout because `nanohorizon.craftax_core.http_shim` does not export `create_app`; that issue appears unrelated to the offline-filter change.

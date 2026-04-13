@@ -1,0 +1,1 @@
+PYTHONPATH=src python3 - <<'PY'  # synthetic repeated-seed comparison over direct rollout path + offline_sft filter

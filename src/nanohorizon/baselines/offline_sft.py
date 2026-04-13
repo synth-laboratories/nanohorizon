@@ -35,6 +35,7 @@ from typing import Any, Callable, cast
 import httpx
 import yaml
 from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
+from nanohorizon.shared.craftax_data import rollout_achievements
 
 # modal is only needed when NANOHORIZON_TRAIN_ON_MODAL=1 or for the Modal
 # entrypoint at the bottom of this file. Lazy-import to avoid failures when
@@ -634,6 +635,10 @@ def rollout_achievements(rollout: dict[str, Any]) -> list[str]:
     return []
 
 
+def rollout_unique_achievement_count(rollout: dict[str, Any]) -> int:
+    return len(set(rollout_achievements(rollout)))
+
+
 def _normalize_achievement_names(values: list[str] | tuple[str, ...] | set[str] | None) -> list[str]:
     if not values:
         return []
@@ -664,23 +669,55 @@ def _resolve_allowed_teacher_achievements(*, teacher_cfg: dict[str, Any]) -> lis
     return []
 
 
+def _resolve_min_teacher_unique_achievements(*, teacher_cfg: dict[str, Any]) -> int:
+    raw_env = str(os.getenv("NANOHORIZON_MIN_TEACHER_UNIQUE_ACHIEVEMENTS") or "").strip()
+    if raw_env:
+        return max(0, int(raw_env))
+    configured = teacher_cfg.get("min_unique_achievements")
+    if configured is not None:
+        return max(0, int(configured))
+    return 0
+
+
+def _resolve_teacher_priority_achievements(*, teacher_cfg: dict[str, Any]) -> list[str]:
+    raw_env = str(os.getenv("NANOHORIZON_PRIORITY_TEACHER_ACHIEVEMENTS") or "").strip()
+    if raw_env:
+        return _normalize_achievement_names(raw_env.split(","))
+    configured = teacher_cfg.get("priority_achievements")
+    if isinstance(configured, list):
+        return _normalize_achievement_names(
+            [str(item) for item in configured if str(item).strip()]
+        )
+    if isinstance(configured, str):
+        return _normalize_achievement_names(configured.split(","))
+    return []
+
+
 def build_openai_sft_rows_from_rollouts(
     rollouts: list[dict[str, Any]],
     *,
     reward_threshold: float,
     allowed_achievements: list[str] | None = None,
+    min_unique_achievements: int = 0,
+    priority_achievements: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     allowed = set(_normalize_achievement_names(allowed_achievements))
+    priority = set(_normalize_achievement_names(priority_achievements))
     rows: list[dict[str, Any]] = []
     for rollout in rollouts:
         outcome_reward = rollout_outcome_reward(rollout)
         if outcome_reward < float(reward_threshold):
             continue
         achievements = rollout_achievements(rollout)
+        unique_achievements = set(achievements)
+        unique_count = len(unique_achievements)
+        if unique_count < int(min_unique_achievements):
+            continue
         if allowed and not (set(achievements) & allowed):
             continue
         trace_correlation_id = str(rollout.get("trace_correlation_id") or "")
         rollout_id = str(rollout.get("rollout_id") or "")
+        priority_hits = len(unique_achievements & priority)
         for turn in rollout_turns(rollout):
             prompt_messages = turn.get("prompt_messages")
             assistant_text = str(turn.get("assistant_text") or "").strip()
@@ -726,6 +763,8 @@ def build_openai_sft_rows_from_rollouts(
                         "decision_reward": float(turn.get("decision_reward") or 0.0),
                         "return_to_go": float(turn.get("return_to_go") or 0.0),
                         "outcome_reward": float(outcome_reward),
+                        "unique_achievement_count": int(unique_count),
+                        "priority_achievement_hits": int(priority_hits),
                         "assistant_text": assistant_text,
                         "actions": action_list,
                         "achievements": achievements,
@@ -1224,15 +1263,17 @@ def _normalize_inference_url(raw_url: str) -> str:
     return url.rstrip("/") + "/v1/chat/completions"
 
 
-def _row_priority(row: dict[str, Any]) -> tuple[float, float, float, int]:
+def _row_priority(row: dict[str, Any]) -> tuple[float, float, float, float, float, int]:
     metadata = row.get("metadata", {})
     if not isinstance(metadata, dict):
         metadata = {}
     outcome_reward = float(metadata.get("outcome_reward", 0.0) or 0.0)
+    unique_achievement_count = float(metadata.get("unique_achievement_count", 0.0) or 0.0)
+    priority_achievement_hits = float(metadata.get("priority_achievement_hits", 0.0) or 0.0)
     return_to_go = float(metadata.get("return_to_go", 0.0) or 0.0)
     decision_reward = float(metadata.get("decision_reward", 0.0) or 0.0)
     turn_index = int(metadata.get("turn_index", 0) or 0)
-    return (outcome_reward, return_to_go, decision_reward, -turn_index)
+    return (outcome_reward, unique_achievement_count, priority_achievement_hits, return_to_go, decision_reward, -turn_index)
 
 
 def _filter_rows_by_priority(rows: list[dict[str, Any]], *, keep_count: int) -> list[dict[str, Any]]:
@@ -1249,6 +1290,8 @@ def _filter_rows_by_priority(rows: list[dict[str, Any]], *, keep_count: int) -> 
 def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Path) -> Path:
     teacher_cfg = config["teacher_generation"]
     allowed_teacher_achievements = _resolve_allowed_teacher_achievements(teacher_cfg=teacher_cfg)
+    min_unique_achievements = _resolve_min_teacher_unique_achievements(teacher_cfg=teacher_cfg)
+    priority_achievements = _resolve_teacher_priority_achievements(teacher_cfg=teacher_cfg)
     container_url = str(
         os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL")
         or os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL")
@@ -1333,6 +1376,8 @@ def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Pat
             "completed_rollouts": 0,
             "num_structured_rollouts": 0,
             "num_errors": 0,
+            "min_unique_achievements": min_unique_achievements,
+            "priority_achievements": priority_achievements,
         },
     )
 
@@ -1352,6 +1397,8 @@ def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Pat
             "rollout_requests_finished": int(progress.get("rollout_requests_finished", 0)),
             "mean_outcome_reward": float(progress.get("mean_outcome_reward", 0.0)),
             "max_outcome_reward": float(progress.get("max_outcome_reward", 0.0)),
+            "min_unique_achievements": min_unique_achievements,
+            "priority_achievements": priority_achievements,
         }
         write_json(progress_path, snapshot)
         print(json.dumps(snapshot, sort_keys=True), flush=True)
@@ -1416,6 +1463,8 @@ def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Pat
         successful_rollouts,
         reward_threshold=threshold,
         allowed_achievements=allowed_teacher_achievements,
+        min_unique_achievements=min_unique_achievements,
+        priority_achievements=priority_achievements,
     )
     ranked_rows = _filter_rows_by_priority(openai_rows, keep_count=len(openai_rows))
     with dataset_path.open("w", encoding="utf-8") as handle:
@@ -1427,6 +1476,8 @@ def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Pat
         "reward_threshold": threshold,
         "accepted_rows": len(ranked_rows),
         "allowed_achievements": allowed_teacher_achievements,
+        "min_unique_achievements": min_unique_achievements,
+        "priority_achievements": priority_achievements,
         "successful_rollout_summary": summarize_rollouts(successful_rollouts),
         "mean_llm_calls_per_rollout": (
             mean([rollout_llm_call_count(rollout) for rollout in successful_rollouts])
@@ -1443,6 +1494,8 @@ def _generate_teacher_dataset(*, config: dict, config_dir: Path, output_dir: Pat
             "accepted_rows": len(ranked_rows),
             "reward_threshold": threshold,
             "allowed_achievements": allowed_teacher_achievements,
+            "min_unique_achievements": min_unique_achievements,
+            "priority_achievements": priority_achievements,
             "rollout_summary": summarize_rollouts(successful_rollouts),
             "rollout_collection": rollout_collection_summary,
             "mean_outcome_reward": mean(rewards) if rewards else 0.0,
@@ -1829,6 +1882,8 @@ def main() -> None:
         "row_filter_summary": row_filter_summary,
         "teacher_generation_enabled": teacher_enabled,
         "teacher_model": teacher_generation.get("teacher_model", ""),
+        "min_unique_achievements": min_unique_achievements,
+        "priority_achievements": priority_achievements,
         "training_backend": training_result.backend,
         "adapter_dir": training_result.adapter_dir,
         "training_output_dir": training_result.output_dir,

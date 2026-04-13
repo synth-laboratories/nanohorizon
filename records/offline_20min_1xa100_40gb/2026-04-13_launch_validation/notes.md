@@ -1,0 +1,3 @@
+- Baseline kept all six repeated-seed rollouts.
+- Candidate dropped the two rollouts with <3 unique achievements and ranked the rare-achievement traces first.
+- This is a synthetic verifier over the existing direct rollout path, not a live model training run.
