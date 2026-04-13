@@ -17,3 +17,18 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax local state handling candidate
+- The reproducible failure mode was checkpoint aliasing: `checkpoint(copy_state=False)` on a mutable in-place env restored the later mutated state instead of the saved snapshot.
+- Fixed by making `DeterministicCraftaxRunner.checkpoint()` snapshot state by default and by copying `checkpoint.metadata["last_info"]` back into `restore()`.
+- Repeated-seed probe over seeds `0..7`: baseline `copy_state=False` matched `0/8`, candidate `checkpoint()` matched `8/8`.
+- Regression test: `tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default`.
+- Verification command: `PYTHONPATH=src uv run --no-sync python -m pytest -q tests/test_craftax_core_runner.py::test_checkpoint_snapshots_mutable_runtime_state_by_default tests/test_craftax_core_runner.py::test_runner_checkpoint_restore_and_rewind`
+- Commit recorded in branch history: `5709fe5700d3191f6152f9b777debbe4135aa7e0`.
+2026-04-13 - Craftax local state handling candidate
+- Scoped change in `src/nanohorizon/craftax_core/runner.py`: `reset()` now captures `episode_start` with `copy_state=True` so `rewind_episode()` does not alias mutable runtime state.
+- Added regression coverage in `tests/test_craftax_runner_state.py` for an in-place mutable env and rewind behavior.
+- Baseline repeated-seed mutable-state rewind check: 0/8 matches before the change.
+- Candidate repeated-seed mutable-state rewind check: 8/8 matches after the change.
+- Validation command: `PYTHONPATH=src uv run --no-project --with pytest --with numpy --with httpx --with pillow --with pyyaml python -m pytest tests/test_craftax_runner_state.py tests/test_craftax_interface.py` passed.
+- UV project sync caveat: the repo's `pyproject.toml` references a machine-specific `cloud` source at `/Users/joshpurtell/Documents/GitHub/synth-ai`; verification used `uv run --no-project` with explicit runtime packages instead.

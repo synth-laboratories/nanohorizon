@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import types
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,52 @@ from nanohorizon.craftax_core.media import persist_media
 from nanohorizon.craftax_core.modalities import RenderMode
 from nanohorizon.craftax_core.texture_cache import ensure_texture_cache
 from tests._craftax_fakes import make_test_runner
+
+
+class _MutableFakeRandom:
+    @staticmethod
+    def PRNGKey(seed: int) -> tuple[int, int]:
+        return (int(seed), 0)
+
+    @staticmethod
+    def split(key: tuple[int, int]) -> tuple[tuple[int, int], tuple[int, int]]:
+        seed, counter = key
+        return (seed, counter + 1), (seed, counter + 2)
+
+
+class _MutableFakeTreeUtil:
+    @staticmethod
+    def tree_flatten(tree):
+        if isinstance(tree, dict):
+            keys = sorted(tree.keys())
+            return [tree[key] for key in keys], tuple(keys)
+        return [tree], type(tree).__name__
+
+
+class _MutableFakeJax:
+    random = _MutableFakeRandom()
+    tree_util = _MutableFakeTreeUtil()
+    Array = tuple
+
+
+@dataclass
+class _MutableState:
+    position: int
+    ticks: list[int]
+
+
+class _InPlaceEnv:
+    default_params = {"terminal_position": 99}
+
+    def reset(self, key, params=None):
+        del params
+        return None, _MutableState(position=0, ticks=[int(key[1])])
+
+    def step(self, key, state, action: int, params=None):
+        del params
+        state.position += int(action) + int(key[1])
+        state.ticks.append(int(key[1]))
+        return None, state, float(state.position), False, {"position": state.position, "tick": int(key[1])}
 
 
 def test_runner_checkpoint_restore_and_rewind(monkeypatch, tmp_path):
@@ -34,6 +81,32 @@ def test_runner_checkpoint_restore_and_rewind(monkeypatch, tmp_path):
     loaded = CheckpointCodec.load(path)
     assert loaded.label == "after_first"
     assert state_digest({"position": loaded.state.position}) == state_digest({"position": first.info["position"]})
+
+
+def test_checkpoint_snapshots_mutable_runtime_state_by_default(monkeypatch):
+    import nanohorizon.craftax_core.checkpoint as checkpoint_module
+    import nanohorizon.craftax_core.runner as runner_module
+
+    fake_jax = _MutableFakeJax()
+    monkeypatch.setattr(runner_module, "jax", fake_jax)
+    monkeypatch.setattr(checkpoint_module, "jax", fake_jax)
+
+    results = []
+    for seed in range(4):
+        runner = runner_module.DeterministicCraftaxRunner(
+            env=_InPlaceEnv(),
+            renderer=runner_module.CallableRenderer(text_fn=lambda state: f"{state.position}:{state.ticks}"),
+            seed=seed,
+        )
+        runner.reset()
+        first = runner.step(1)
+        checkpoint = runner.checkpoint(label="probe")
+        runner.step(2)
+        restored = runner.restore(checkpoint)
+        results.append((seed, first.render.text, restored.render.text, restored.info))
+
+    assert all(restored_text == first_text for _, first_text, restored_text, _ in results)
+    assert all(restored_info == {"position": 4, "tick": 3} for _, _, _, restored_info in results)
 
 
 def test_texture_cache_is_idempotent():

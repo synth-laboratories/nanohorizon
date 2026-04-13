@@ -1,10 +1,15 @@
+"""CLI and helpers for the Craftax interface-shaped candidate."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Protocol
-
 import copy
+import json
+import sys
+from dataclasses import dataclass
+from typing import Any, Callable, Iterable, Mapping, Protocol
 
+from .http_shim import render_prompt_turn
+from .metadata import PromptContext, RewardHistoryEntry, RewardHistoryWindow, StructuredObservation
 from .checkpoint import Checkpoint
 from .modalities import CallableRenderer, RenderBundle, RenderMode
 
@@ -12,6 +17,84 @@ try:
     import jax
 except Exception:  # pragma: no cover - optional dependency
     jax = None
+
+
+# ---------------------------------------------------------------------------
+# Interface v1 helpers
+# ---------------------------------------------------------------------------
+
+
+def summarize_reward_history(
+    history: Iterable[Mapping[str, Any] | RewardHistoryEntry],
+) -> list[dict[str, Any]]:
+    window = RewardHistoryWindow()
+    for item in history:
+        if isinstance(item, RewardHistoryEntry):
+            window.append(item)
+        else:
+            window.append(
+                RewardHistoryEntry(
+                    action=item.get("action"),
+                    observation_summary=str(item.get("observation_summary", "")),
+                    reward_delta=float(item.get("reward_delta", 0.0)),
+                )
+            )
+    return window.to_prompt_payload()
+
+
+def build_prompt_context(
+    observation: Any,
+    history: Iterable[Mapping[str, Any] | RewardHistoryEntry] = (),
+    *,
+    metadata: Mapping[str, Any] | None = None,
+) -> PromptContext:
+    return PromptContext(
+        observation=StructuredObservation.from_observation(observation),
+        reward_history=RewardHistoryWindow(
+            [entry if isinstance(entry, RewardHistoryEntry) else RewardHistoryEntry(
+                action=entry.get("action"),
+                observation_summary=str(entry.get("observation_summary", "")),
+                reward_delta=float(entry.get("reward_delta", 0.0)),
+            ) for entry in history]
+        ),
+        metadata=dict(metadata or {}),
+    )
+
+
+def _load_payload_from_stdin() -> dict[str, Any]:
+    raw = sys.stdin.read().strip()
+    if not raw:
+        return {}
+    return json.loads(raw)
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in {"-h", "--help"}:
+        print(
+            "Usage: python -m nanohorizon.craftax_core.runner < input.json\n"
+            "Reads an observation/history payload from stdin and emits a prompt-ready JSON object."
+        )
+        return 0
+
+    payload = _load_payload_from_stdin()
+    prompt = render_prompt_turn(
+        payload.get("observation"),
+        payload.get("history", ()),
+        metadata=payload.get("metadata"),
+    )
+    json.dump(prompt, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+# ---------------------------------------------------------------------------
+# DeterministicCraftaxRunner — preserved for upstream.py compatibility
+# ---------------------------------------------------------------------------
 
 
 class EnvLike(Protocol):
@@ -72,7 +155,9 @@ class DeterministicCraftaxRunner:
         self._step_index = 0
         self.action_history = []
         self.last_info = {}
-        self.episode_start = self.checkpoint(label="episode_start")
+        # Keep the episode-start snapshot detached from mutable runtime state so
+        # rewind_episode() remains reliable even when the environment mutates in place.
+        self.episode_start = self.checkpoint(label="episode_start", copy_state=True)
         return StepOutput(
             render=self._renderer.render(self.state, self.render_mode),
             reward=0.0,
@@ -115,7 +200,7 @@ class DeterministicCraftaxRunner:
         self,
         *,
         label: str | None = None,
-        copy_state: bool = False,
+        copy_state: bool = True,
         metadata: Mapping[str, Any] | None = None,
     ) -> Checkpoint:
         if self.state is None:
@@ -123,6 +208,9 @@ class DeterministicCraftaxRunner:
         stored_state = copy.deepcopy(self.state) if copy_state else self.state
         stored_rng = copy.deepcopy(self._next_rng) if copy_state else self._next_rng
         stored_params = copy.deepcopy(self.params) if copy_state else self.params
+        checkpoint_metadata = dict(metadata or {})
+        if "last_info" not in checkpoint_metadata:
+            checkpoint_metadata["last_info"] = dict(self.last_info)
         return Checkpoint(
             version=1,
             seed=self.seed,
@@ -133,16 +221,18 @@ class DeterministicCraftaxRunner:
             params=stored_params,
             action_history=tuple(self.action_history),
             label=label,
-            metadata=dict(metadata or {}),
+            metadata=checkpoint_metadata,
         )
 
     def restore(self, checkpoint: Checkpoint) -> StepOutput:
-        self.state = checkpoint.state
-        self.params = checkpoint.params
-        self._next_rng = checkpoint.next_rng
+        self.state = copy.deepcopy(checkpoint.state)
+        self.params = copy.deepcopy(checkpoint.params)
+        self._next_rng = copy.deepcopy(checkpoint.next_rng)
         self._episode_index = checkpoint.episode_index
         self._step_index = checkpoint.step_index
         self.action_history = list(checkpoint.action_history)
+        last_info = checkpoint.metadata.get("last_info", {})
+        self.last_info = dict(last_info) if isinstance(last_info, Mapping) else {}
         return StepOutput(
             render=self._renderer.render(self.state, self.render_mode),
             reward=0.0,
@@ -157,4 +247,3 @@ class DeterministicCraftaxRunner:
         if self.episode_start is None:
             raise RuntimeError("no episode start checkpoint available")
         return self.restore(self.episode_start)
-
