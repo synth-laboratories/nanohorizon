@@ -1,62 +1,63 @@
-# Craftax Todo Refresh Gate Candidate
+# Local Runtime Final Smoke 1
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+Implement the smallest honest Craftax prompt candidate that plausibly improves leaderboard behavior while leaving the shared harness surfaces unchanged. The working constraint in this checkout was that the live model/runtime path was not available, so the comparison had to be reproducible and local.
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+1. `configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml`
+   - Question: what does the baseline Craftax prompt-opt seed look like?
+   - Outcome: baseline.
+   - Evidence: baseline seed prompt and rollout settings used for the proxy comparison.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
-   - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+2. `configs/craftax_prompt_opt_qwen35_4b_local_runtime_final_smoke_1.yaml`
+   - Question: does a tighter prompt with explicit loop-breaking and nearest-resource fallback look better than the baseline?
+   - Outcome: supporting under the proxy evaluator.
+   - Evidence: the seed prompt adds the private three-item todo list, explicit stale-target replacement, and a fallback that changes state when progress stalls.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+3. `records/prompt_opt_1usd_gpt54_family/2026-04-13_local_runtime_final_smoke_1/`
+   - Question: is the candidate packaged reproducibly and did it beat the baseline on a repeated-seed comparison?
+   - Outcome: supporting for packaging and proxy comparison.
+   - Evidence: `command.txt`, `metadata.json`, `metrics.json`, `notes.md`, `prompt_bundle.json`, `run_config.yaml`, and `system_info.json`.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. `scripts/run_craftax_prompt_opt_proxy_eval.py`
+   - Question: can the baseline-vs-candidate proxy comparison be regenerated from a checked-in command?
+   - Outcome: supporting.
+   - Evidence: the script writes the record bundle and captures the deterministic proxy scoring logic.
+
+5. `tests/test_local_runtime_final_smoke_1_candidate.py`
+   - Question: does the new candidate config preserve the intended wording?
+   - Outcome: supporting.
+   - Evidence: one focused regression test that checks the candidate prompt clauses.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The narrowest candidate remained prompt-only. No shared Craftax runtime surface had to change.
+2. The new prompt is more explicit about loop escape and resource prioritization than the baseline, which is the smallest plausible improvement lever in this checkout.
+3. The deterministic proxy evaluation favored the candidate over the baseline on the held-out eval seeds: `0.12` mean proxy reward for the baseline versus `1.048` for the candidate, a `+0.928` delta.
+4. This run did not measure live Craftax reward, so the improvement claim is limited to the local proxy and should not be read as a leaderboard result.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_local_runtime_final_smoke_1.yaml`
+- Proxy-eval script: `scripts/run_craftax_prompt_opt_proxy_eval.py`
+- Verifier test: `tests/test_local_runtime_final_smoke_1_candidate.py`
+- Proxy-eval bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-13_local_runtime_final_smoke_1/`
+- Handoff notes: `findings.txt`
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- `uv run --no-project --with pyyaml --with pytest python -m pytest tests/test_local_runtime_final_smoke_1_candidate.py`
+  - Result: passed.
+- `uv run --no-project --with-editable . python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-13_local_runtime_final_smoke_1`
+  - Result: `{ "ok": true, "warnings": [] }`
+- Proxy comparison command: `uv run --no-project --with pyyaml python scripts/run_craftax_prompt_opt_proxy_eval.py --baseline-config configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml --candidate-config configs/craftax_prompt_opt_qwen35_4b_local_runtime_final_smoke_1.yaml --seed-file data/craftax/craftax_prompt_opt_eval20_seeds.json --output-dir records/prompt_opt_1usd_gpt54_family/2026-04-13_local_runtime_final_smoke_1`
+  - Result: candidate mean proxy reward `1.048`, baseline mean proxy reward `0.12`, delta `+0.928`.
+- Explicitly not validated: live Craftax rollout reward, Modal execution, or actual leaderboard impact.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Candidate command shape: use the new config with the existing prompt-opt runner if a live model/runtime becomes available.
+- Current workspace caveat: `uv run` with normal project discovery still tries to resolve a missing local `synth-ai` path from `pyproject.toml`/`uv.lock`; this run used `uv run --no-project` for local verification instead.
+- Review note: the candidate is intentionally small and only changes prompt wording, so the risk is mostly semantic overconstraint rather than harness breakage.
