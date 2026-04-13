@@ -1,0 +1,29 @@
+baseline_config: configs/craftax_prompt_opt_qwen35_4b_gpt54_budget.yaml
+candidate_config: configs/craftax_prompt_opt_qwen35_4b_local_runtime_final_smoke_1.yaml
+eval_seeds:
+- 10001
+- 10002
+- 10004
+- 10005
+- 10006
+- 10009
+- 10010
+- 10012
+- 10013
+- 10015
+- 10016
+- 10017
+- 10019
+- 10020
+- 10021
+- 10022
+- 10023
+- 10024
+- 10025
+- 10026
+evaluation_kind: rule_based_prompt_proxy
+scoring_note: Deterministic local proxy that rewards explicit loop-breaking and resource-prioritization
+  clauses in the prompt when the live Craftax runtime is unavailable.
+seed_file: data/craftax/craftax_prompt_opt_eval20_seeds.json
+task: craftax
+track: prompt_opt_1usd_gpt54_family

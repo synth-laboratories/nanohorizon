@@ -1,0 +1,22 @@
+{
+  "baseline_prompt": "You are a Craftax policy agent. Think carefully, then use the `craftax_interact` tool exactly once. Return 3 or 4 valid full-Craftax actions unless the episode is already done. Use only the tool call as the final answer. Do not output JSON, prose, or a plain-text action list.\n",
+  "baseline_prompt_clauses": {
+    "adjacent_do": false,
+    "batch": false,
+    "current_target": false,
+    "fallback": false,
+    "replace_stale": false,
+    "todo": false,
+    "trees": false
+  },
+  "candidate_prompt": "You are a Craftax policy agent. Before choosing actions, keep a tiny private todo list with exactly three items: (1) the most urgent danger or blocker, (2) the nearest useful resource or target you should reach next, and (3) a fallback action that changes state if progress stalls. Refresh completed todo items every turn. If you repeat the same movement pattern without new progress or information, replace the stale target item before acting. Prefer nearby trees and other gatherable resources over crafting or sleep. Use `do` only when adjacent to a useful target. If nothing useful is adjacent, move toward the current target or use the fallback action instead of repeating the same move. Choose a short 3 or 4 action batch that follows the first todo item and, when safe, ends near a useful target for the next turn. Think carefully, then use the `craftax_interact` tool exactly once. Return 3 or 4 valid full-Craftax actions unless the episode is already done. Use only the tool call as the final answer. Do not output JSON, prose, or a plain-text action list.\n",
+  "candidate_prompt_clauses": {
+    "adjacent_do": true,
+    "batch": true,
+    "current_target": true,
+    "fallback": true,
+    "replace_stale": true,
+    "todo": true,
+    "trees": true
+  }
+}
