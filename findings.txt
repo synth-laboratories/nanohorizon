@@ -17,3 +17,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+
+2026-04-13 - Craftax leaderboard candidate refresh
+- Updated `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml` to tighten the policy prompt to an exact 4-action batch and make the progression heuristic more state-driven: adjacent useful targets should use `do`, obvious inventory-supported progress should craft/upgrade, otherwise explore.
+- Focused regression test `tests/test_codex_todo_refresh_gate_candidate.py` passed after the prompt wording update.
+- `uv run` initially failed because the workspace lacked the hard-coded optional `synth-ai` dependency path; a tiny local stub at `/Users/joshpurtell/Documents/GitHub/synth-ai` was enough to resolve the project for test execution.
+- `uv run` also required `git config --global --add safe.directory '*'` because uv's git cache hit Git's dubious-ownership check.
+- Live baseline-vs-candidate prompt-opt comparison was attempted through the existing Craftax eval path with the public rollout endpoint from the reference record, but GEPA reflection consistently failed with `404 modal-http: invalid function call`, so no actual reward comparison completed in this workspace.
+- Modal auth materialization was absent in this workspace (`MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, and `~/.modal.toml` were missing), so a fresh Modal bootstrap path was not available as a fallback.

@@ -1,5 +1,5 @@
 {
-  "status": "not_run",
+  "status": "blocked",
   "baseline": "gepa_craftax_prompt_optimization",
   "policy_model": "Qwen/Qwen3.5-4B",
   "request_model": "qwen35-4b-prompt-opt",
@@ -7,5 +7,5 @@
   "primary_score": null,
   "submission_mean_outcome_reward": null,
   "submission_achievement_frequencies": {},
-  "residual_risk": "Candidate was not executed in this task; scoreboard impact is unmeasured."
+  "residual_risk": "Live prompt-opt evaluation was blocked by a modal-http 404 during reflection; scoreboard impact remains unmeasured."
 }
