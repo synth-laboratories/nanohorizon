@@ -1,0 +1,18 @@
+2026-04-13 UTC - Candidate shaping
+- Reviewed `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml` as the compact prompt-opt candidate with explicit loop-break and adjacency guidance.
+- Kept the candidate contract reviewable through the existing `tests/test_codex_todo_refresh_gate_candidate.py` coverage and the blocked record bundle.
+
+2026-04-13 UTC - Proxy evaluation
+- Ran a proxy baseline-vs-candidate comparison with the repo rollout path using:
+  - `gpt-4.1-nano`
+  - fake Craftax runner from `tests/_craftax_fakes.py`
+  - seeds `[10001, 10002, 10004, 10005]`
+  - `max_steps=2`
+- Result: baseline mean outcome reward `2.0`, loop-break candidate mean outcome reward `2.0`.
+- Result: baseline mean search score `2.078125`, candidate mean search score `1.925`.
+- Result: the candidate reduced neither reward nor the repo-shaped search score on this proxy.
+
+2026-04-13 UTC - Full rollout attempt
+- Tried a direct Craftax rollout using the real environment path.
+- The process was killed with exit code `137` after Craftax texture processing began, so the full environment comparison could not complete in this workspace.
+- Because of that, the proxy comparison is the only completed in-run evidence.

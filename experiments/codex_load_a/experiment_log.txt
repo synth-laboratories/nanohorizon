@@ -1,0 +1,5 @@
+2026-04-13T04:39:00Z - Started candidate work for codex_load_a.
+2026-04-13T04:39:00Z - Goal: tighten the Craftax prompt-opt candidate while preserving shared Craftax harness surfaces.
+2026-04-13T05:46:00Z - Repeated-seed baseline-vs-candidate comparison attempted with the repo rollout path on seeds 10001, 10010, 10017, 10019.
+2026-04-13T05:46:00Z - The local environment was repaired by layering the classic Craftax dependencies, but the recorded modal inference endpoint returned 404 `modal-http: invalid function call` before any reward could be measured.
+2026-04-13T05:46:00Z - A single-rollout smoke probe reproduced the same 404 after Craftax texture bootstrap, confirming the blocker was the inference endpoint rather than the candidate prompt.

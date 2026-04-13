@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-04-13",
+  "implementation_status": "candidate_blocked_eval",
+  "name": "codex_todo_refresh_gate_blocked",
+  "optimizer_budget_usd": 1.0,
+  "optimizer_models": [
+    "gpt-5.4",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano"
+  ],
+  "base_model": "Qwen/Qwen3.5-4B",
+  "task": "craftax",
+  "track": "prompt_opt_1usd_gpt54_family"
+}

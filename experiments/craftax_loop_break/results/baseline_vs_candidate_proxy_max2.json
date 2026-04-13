@@ -1,0 +1,83 @@
+{
+  "baseline": {
+    "llm_calls": [
+      3.0,
+      4.0,
+      3.0,
+      4.0
+    ],
+    "mean_outcome_reward": 2.0,
+    "mean_search_score": 2.0093750000000004,
+    "name": "baseline",
+    "rewards": [
+      2.0,
+      2.0,
+      2.0,
+      2.0
+    ],
+    "search_scores": [
+      2.075,
+      1.9375000000000002,
+      2.0875000000000004,
+      1.9375000000000002
+    ],
+    "seeds": [
+      10001,
+      10002,
+      10004,
+      10005
+    ]
+  },
+  "candidate": {
+    "llm_calls": [
+      3.0,
+      4.0,
+      4.0,
+      4.0
+    ],
+    "mean_outcome_reward": 2.0,
+    "mean_search_score": 1.971875,
+    "name": "candidate",
+    "rewards": [
+      2.0,
+      2.0,
+      2.0,
+      2.0
+    ],
+    "search_scores": [
+      2.075,
+      1.9375000000000002,
+      1.9375000000000002,
+      1.9375000000000002
+    ],
+    "seeds": [
+      10001,
+      10002,
+      10004,
+      10005
+    ]
+  },
+  "delta_mean_outcome_reward": 0.0,
+  "delta_mean_search_score": -0.03750000000000031,
+  "mode": "fake_craftax_proxy",
+  "request_model": "gpt-4.1-nano",
+  "rollout_cfg": {
+    "enable_thinking": true,
+    "max_concurrent_rollouts": 1,
+    "max_steps": 2,
+    "max_tokens": 128,
+    "min_action_batch_size": 3,
+    "request_timeout_seconds": 60,
+    "rollout_concurrency": 1,
+    "rollout_semaphore_limit": 1,
+    "target_action_batch_size": 4,
+    "temperature": 0.0,
+    "thinking_budget_tokens": 2000
+  },
+  "seeds": [
+    10001,
+    10002,
+    10004,
+    10005
+  ]
+}

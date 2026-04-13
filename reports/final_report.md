@@ -1,62 +1,53 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Prompt-Opt Candidate Report
 
-## Context & objective
+## Context & Objective
+This run targeted the NanoHorizon Craftax prompt-opt track. The goal was to make the smallest honest candidate change that plausibly improves the `Qwen/Qwen3.5-4B` Craftax policy while preserving the shared Craftax harness surfaces.
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+The candidate is represented by the refined prompt contract in [configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml), the matching source-side contract update in [src/nanohorizon/baselines/prompt_opt.py](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/src/nanohorizon/baselines/prompt_opt.py), and the blocked record bundle at [records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_blocked/](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_blocked/).
 
-## Experiments cited
-
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
-
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
-   - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
-
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
-
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+## Experiments Cited
+1. Proxy baseline-vs-candidate comparison, saved at [experiments/craftax_loop_break/results/baseline_vs_candidate_proxy_max2.json](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/experiments/craftax_loop_break/results/baseline_vs_candidate_proxy_max2.json).
+   - Question: does the todo-refresh candidate improve the repo-shaped proxy score on repeated held-out seeds?
+   - Outcome: negative.
+   - Evidence: baseline mean outcome reward `2.0`, candidate mean outcome reward `2.0`; baseline mean search score `2.078125`, candidate mean search score `1.925`.
+2. Wider proxy comparison across three prompt variants, saved at [experiments/craftax_loop_break/results/proxy_compare_three_prompts.json](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/experiments/craftax_loop_break/results/proxy_compare_three_prompts.json).
+   - Question: among the baseline, durable-intent, and todo-refresh variants, which prompt looked best on the same proxy?
+   - Outcome: negative for the candidate family.
+   - Evidence: the baseline ranked ahead of both candidate variants on mean proxy search score.
+3. Real Craftax rollout attempt.
+   - Question: can the candidate be verified on the actual Craftax rollout path?
+   - Outcome: blocked.
+   - Evidence: the direct rollout process was killed with exit code `137` after Craftax texture processing began, so no full-environment reward delta could be measured in this workspace.
 
 ## Insights
+1. The candidate remains isolated to prompt-opt packaging and the shared prompt-contract source, not the protected Craftax harness surfaces.
+2. The focused regression coverage is passing and confirms the candidate text still encodes the intended private three-item todo contract.
+3. Proxy verification did not show a reward lift for the candidate family, so there is no honest evidence to claim improvement from the in-run comparisons.
+4. The true Craftax verifier is currently blocked in this workspace, so any reward claim for this candidate must wait for a fresh environment that can complete the rollout.
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+## Research Artifacts Produced
+### Environments
+- Proxy eval used the repo rollout path with `direct://local`, `gpt-4.1-nano`, and the fake Craftax runner from [tests/_craftax_fakes.py](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/tests/_craftax_fakes.py).
+- The real rollout attempt used the same repo code path but was killed during Craftax texture warmup.
 
-## Research artifacts produced
+### Data
+- Proxy seeds: `[10001, 10002, 10004, 10005]` from [data/craftax/craftax_prompt_opt_eval20_seeds.json](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/data/craftax/craftax_prompt_opt_eval20_seeds.json).
+- No new training data or checkpoint artifacts were produced.
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+### Models / checkpoints
+- Proxy verifier model: `gpt-4.1-nano`.
+- Prompt-opt policy family: `Qwen/Qwen3.5-4B`.
+- No weights or checkpoints were updated in this run.
 
-## Quality & validation
+## Quality & Validation
+- Passed focused regression tests:
+  - `uv run --no-project --with pytest --with pyyaml python -m pytest tests/test_codex_todo_refresh_gate_candidate.py tests/test_codex_durable_intent_candidate.py`
+- Completed proxy comparisons are stored under [experiments/craftax_loop_break/results/](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/experiments/craftax_loop_break/results/).
+- Not validated: a full Craftax reward improvement on the live rollout path.
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
-
-## Reproduction & handoff
-
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+## Reproduction & Handoff
+- Candidate config: [configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml)
+- Prompt-contract source: [src/nanohorizon/baselines/prompt_opt.py](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/src/nanohorizon/baselines/prompt_opt.py)
+- Regression tests: [tests/test_codex_todo_refresh_gate_candidate.py](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/tests/test_codex_todo_refresh_gate_candidate.py) and [tests/test_codex_durable_intent_candidate.py](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/tests/test_codex_durable_intent_candidate.py)
+- Blocked-eval bundle: [records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_blocked/](/synth/state/.out/smr/projects/80295569-70a2-43e2-b584-685d086fee69/runs/de99a044-a73c-443f-9bda-cbe7cc4ca005/workspace/records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_blocked/)
+- Residual risk: the candidate is still only supported by structural validation and proxy comparisons; the true Craftax rollout path was not available to prove an actual reward lift.

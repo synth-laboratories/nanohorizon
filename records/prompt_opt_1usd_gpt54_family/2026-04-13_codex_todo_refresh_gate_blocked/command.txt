@@ -1,0 +1,1 @@
+uv run --no-sync --with pytest --with pyyaml --with httpx --with gepa --with modal --with numpy --with pillow --with craftax --with jax --with flax --with chex --with distrax --with optax --with orbax-checkpoint --with gymnax --with imageio --with-editable /workspace python experiments/codex_load_a/scripts/compare_prompt_opt.py

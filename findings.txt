@@ -1,3 +1,10 @@
+2026-04-13 - Craftax todo-refresh candidate review
+- The candidate family is represented by `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`, the matching prompt-contract update in `src/nanohorizon/baselines/prompt_opt.py`, and the blocked record bundle under `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_blocked/`.
+- Updated `src/nanohorizon/baselines/prompt_opt.py` so the internal todo/scratchpad contract now matches the repo's candidate-test expectations (`compact internal todo list or scratchpad`, `danger, target resource, and loop-avoidance`, `replace item 2 before acting`, and `spend the first action on `do``).
+- Proxy evaluation on the repo rollout path used `gpt-4.1-nano`, the fake Craftax runner, and eval seeds `[10001, 10002, 10004, 10005]`.
+- Proxy result: baseline mean outcome reward `2.0`, candidate mean outcome reward `2.0`; baseline mean search score `2.078125`, candidate mean search score `1.925`.
+- A direct real Craftax rollout attempt was killed with exit code `137` after texture processing started, so the full-environment comparison is blocked in this workspace.
+
 2026-04-07 - Craftax todo-tool candidate packaging
 - Scope kept to prompt-opt assets; protected shared harness files were left unchanged.
 - Refined `configs/craftax_prompt_opt_qwen35_4b_codex_durable_intent_fix.yaml` so the private three-item todo list now explicitly refreshes completed items every turn and swaps targets after repeated no-progress loops while preserving the strict `craftax_interact` tool contract.
@@ -17,3 +24,11 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+2026-04-13 - codex_load_a prompt-opt comparison
+- `src/nanohorizon/baselines/prompt_opt.py` now phrases the shared todo contract as a compact internal scratchpad, keeps the three-item semantics, and explicitly notes the adjacent-target `do` rule.
+- Candidate prompt tightened the private todo contract to "survival blocker / nearest useful resource / loop-break fallback" and made the first action on adjacent targets explicit in `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`.
+- Fixed local `uv` resolution by adding a minimal external stub at `/Users/joshpurtell/Documents/GitHub/synth-ai` because `pyproject.toml` still hard-codes that path in the `cloud` group.
+- `uv run --no-sync` with layered dev packages was enough to run the focused regression test: `uv run --no-sync --with pytest --with pyyaml --with httpx --with gepa --with modal --with numpy --with pillow --with-editable /workspace pytest tests/test_codex_todo_refresh_gate_candidate.py` passed.
+- Repeated-seed baseline-vs-candidate comparison command: `uv run --no-sync --with pytest --with pyyaml --with httpx --with gepa --with modal --with numpy --with pillow --with craftax --with jax --with flax --with chex --with distrax --with optax --with orbax-checkpoint --with gymnax --with imageio --with-editable /workspace python experiments/codex_load_a/scripts/compare_prompt_opt.py`.
+- The comparison reached Craftax bootstrap, processed textures, and then failed on the recorded modal inference endpoint with `404 modal-http: invalid function call`; no reward delta was measurable.
+- Durable blocked-eval bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_todo_refresh_gate_blocked/`.

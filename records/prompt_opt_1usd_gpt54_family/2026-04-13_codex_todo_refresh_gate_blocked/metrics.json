@@ -1,0 +1,11 @@
+{
+  "status": "blocked",
+  "baseline": "gepa_craftax_prompt_optimization",
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "request_model": "qwen35-4b-prompt-opt",
+  "optimizer_budget_usd": 1.0,
+  "primary_score": null,
+  "submission_mean_outcome_reward": null,
+  "submission_achievement_frequencies": {},
+  "residual_risk": "Baseline-vs-candidate comparison reached the Craftax environment but the recorded modal inference URL returned 404 modal-http: invalid function call, so no reward could be measured."
+}
