@@ -64,6 +64,7 @@ def define() -> dict[str, Any]:
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
+            "PUBLICATION_SMOKE_NOTE: prefer stable, reproducible progress over noisy exploration.\n"
             "Call the action tool exactly once in the final answer."
         ),
     }
@@ -131,13 +132,13 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             thinking_budget_tokens=int(config.get("thinking_budget_tokens", 3000)),
             enable_thinking=bool(config.get("enable_thinking", False)),
             system_prompt=str(config.get("system_prompt", "")),
-            inference_url=str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
+            inference_url=str(
+                os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))
+            ),
             inference_api_key=str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
             request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
             video_capture_rollout_index=0 if capture_video else None,
             video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
             summary_name=f"rollout_{index:05d}_{seed}.json",
         )
         detail = dict((summary.get("details") or [{}])[0])
