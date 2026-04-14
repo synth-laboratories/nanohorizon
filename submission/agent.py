@@ -80,12 +80,29 @@ def train(data_dir: Path, out_dir: Path) -> None:
 
 
 def _resolve_seeds(data_dir: Path, config: dict[str, Any]) -> list[int]:
-    seeds_path = data_dir / "seeds.json"
-    if seeds_path.exists():
+    candidate_paths = (
+        data_dir / "seeds.json",
+        data_dir / "eval_seeds.json",
+        data_dir / "train_seeds.json",
+    )
+    for seeds_path in candidate_paths:
+        if not seeds_path.exists():
+            continue
         payload = json.loads(seeds_path.read_text(encoding="utf-8"))
-        values = payload.get("seeds") if isinstance(payload, dict) else payload
-        if isinstance(values, list):
-            return [int(item) for item in values]
+        if isinstance(payload, dict):
+            preferred_keys = ("train_seeds", "eval_seeds")
+            path_hint = f"{data_dir.name.lower()} {seeds_path.stem.lower()}"
+            if any(token in path_hint for token in ("eval", "val", "valid", "heldout", "leaderboard")):
+                preferred_keys = ("eval_seeds", "train_seeds")
+            for key in preferred_keys:
+                values = payload.get(key)
+                if isinstance(values, list) and values:
+                    return [int(item) for item in values]
+            values = payload.get("seeds")
+            if isinstance(values, list) and values:
+                return [int(item) for item in values]
+        elif isinstance(payload, list) and payload:
+            return [int(item) for item in payload]
     return [int(item) for item in config.get("train_seeds", [])]
 
 
