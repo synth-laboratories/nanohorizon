@@ -18,6 +18,7 @@ from nanohorizon.shared.common import write_json
 from nanohorizon.shared.eval_model import evaluate_model
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+PUBLICATION_SMOKE_NOTE = "Publication smoke note: keep this submission minimal and reviewable."
 
 
 def _env_int(name: str, default: int) -> int:
@@ -60,6 +61,7 @@ def define() -> dict[str, Any]:
         "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
         "system_prompt": (
             "You are a Craftax policy.\n"
+            f"{PUBLICATION_SMOKE_NOTE}\n"
             "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
