@@ -18,6 +18,7 @@ from nanohorizon.shared.common import write_json
 from nanohorizon.shared.eval_model import evaluate_model
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+PUBLICATION_SMOKE_NOTE = "PUBLICATION_SMOKE_NOTE: keep the eval path honest, concise, reproducible, and easy to review."
 
 
 def _env_int(name: str, default: int) -> int:
@@ -64,6 +65,7 @@ def define() -> dict[str, Any]:
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
+            f"{PUBLICATION_SMOKE_NOTE}\n"
             "Call the action tool exactly once in the final answer."
         ),
     }
