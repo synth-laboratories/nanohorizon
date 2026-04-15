@@ -1,0 +1,40 @@
+schema_version = "2026-04-14-local-execution-profile-v2"
+
+[[profiles]]
+profile_id = "nanohorizon_daytona"
+product = "nanohorizon"
+host_kind = "daytona"
+daytona_snapshot = "nanohorizon-prompt-opt-v1"
+required_runtime_kind = "local_daytona"
+required_repo = "synth-laboratories/nanohorizon"
+local_source_kind = "slot_git_mirror"
+
+[profiles.capabilities]
+requires_craftax = true
+requires_jax = true
+
+[[profiles]]
+profile_id = "nanohorizon_local_docker"
+product = "nanohorizon"
+host_kind = "docker"
+docker_image = "ghcr.io/synth-laboratories/nanohorizon-prompt-opt:latest"
+required_runtime_kind = "local_docker"
+required_repo = "synth-laboratories/nanohorizon"
+local_source_kind = "slot_git_mirror"
+
+[profiles.capabilities]
+requires_craftax = true
+requires_jax = true
+
+[[profiles]]
+profile_id = "nanohorizon_local_native"
+product = "nanohorizon"
+host_kind = "docker"
+docker_image = "ghcr.io/synth-laboratories/nanohorizon-prompt-opt:latest"
+required_runtime_kind = "local_native"
+required_repo = "synth-laboratories/nanohorizon"
+local_source_kind = "slot_git_mirror"
+
+[profiles.capabilities]
+requires_craftax = true
+requires_jax = true
