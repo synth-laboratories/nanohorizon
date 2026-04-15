@@ -63,7 +63,8 @@ def define() -> dict[str, Any]:
             "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
+            "Treat each turn as nearly stateless: rely on the current observation and a single-line carry-forward summary, not the full message history.\n"
+            "Avoid repeating unproductive loops.\n"
             "Call the action tool exactly once in the final answer."
         ),
     }
@@ -136,8 +137,6 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
             video_capture_rollout_index=0 if capture_video else None,
             video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
             summary_name=f"rollout_{index:05d}_{seed}.json",
         )
         detail = dict((summary.get("details") or [{}])[0])
