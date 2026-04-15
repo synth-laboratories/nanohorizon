@@ -63,7 +63,7 @@ def define() -> dict[str, Any]:
             "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Treat each turn as nearly stateless: rely on the current observation and a very short carry-forward summary, not the full message history.\n"
+            "Treat each turn as nearly stateless: rely on the current observation and a single-line carry-forward summary, not the full message history.\n"
             "Avoid repeating unproductive loops.\n"
             "Call the action tool exactly once in the final answer."
         ),
