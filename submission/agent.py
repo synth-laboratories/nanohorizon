@@ -64,7 +64,7 @@ def define() -> dict[str, Any]:
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
+            "Return exactly one full Craftax action in the final answer."
         ),
     }
 
