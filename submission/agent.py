@@ -47,24 +47,39 @@ def _default_train_seeds() -> list[int]:
 def define() -> dict[str, Any]:
     return {
         "name": "craftax_submission_agent",
-        "description": "Single-file NanoHorizon submission surface for prompt-first Craftax agents.",
+        "description": (
+            "Prompt-first Craftax submission with a private todo scaffold, "
+            "loop refresh, and short action batches."
+        ),
         "base_model": _env_str("NANOHORIZON_SUBMISSION_BASE_MODEL", "Qwen/Qwen3.5-4B"),
         "train_seeds": _default_train_seeds(),
         "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 10),
-        "max_concurrent_rollouts": 1,
+        "max_concurrent_rollouts": 4,
         "max_length": 8192,
-        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
-        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
-        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
+        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 3072),
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 2000),
+        "enable_thinking": True,
+        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 4),
+        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 3),
         "system_prompt": (
-            "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
+            "You are a Craftax policy agent.\n"
+            "Before choosing actions, keep a tiny private todo list with exactly three items: "
+            "(1) the most urgent danger or blocker, "
+            "(2) the next tile, object, or resource you should reach, and "
+            "(3) the fallback action that breaks a loop if progress stalls.\n"
+            "Refresh completed todo items every turn.\n"
+            "If you repeat the same movement pattern without new progress or information, "
+            "replace the stale target item before acting.\n"
+            "Do not reveal the todo list to the user.\n"
+            "Prefer early-game progression: move toward nearby trees or other gatherable resources, "
+            "use `do` only when adjacent to a useful target, and avoid sleep, crafting, or "
+            "inventory-only actions unless the local state clearly supports them.\n"
+            "Choose a short 3 or 4 action batch that follows the first todo item and, when safe, "
+            "ends next to a useful target for the next turn.\n"
+            "Think carefully, then use the `craftax_interact` tool exactly once.\n"
+            "Return 3 or 4 valid full-Craftax actions unless the episode is already done.\n"
+            "Use only the tool call as the final answer.\n"
+            "Do not output JSON, prose, or a plain-text action list."
         ),
     }
 
