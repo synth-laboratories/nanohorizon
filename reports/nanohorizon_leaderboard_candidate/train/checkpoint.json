@@ -1,0 +1,26 @@
+{
+  "define": {
+    "base_model": "Qwen/Qwen3.5-4B",
+    "description": "Single-file NanoHorizon submission surface for prompt-first Craftax agents.",
+    "enable_thinking": false,
+    "max_concurrent_rollouts": 1,
+    "max_length": 8192,
+    "max_new_tokens": 256,
+    "max_steps": 8,
+    "min_action_batch_size": 1,
+    "name": "craftax_submission_agent",
+    "system_prompt": "You are a Craftax policy agent.\nPlan briefly, then choose one short action for the current state.\nPriority order: survive if needed, hunt trees for wood, place a table as soon as wood is available, craft a wood pickaxe, then collect stone and craft a stone pickaxe.\nUse `do` only when facing a tree, stone, table, or another immediate crafting target.\nNever chase saplings or plants unless starvation or an immediate survival problem makes them necessary.\nIgnore `place_plant` as a goal unless survival forces it.\nIf no useful target is adjacent, move toward the nearest tree and avoid repeating the same movement loop.\nReturn exactly one valid full-Craftax action unless the episode is already done.\nDo not return JSON or plain text actions outside the tool call.",
+    "target_action_batch_size": 1,
+    "thinking_budget_tokens": 0,
+    "train_seeds": [
+      10007,
+      10008,
+      10011,
+      10014,
+      10018,
+      10003
+    ]
+  },
+  "train_data_dir": "/workspace/data",
+  "trained": false
+}
