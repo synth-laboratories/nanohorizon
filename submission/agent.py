@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import argparse
 import importlib.util
 import json
@@ -15,9 +16,34 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from nanohorizon.shared.common import write_json
-from nanohorizon.shared.eval_model import evaluate_model
+from nanohorizon.shared.craftax_data import (
+    collect_rollouts_concurrently,
+    is_rollout_payload,
+    rollout_achievements,
+    rollout_llm_call_count,
+    rollout_outcome_reward,
+)
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+_TODO_SCRATCHPAD_DIRECTIVE = (
+    "Before choosing actions, keep a tiny private todo list with exactly three items: "
+    "(1) the most urgent danger or blocker, "
+    "(2) the next tile, object, or resource you should reach, and "
+    "(3) the fallback action that breaks a loop if progress stalls. "
+    "Refresh completed todo items every turn. "
+    "If you repeat the same movement pattern without new progress or information, "
+    "replace the stale target item before acting. "
+    "Do not reveal the todo list to the user."
+)
+_ACTION_GUIDANCE = (
+    "Prefer early-game progression: move toward nearby trees or other gatherable resources, "
+    "use `do` only when adjacent to a useful target, and avoid sleep, crafting, or inventory-only actions "
+    "unless the local state clearly supports them. "
+    "Choose a short 3 or 4 action batch that follows the first todo item and, when safe, ends next to a useful "
+    "target for the next turn. "
+    "If danger is immediate, let the first action address survival before continuing the plan. "
+    "When stuck, use the fallback todo item to break the loop with a different movement or exploration choice."
+)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -46,25 +72,25 @@ def _default_train_seeds() -> list[int]:
 
 def define() -> dict[str, Any]:
     return {
-        "name": "craftax_submission_agent",
-        "description": "Single-file NanoHorizon submission surface for prompt-first Craftax agents.",
+        "name": "craftax_submission_agent_v2",
+        "description": "Single-file NanoHorizon Craftax submission with private todo-list planning and loop breaking.",
         "base_model": _env_str("NANOHORIZON_SUBMISSION_BASE_MODEL", "Qwen/Qwen3.5-4B"),
         "train_seeds": _default_train_seeds(),
         "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 10),
         "max_concurrent_rollouts": 1,
         "max_length": 8192,
-        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
-        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
-        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
+        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 3072),
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 2000),
+        "enable_thinking": True,
+        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 4),
+        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 3),
         "system_prompt": (
             "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
+            f"{_TODO_SCRATCHPAD_DIRECTIVE}\n"
+            f"{_ACTION_GUIDANCE}\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
+            "Call the action tool exactly once in the final answer.\n"
+            "Return only valid full-Craftax actions, not prose or JSON."
         ),
     }
 
@@ -113,36 +139,65 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
     llm_calls: list[float] = []
     achievement_counts: dict[str, int] = {}
     achievement_names: set[str] = set()
+    container_url = str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")).strip()
+    container_worker_token = str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN", "")).strip()
+    environment_api_key = str(os.getenv("NANOHORIZON_CRAFTAX_ENVIRONMENT_API_KEY", "")).strip()
+    inference_url = str(
+        os.getenv(
+            "NANOHORIZON_EVAL_INFERENCE_URL",
+            os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""),
+        )
+    ).strip()
+    inference_api_key = str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")).strip()
 
     for index, seed in enumerate(seeds):
         rollout_dir = rollout_root / f"{index:05d}_{seed}"
         rollout_dir.mkdir(parents=True, exist_ok=True)
         capture_video = _can_capture_video()
-        summary = evaluate_model(
-            base_model=str(config.get("base_model", "Qwen/Qwen3.5-4B")),
-            output_dir=rollout_dir,
-            container_url=str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")),
-            seed_start=int(seed),
-            num_rollouts=1,
-            max_steps=int(config.get("max_steps", 10)),
-            max_concurrent_rollouts=1,
-            max_length=int(config.get("max_length", 8192)),
-            max_new_tokens=int(config.get("max_new_tokens", 512)),
-            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 3000)),
-            enable_thinking=bool(config.get("enable_thinking", False)),
-            system_prompt=str(config.get("system_prompt", "")),
-            inference_url=str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
-            inference_api_key=str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
-            request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
-            video_capture_rollout_index=0 if capture_video else None,
-            video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
-            summary_name=f"rollout_{index:05d}_{seed}.json",
+        rollouts, _summary = asyncio.run(
+            collect_rollouts_concurrently(
+                container_url=container_url,
+                container_worker_token=container_worker_token,
+                environment_api_key=environment_api_key,
+                inference_url=inference_url,
+                model=str(
+                    os.getenv(
+                        "NANOHORIZON_EVAL_REQUEST_MODEL",
+                        config.get("base_model", "Qwen/Qwen3.5-4B"),
+                    )
+                ),
+                api_key=inference_api_key,
+                seeds=[int(seed)],
+                max_steps=int(config.get("max_steps", 10)),
+                system_prompt=str(config.get("system_prompt", "")),
+                temperature=0.0,
+                max_tokens=int(config.get("max_new_tokens", 3072)),
+                enable_thinking=bool(config.get("enable_thinking", False)),
+                thinking_budget_tokens=int(config.get("thinking_budget_tokens", 2000)),
+                policy_version="submission-eval",
+                target_action_batch_size=int(config.get("target_action_batch_size", 4)),
+                min_action_batch_size=int(config.get("min_action_batch_size", 3)),
+                request_timeout_seconds=300.0,
+                max_concurrent_rollouts=1,
+                trace_prefix=f"rollout_{index:05d}_{seed}",
+                video_capture_rollout_index=0 if capture_video else None,
+                video_capture_output_dir=str(rollout_dir) if capture_video else "",
+                request_logprobs=True,
+            )
         )
-        detail = dict((summary.get("details") or [{}])[0])
-        detail.setdefault("seed", int(seed))
-        detail.setdefault("rollout_id", f"rollout_{index:05d}")
+        valid_rollouts = [
+            item for item in rollouts if isinstance(item, dict) and not item.get("error") and is_rollout_payload(item)
+        ]
+        detail_source = valid_rollouts[0] if valid_rollouts else (rollouts[0] if rollouts else {})
+        detail = {
+            "seed": int(seed),
+            "rollout_id": str(detail_source.get("rollout_id") or f"rollout_{index:05d}"),
+            "trace_correlation_id": str(detail_source.get("trace_correlation_id") or ""),
+            "outcome_reward": float(rollout_outcome_reward(detail_source)) if isinstance(detail_source, dict) else 0.0,
+            "llm_call_count": int(rollout_llm_call_count(detail_source)) if isinstance(detail_source, dict) else 0,
+            "achievements": rollout_achievements(detail_source) if isinstance(detail_source, dict) else [],
+            "error": detail_source.get("error") if isinstance(detail_source, dict) else "missing rollout result",
+        }
         if not detail.get("mp4_path"):
             candidate = rollout_dir / "rollout.mp4"
             if candidate.exists():
