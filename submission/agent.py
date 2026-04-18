@@ -14,10 +14,31 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from nanohorizon.craftax_core.metadata import PRIMARY_TOOL_NAME
 from nanohorizon.shared.common import write_json
 from nanohorizon.shared.eval_model import evaluate_model
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+_DEFAULT_SYSTEM_PROMPT = (
+    "You are a Craftax policy agent.\n"
+    "Before choosing actions, keep a tiny private todo list with exactly three items:\n"
+    "(1) the most urgent danger or blocker,\n"
+    "(2) the next tile, object, or resource you should reach, and\n"
+    "(3) the fallback action that breaks a loop if progress stalls.\n"
+    "Refresh completed todo items every turn.\n"
+    "If you repeat the same movement pattern without new progress or information,\n"
+    "replace the stale target item before acting.\n"
+    "Do not reveal the todo list to the user.\n"
+    "Prefer early-game progression: move toward nearby trees or other gatherable\n"
+    "resources, use 'do' only when adjacent to a useful target, and avoid sleep,\n"
+    "crafting, or inventory-only actions unless the local state clearly supports them.\n"
+    "Keep the action sequence compact and purposeful so it can be extended cleanly on\n"
+    "the next turn when the plan is still working.\n"
+    f"Think carefully, then use the {PRIMARY_TOOL_NAME} tool exactly once.\n"
+    "Return a valid full-Craftax action sequence unless the episode is already done.\n"
+    "Use only the tool call as the final answer.\n"
+    "Do not output JSON, prose, or a plain-text action list."
+)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -53,19 +74,10 @@ def define() -> dict[str, Any]:
         "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 10),
         "max_concurrent_rollouts": 1,
         "max_length": 8192,
-        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
-        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
-        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
-        "system_prompt": (
-            "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
-        ),
+        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 3072),
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 2000),
+        "enable_thinking": True,
+        "system_prompt": _env_str("NANOHORIZON_SUBMISSION_SYSTEM_PROMPT", _DEFAULT_SYSTEM_PROMPT),
     }
 
 
@@ -127,17 +139,15 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             max_steps=int(config.get("max_steps", 10)),
             max_concurrent_rollouts=1,
             max_length=int(config.get("max_length", 8192)),
-            max_new_tokens=int(config.get("max_new_tokens", 512)),
-            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 3000)),
-            enable_thinking=bool(config.get("enable_thinking", False)),
+            max_new_tokens=int(config.get("max_new_tokens", 3072)),
+            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 2000)),
+            enable_thinking=bool(config.get("enable_thinking", True)),
             system_prompt=str(config.get("system_prompt", "")),
             inference_url=str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
             inference_api_key=str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
             request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
             video_capture_rollout_index=0 if capture_video else None,
             video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
             summary_name=f"rollout_{index:05d}_{seed}.json",
         )
         detail = dict((summary.get("details") or [{}])[0])
@@ -161,6 +171,7 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
     requested = len(seeds)
     result = {
         "primary_score": mean(rewards) if rewards else 0.0,
+        "submission_mean_outcome_reward": mean(rewards) if rewards else 0.0,
         "requested_num_eval_rollouts": requested,
         "num_eval_rollouts": len([detail for detail in details if not detail.get("error")]),
         "num_rollout_errors": len([detail for detail in details if detail.get("error")]),
@@ -170,6 +181,13 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
         "mean_llm_calls_per_rollout": mean(llm_calls) if llm_calls else 0.0,
         "achievement_names": sorted(achievement_names),
         "achievement_frequencies": {
+            name: {
+                "count": int(achievement_counts.get(name, 0)),
+                "frequency": (float(achievement_counts.get(name, 0)) / float(requested)) if requested else 0.0,
+            }
+            for name in sorted(achievement_names)
+        },
+        "submission_achievement_frequencies": {
             name: {
                 "count": int(achievement_counts.get(name, 0)),
                 "frequency": (float(achievement_counts.get(name, 0)) / float(requested)) if requested else 0.0,
