@@ -63,6 +63,7 @@ def define() -> dict[str, Any]:
             "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
+            "After wood and sapling are secured, try legal place_plant if available; otherwise seek drink/water rather than wandering.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
             "Call the action tool exactly once in the final answer."
         ),
