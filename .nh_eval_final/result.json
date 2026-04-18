@@ -1,0 +1,235 @@
+{
+  "achievement_frequencies": {},
+  "achievement_names": [],
+  "checkpoint": {
+    "define": {
+      "base_model": "Qwen/Qwen3.5-4B",
+      "description": "Single-file NanoHorizon submission surface for a deterministic Craftax planner.",
+      "enable_thinking": false,
+      "max_concurrent_rollouts": 1,
+      "max_length": 8192,
+      "max_new_tokens": 256,
+      "max_steps": 12,
+      "min_action_batch_size": 1,
+      "name": "craftax_submission_agent",
+      "planner_mode": "heuristic_map_aware",
+      "system_prompt": "You are a deterministic Craftax planner.\nReturn a compact tool call with valid full-Craftax actions.\nPrioritize nearby trees, saplings, plants, and water.\nUse sleep when night or low energy dominates.\nUse place_plant only on legal grass or path tiles when wood and sapling are available.\nAvoid loops by alternating exploration directions when nothing better is visible.",
+      "target_action_batch_size": 5,
+      "thinking_budget_tokens": 0,
+      "train_seeds": [
+        10001,
+        10002,
+        10004,
+        10005,
+        10006,
+        10009,
+        10010,
+        10012,
+        10013,
+        10015,
+        10016,
+        10017,
+        10019,
+        10020,
+        10021,
+        10022,
+        10023,
+        10024,
+        10025,
+        10026
+      ]
+    }
+  },
+  "details": [
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00000",
+      "seed": 10001
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00001",
+      "seed": 10002
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00002",
+      "seed": 10004
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00003",
+      "seed": 10005
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00004",
+      "seed": 10006
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00005",
+      "seed": 10009
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00006",
+      "seed": 10010
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00007",
+      "seed": 10012
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00008",
+      "seed": 10013
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00009",
+      "seed": 10015
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00010",
+      "seed": 10016
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00011",
+      "seed": 10017
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00012",
+      "seed": 10019
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00013",
+      "seed": 10020
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00014",
+      "seed": 10021
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00015",
+      "seed": 10022
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00016",
+      "seed": 10023
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00017",
+      "seed": 10024
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00018",
+      "seed": 10025
+    },
+    {
+      "achievements": [],
+      "error": "ImportError: craftax imports were not available. Install the classic dependency group. No module named 'craftax'",
+      "llm_call_count": 0,
+      "outcome_reward": 0.0,
+      "rollout_id": "rollout_00019",
+      "seed": 10026
+    }
+  ],
+  "max_outcome_reward": 0.0,
+  "mean_llm_calls_per_rollout": 0.0,
+  "mean_outcome_reward": 0.0,
+  "mean_outcome_reward_over_requested_rollouts": 0.0,
+  "num_eval_rollouts": 0,
+  "num_rollout_errors": 20,
+  "primary_score": 0.0,
+  "requested_num_eval_rollouts": 20,
+  "seeds": [
+    10001,
+    10002,
+    10004,
+    10005,
+    10006,
+    10009,
+    10010,
+    10012,
+    10013,
+    10015,
+    10016,
+    10017,
+    10019,
+    10020,
+    10021,
+    10022,
+    10023,
+    10024,
+    10025,
+    10026
+  ]
+}

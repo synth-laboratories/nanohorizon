@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import signal
+import sys
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+ACTION_CYCLE = ["move_right", "move_down", "move_left", "move_up"]
+
+
+def _latest_user_text(messages: list[dict[str, object]]) -> str:
+    for message in reversed(messages):
+        if not isinstance(message, dict):
+            continue
+        if str(message.get("role") or "").strip().lower() != "user":
+            continue
+        content = message.get("content")
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict):
+                    parts.append(str(item.get("text") or ""))
+            return "\n".join(parts).strip()
+        return str(content or "").strip()
+    return ""
+
+
+def _parse_inventory(text: str) -> dict[str, int]:
+    inventory: dict[str, int] = {}
+    for key in ("wood", "stone", "coal", "iron", "sapling", "drink", "food", "health", "energy"):
+        match = re.search(rf"\b{re.escape(key)}\s*=\s*(-?\d+)\b", text, flags=re.IGNORECASE)
+        if match:
+            inventory[key] = max(0, int(match.group(1)))
+    return inventory
+
+
+def _parse_achievements(text: str) -> set[str]:
+    match = re.search(r"achievements:\s*(.+)", text, flags=re.IGNORECASE)
+    if not match:
+        return set()
+    raw = match.group(1).strip()
+    if not raw or raw.lower() == "none":
+        return set()
+    return {item.strip().lower().replace(" ", "_") for item in raw.split(",") if item.strip()}
+
+
+def _choose_action(messages: list[dict[str, object]]) -> str:
+    user_text = _latest_user_text(messages)
+    lower = user_text.lower()
+    inventory = _parse_inventory(lower)
+    achievements = _parse_achievements(lower)
+    turn_index = sum(1 for message in messages if isinstance(message, dict) and str(message.get("role") or "").strip().lower() == "user")
+
+    if (
+        inventory.get("wood", 0) >= 1
+        and inventory.get("sapling", 0) >= 1
+        and any(token in lower for token in ("grass", "path", "legal tile", "legal grass"))
+        and "place_plant" not in achievements
+    ):
+        return "place_plant"
+
+    if any(token in lower for token in ("water", "fountain")) and "collect_drink" not in achievements:
+        if any(token in lower for token in ("nearby", "adjacent", "visible", "close")):
+            return "do"
+
+    if "tree" in lower and "collect_wood" not in achievements:
+        if any(token in lower for token in ("nearby", "adjacent", "visible", "close")):
+            return "do"
+
+    if "sapling" in lower and "collect_sapling" not in achievements:
+        if any(token in lower for token in ("nearby", "adjacent", "visible", "close")):
+            return "do"
+
+    if "tree" in lower or "sapling" in lower or "water" in lower or "fountain" in lower:
+        if "north" in lower or "up" in lower:
+            return "move_up"
+        if "south" in lower or "down" in lower:
+            return "move_down"
+        if "west" in lower or "left" in lower:
+            return "move_left"
+        if "east" in lower or "right" in lower:
+            return "move_right"
+
+    return ACTION_CYCLE[turn_index % len(ACTION_CYCLE)]
+
+
+def _json_response(action: str, model: str) -> bytes:
+    payload = {
+        "id": "chatcmpl-fake",
+        "object": "chat.completion",
+        "created": 0,
+        "model": model,
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": "tool_calls",
+                "message": {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "call_0",
+                            "type": "function",
+                            "function": {
+                                "name": "craftax_interact",
+                                "arguments": json.dumps({"actions_list": [action]}),
+                            },
+                        }
+                    ],
+                },
+            }
+        ],
+    }
+    return json.dumps(payload).encode("utf-8")
+
+
+class _Handler(BaseHTTPRequestHandler):
+    server_version = "fake-vllm/0.1"
+
+    def log_message(self, fmt: str, *args: object) -> None:
+        del fmt, args
+
+    def _send_json(self, status: int, payload: dict[str, object]) -> None:
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self) -> None:  # noqa: N802
+        if self.path.rstrip("/") in {"/health", ""}:
+            self._send_json(200, {"status": "ok"})
+            return
+        if self.path.rstrip("/") in {"/v1/models", "/models"}:
+            self._send_json(200, {"data": [{"id": self.server.model_name}]})
+            return
+        self._send_json(404, {"error": "not found"})
+
+    def do_POST(self) -> None:  # noqa: N802
+        if self.path.rstrip("/") not in {"/v1/chat/completions", "/chat/completions"}:
+            self._send_json(404, {"error": "not found"})
+            return
+        length = int(self.headers.get("Content-Length") or "0")
+        raw = self.rfile.read(length) if length > 0 else b"{}"
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except Exception:
+            payload = {}
+        messages = payload.get("messages") if isinstance(payload, dict) else []
+        if not isinstance(messages, list):
+            messages = []
+        action = _choose_action(messages)
+        response = _json_response(action=action, model=str(self.server.model_name))
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(response)))
+        self.end_headers()
+        self.wfile.write(response)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    serve = subparsers.add_parser("serve")
+    serve.add_argument("model")
+    serve.add_argument("--served-model-name", default="")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8003)
+    serve.add_argument("--api-key", default="")
+    serve.add_argument("--max-model-len", default="")
+    serve.add_argument("--max-num-seqs", default="")
+    serve.add_argument("--max-num-batched-tokens", default="")
+    serve.add_argument("--gpu-memory-utilization", default="")
+    serve.add_argument("--uvicorn-log-level", default="")
+    serve.add_argument("--enable-auto-tool-choice", action="store_true")
+    serve.add_argument("--tool-call-parser", default="")
+    serve.add_argument("--enable-prefix-caching", action="store_true")
+    serve.add_argument("--language-model-only", action="store_true")
+    serve.add_argument("--reasoning-parser", default="")
+    serve.add_argument("--logits-processors", default="")
+    serve.add_argument("--enforce-eager", action="store_true")
+    serve.add_argument("--enable-lora", action="store_true")
+    serve.add_argument("--max-lora-rank", default="")
+    serve.add_argument("--lora-modules", action="append", default=[])
+    args, _unknown = parser.parse_known_args(argv)
+
+    if args.command != "serve":
+        raise SystemExit(2)
+
+    server = ThreadingHTTPServer((args.host, int(args.port)), _Handler)
+    server.model_name = args.served_model_name or args.model  # type: ignore[attr-defined]
+
+    def _shutdown(_signum: int, _frame: object) -> None:
+        server.shutdown()
+
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
+    print(f"fake-vllm serving {server.model_name} on {args.host}:{args.port}", flush=True)
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
