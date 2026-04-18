@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import importlib.util
 import json
 import os
@@ -53,17 +54,25 @@ def define() -> dict[str, Any]:
         "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 10),
         "max_concurrent_rollouts": 1,
         "max_length": 8192,
-        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
-        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
-        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
+        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 3072),
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 2000),
+        "enable_thinking": True,
+        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 4),
+        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 3),
         "system_prompt": (
             "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
+            "Think privately and keep a tiny todo list with exactly three items.\n"
+            "Item 1 should be the immediate safety or survival need.\n"
+            "Item 2 should be the best adjacent useful target you can use or do right now.\n"
+            "Item 3 should be the next gatherable or craft or upgrade target.\n"
+            "Refresh completed items every turn and replace the stale target item when progress stalls.\n"
+            "If a table can be placed now, make place_table the first craft or upgrade target; if a wood pickaxe is ready and stone is adjacent, make collect_stone the first gather target.\n"
+            "Prefer obvious craft or upgrade actions when the inventory supports them.\n"
+            "Otherwise move toward gatherables.\n"
+            "Avoid immediate backtracking unless it clearly unlocks progress.\n"
+            "Use 'do' only when facing an adjacent useful object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
+            "Return exactly 4 full-Craftax actions.\n"
             "Call the action tool exactly once in the final answer."
         ),
     }
@@ -108,6 +117,7 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
     seeds = _resolve_seeds(data_dir, config)
     rollout_root = out_dir / "rollouts"
     rollout_root.mkdir(parents=True, exist_ok=True)
+    eval_params = set(inspect.signature(evaluate_model).parameters)
     details: list[dict[str, Any]] = []
     rewards: list[float] = []
     llm_calls: list[float] = []
@@ -118,28 +128,33 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
         rollout_dir = rollout_root / f"{index:05d}_{seed}"
         rollout_dir.mkdir(parents=True, exist_ok=True)
         capture_video = _can_capture_video()
-        summary = evaluate_model(
-            base_model=str(config.get("base_model", "Qwen/Qwen3.5-4B")),
-            output_dir=rollout_dir,
-            container_url=str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")),
-            seed_start=int(seed),
-            num_rollouts=1,
-            max_steps=int(config.get("max_steps", 10)),
-            max_concurrent_rollouts=1,
-            max_length=int(config.get("max_length", 8192)),
-            max_new_tokens=int(config.get("max_new_tokens", 512)),
-            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 3000)),
-            enable_thinking=bool(config.get("enable_thinking", False)),
-            system_prompt=str(config.get("system_prompt", "")),
-            inference_url=str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
-            inference_api_key=str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
-            request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
-            video_capture_rollout_index=0 if capture_video else None,
-            video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
-            summary_name=f"rollout_{index:05d}_{seed}.json",
-        )
+        summary_kwargs: dict[str, Any] = {
+            "base_model": str(config.get("base_model", "Qwen/Qwen3.5-4B")),
+            "output_dir": rollout_dir,
+            "container_url": str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")),
+            "seed_start": int(seed),
+            "num_rollouts": 1,
+            "max_steps": int(config.get("max_steps", 10)),
+            "max_concurrent_rollouts": 1,
+            "max_length": int(config.get("max_length", 8192)),
+            "max_new_tokens": int(config.get("max_new_tokens", 512)),
+            "thinking_budget_tokens": int(config.get("thinking_budget_tokens", 3000)),
+            "enable_thinking": bool(config.get("enable_thinking", False)),
+            "system_prompt": str(config.get("system_prompt", "")),
+            "inference_url": str(
+                os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))
+            ),
+            "inference_api_key": str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
+            "request_model": str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
+            "video_capture_rollout_index": 0 if capture_video else None,
+            "video_capture_output_dir": str(rollout_dir) if capture_video else "",
+            "summary_name": f"rollout_{index:05d}_{seed}.json",
+        }
+        if "target_action_batch_size" in eval_params:
+            summary_kwargs["target_action_batch_size"] = int(config.get("target_action_batch_size", 8))
+        if "min_action_batch_size" in eval_params:
+            summary_kwargs["min_action_batch_size"] = int(config.get("min_action_batch_size", 5))
+        summary = evaluate_model(**summary_kwargs)
         detail = dict((summary.get("details") or [{}])[0])
         detail.setdefault("seed", int(seed))
         detail.setdefault("rollout_id", f"rollout_{index:05d}")
