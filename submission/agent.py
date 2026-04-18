@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import inspect
 import os
 import sys
 from pathlib import Path
@@ -54,17 +55,22 @@ def define() -> dict[str, Any]:
         "max_concurrent_rollouts": 1,
         "max_length": 8192,
         "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 2000),
+        "enable_thinking": True,
         "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
         "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
         "system_prompt": (
-            "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
+            "You are a Craftax policy agent.\n"
+            "Keep a tiny private todo list with exactly three items: the most urgent blocker, the next useful target, "
+            "and a fallback action that breaks a loop if progress stalls.\n"
+            "Refresh completed todo items every turn, and if the last movement pattern did not create new progress or information, "
+            "replace the stale target before acting.\n"
+            "Prefer early-game progression: use `do` only when adjacent to a useful target, take an obvious inventory-supported "
+            "upgrade or crafting step when the local state clearly supports it, and otherwise move toward nearby trees or other "
+            "gatherable resources.\n"
+            "Return exactly 8 valid full-Craftax actions in one tool call.\n"
+            "Do not reveal the todo list or scratchpad.\n"
+            "Do not output JSON, prose, or a plain-text action list."
         ),
     }
 
@@ -93,6 +99,33 @@ def _can_capture_video() -> bool:
     return importlib.util.find_spec("imageio_ffmpeg") is not None
 
 
+def _evaluate_model_kwargs(config: dict[str, Any], *, rollout_dir: Path, capture_video: bool, seed: int, index: int) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "base_model": str(config.get("base_model", "Qwen/Qwen3.5-4B")),
+        "output_dir": rollout_dir,
+        "container_url": str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")),
+        "seed_start": int(seed),
+        "num_rollouts": 1,
+        "max_steps": int(config.get("max_steps", 10)),
+        "max_concurrent_rollouts": 1,
+        "max_length": int(config.get("max_length", 8192)),
+        "max_new_tokens": int(config.get("max_new_tokens", 512)),
+        "thinking_budget_tokens": int(config.get("thinking_budget_tokens", 3000)),
+        "enable_thinking": bool(config.get("enable_thinking", False)),
+        "system_prompt": str(config.get("system_prompt", "")),
+        "inference_url": str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
+        "inference_api_key": str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
+        "request_model": str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
+        "video_capture_rollout_index": 0 if capture_video else None,
+        "video_capture_output_dir": str(rollout_dir) if capture_video else "",
+        "target_action_batch_size": int(config.get("target_action_batch_size", 4)),
+        "min_action_batch_size": int(config.get("min_action_batch_size", 3)),
+        "summary_name": f"rollout_{index:05d}_{seed}.json",
+    }
+    signature = inspect.signature(evaluate_model)
+    return {name: value for name, value in kwargs.items() if name in signature.parameters}
+
+
 def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = checkpoint_dir / "checkpoint.json"
@@ -118,28 +151,7 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
         rollout_dir = rollout_root / f"{index:05d}_{seed}"
         rollout_dir.mkdir(parents=True, exist_ok=True)
         capture_video = _can_capture_video()
-        summary = evaluate_model(
-            base_model=str(config.get("base_model", "Qwen/Qwen3.5-4B")),
-            output_dir=rollout_dir,
-            container_url=str(os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_URL", "direct://local")),
-            seed_start=int(seed),
-            num_rollouts=1,
-            max_steps=int(config.get("max_steps", 10)),
-            max_concurrent_rollouts=1,
-            max_length=int(config.get("max_length", 8192)),
-            max_new_tokens=int(config.get("max_new_tokens", 512)),
-            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 3000)),
-            enable_thinking=bool(config.get("enable_thinking", False)),
-            system_prompt=str(config.get("system_prompt", "")),
-            inference_url=str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
-            inference_api_key=str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
-            request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
-            video_capture_rollout_index=0 if capture_video else None,
-            video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
-            summary_name=f"rollout_{index:05d}_{seed}.json",
-        )
+        summary = evaluate_model(**_evaluate_model_kwargs(config, rollout_dir=rollout_dir, capture_video=capture_video, seed=seed, index=index))
         detail = dict((summary.get("details") or [{}])[0])
         detail.setdefault("seed", int(seed))
         detail.setdefault("rollout_id", f"rollout_{index:05d}")
