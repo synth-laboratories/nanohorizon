@@ -54,19 +54,40 @@ def define() -> dict[str, Any]:
         "max_concurrent_rollouts": 1,
         "max_length": 8192,
         "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 1600),
+        "enable_thinking": True,
         "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
         "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
-        "system_prompt": (
-            "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
+        "system_prompt": _build_system_prompt(
+            thinking_budget_tokens=_env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 1600),
+            min_action_batch_size=_env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
+            target_action_batch_size=_env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
         ),
     }
+
+
+def _build_system_prompt(*, thinking_budget_tokens: int, min_action_batch_size: int, target_action_batch_size: int) -> str:
+    if target_action_batch_size == min_action_batch_size:
+        action_instruction = f"Return exactly {target_action_batch_size} valid full-Craftax actions."
+    else:
+        action_instruction = (
+            f"Return a short useful macro-action with {min_action_batch_size}-{target_action_batch_size} "
+            "valid full-Craftax actions."
+        )
+    return (
+        "You are a Craftax policy.\n"
+        f"You may think privately for up to about {int(thinking_budget_tokens)} tokens before answering.\n"
+        "Keep an internal plan with at most three steps: survive, gain position, then convert the best nearby opportunity.\n"
+        f"{action_instruction}\n"
+        "Prefer the safest action that makes forward progress over a flashy one.\n"
+        "Explore when nothing useful is adjacent.\n"
+        "Use 'do' only when facing a useful nearby object or resource.\n"
+        "When a direction or task is not paying off, switch to a different one instead of repeating the same loop.\n"
+        "Prioritize nearby resources, crafting progress, and survival before long-range exploration.\n"
+        "Read the recent action history and avoid repeating unproductive loops.\n"
+        "Use the provided `craftax_interact` tool exactly once for the final answer.\n"
+        "Do not return plain text actions or JSON.\n"
+    )
 
 
 def train(data_dir: Path, out_dir: Path) -> None:
@@ -136,8 +157,6 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
             video_capture_rollout_index=0 if capture_video else None,
             video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
             summary_name=f"rollout_{index:05d}_{seed}.json",
         )
         detail = dict((summary.get("details") or [{}])[0])
