@@ -141,7 +141,7 @@ uv sync --group nle
 NANOHORIZON_NLE_BIND_PORT=8913 ./scripts/run_nle_shim.sh
 ```
 
-The NLE task is `nethack_scout`. Its canonical reward is scout score: positive increases in newly observed non-blank NetHack tiles, tracked separately per dungeon level. The tool surface is `nle_interact` with the full primitive NLE action catalog.
+The NLE task is `nethack_scout`. Its canonical reward is scout score: positive increases in newly observed non-blank NetHack tiles, tracked separately per dungeon level. This follows the scout-score framing from the ICLR blogpost [Revisiting the NetHack Learning Environment](https://iclr-blogposts.github.io/2026/blog/2026/revisiting-the-nle/). The tool surface is `nle_interact` with the full primitive NLE action catalog.
 
 To smoke it with `gpt-4.1-nano`, set `OPENAI_API_KEY` and run:
 
