@@ -1,0 +1,17 @@
+task:
+  name: nethack_scout
+  environment_family: nle
+
+env:
+  env_id: NetHackChallenge-v0
+  max_steps: 4
+  max_episode_steps: 200
+  render_mode: both
+
+policy:
+  tool_name: nle_interact
+  target_action_batch_size: 4
+  min_action_batch_size: 1
+
+reward:
+  canonical: scout_score

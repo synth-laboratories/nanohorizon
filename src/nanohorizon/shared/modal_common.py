@@ -81,6 +81,15 @@ CRAFTAX_PACKAGES = [
     "orbax-checkpoint==0.5.0",
 ]
 
+NLE_PACKAGES = [
+    "gymnasium>=1.0.0",
+    "imageio>=2.37.0",
+    "imageio-ffmpeg>=0.6.0",
+    "nle>=1.1.0",
+    "numpy>=2.0.0",
+    "pillow>=11.3.0",
+]
+
 TRAIN_PACKAGES = [
     "accelerate>=1.10.0",
     "datasets>=4.1.0",
@@ -145,6 +154,10 @@ def _install_craftax_stack(image: modal.Image) -> modal.Image:
     return image.pip_install(*CRAFTAX_PACKAGES)
 
 
+def _install_nle_stack(image: modal.Image) -> modal.Image:
+    return image.pip_install(*NLE_PACKAGES)
+
+
 def _install_training_stack(image: modal.Image) -> modal.Image:
     return image.pip_install(*TRAIN_PACKAGES)
 
@@ -188,6 +201,14 @@ def prompt_image(*extra_packages: str) -> modal.Image:
 
 def craftax_runtime_image(*extra_packages: str) -> modal.Image:
     image = _install_craftax_stack(_install_common_stack(_cuda_base_image()))
+    extra = _dedupe(extra_packages)
+    if extra:
+        image = image.pip_install(*extra)
+    return _attach_repo(image)
+
+
+def nle_runtime_image(*extra_packages: str) -> modal.Image:
+    image = _install_nle_stack(_install_common_stack(_cuda_base_image()))
     extra = _dedupe(extra_packages)
     if extra:
         image = image.pip_install(*extra)

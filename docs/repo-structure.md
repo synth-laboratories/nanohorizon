@@ -20,7 +20,7 @@ Canonical map of **top-level directories** after consolidating docs under `docs/
 
 ## Documentation map
 
-- **Tasks:** [task-craftax.md](task-craftax.md), [task-craftax-classic.md](task-craftax-classic.md)
+- **Tasks:** [task-craftax.md](task-craftax.md), [task-craftax-classic.md](task-craftax-classic.md), [task-nle.md](task-nle.md)
 - **Tracks index:** [tracks.md](tracks.md)
 - **Per-track contracts:** [tracks/](tracks/) (`<track_id>.md` matches `records/<track_id>/`)
 - **Synth Managed Research (SMR):** [smr/README.md](smr/README.md) — signup, MCP, spec + uploads for agent-assisted progress

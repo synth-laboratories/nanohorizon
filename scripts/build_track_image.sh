@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TRACK="${1:-}"
 
 if [[ -z "$TRACK" ]]; then
-  echo "usage: $0 {base|offline|rlvr|prompt_opt|eval} [tag]" >&2
+  echo "usage: $0 {base|offline|rlvr|prompt_opt|eval|nle} [tag]" >&2
   exit 1
 fi
 
@@ -36,6 +36,10 @@ case "$TRACK" in
     IMAGE_NAME="nanohorizon-eval"
     DOCKERFILE="$ROOT/docker/eval.Dockerfile"
     ;;
+  nle)
+    IMAGE_NAME="nanohorizon-nle"
+    DOCKERFILE="$ROOT/docker/nle.Dockerfile"
+    ;;
   *)
     echo "unknown track: $TRACK" >&2
     exit 1
@@ -46,7 +50,7 @@ FULL_TAG="${REGISTRY}/${IMAGE_NAME}:${TAG}"
 
 echo "Building $FULL_TAG"
 BUILD_ARGS=()
-if [[ "$TRACK" != "base" ]]; then
+if [[ "$TRACK" != "base" && "$TRACK" != "nle" ]]; then
   BUILD_ARGS+=(--build-arg "BASE_IMAGE=$BASE_IMAGE")
 fi
 if [[ "$USE_BUILDX" == "1" ]]; then

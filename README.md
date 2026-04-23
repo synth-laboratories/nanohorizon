@@ -132,6 +132,46 @@ Known issue / current focus for submissions:
 
 Budget: `$1` optimizer spend (GPT-5.4 family) · Model: `Qwen/Qwen3.5-4B`
 
+### NetHack/NLE runtime smoke
+
+Run the NetHack Learning Environment HTTP shim locally:
+
+```bash
+uv sync --group nle
+NANOHORIZON_NLE_BIND_PORT=8913 ./scripts/run_nle_shim.sh
+```
+
+The NLE task is `nethack_scout`. Its canonical reward is scout score: positive increases in newly observed non-blank NetHack tiles, tracked separately per dungeon level. The tool surface is `nle_interact` with the full primitive NLE action catalog.
+
+To smoke it with `gpt-4.1-nano`, set `OPENAI_API_KEY` and run:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8913/rollout \
+  -H 'content-type: application/json' \
+  -d "{
+    \"policy\": {
+      \"config\": {
+        \"inference_url\": \"https://api.openai.com/v1/chat/completions\",
+        \"model\": \"gpt-4.1-nano\",
+        \"api_key\": \"$OPENAI_API_KEY\",
+        \"temperature\": 0,
+        \"request_logprobs\": false,
+        \"target_action_batch_size\": 4
+      }
+    },
+    \"env\": {
+      \"seed\": 7,
+      \"config\": {\"max_steps\": 5}
+    },
+    \"media\": {
+      \"output_dir\": \"/tmp/nle_gpt41_nano_smoke\",
+      \"formats\": [\"png\", \"gif\", \"mp4\"]
+    }
+  }"
+```
+
+The rollout response includes `environment_family: "nle"`, `task_id: "nethack_scout"`, action history, scout reward fields, readable terminal text, and saved frame/GIF/MP4 media when `media` is provided. More detail: [docs/task-nle.md](docs/task-nle.md).
+
 ### Managed Research (SMR) — agent-assisted progress (optional)
 
 Use **[Synth Managed Research](https://docs.usesynth.ai/managed-research/quickstart)** to drive **managed runs** against this repo: MCP + API key, project onboarding, optional GitHub org link, **starting data** uploads, and a written **spec** that tells agents how to help your NanoHorizon submission (e.g. which track, which files to edit, record layout).
@@ -244,8 +284,9 @@ How to interpret RLVR results:
 | `rlvr_20min_2xa100_40gb` | 20 min · 2× A100 40GB | `./scripts/run_craftax_rlvr_qwen35_4b_2xa100_20min.sh` |
 | `prompt_opt_1usd_gpt54_family` | **$1** optimizer spend (GPT-5.4 family) | `./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh` |
 | `classic` | Craftax-Classic `1M` · random-init RL under `100M` params | `./scripts/run_classic_craftax_1m_modal.sh` |
+| `nle_scout_runtime` | NetHack/NLE scout-score runtime smoke | `./scripts/run_nle_shim.sh` |
 
-Craftax reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`** teacher. The Craftax tracks are the repo's long-horizon RL lane; `classic` is the separate classic-RL lane. Track rules: [docs/tracks/](docs/tracks/) · tasks: [docs/task-craftax.md](docs/task-craftax.md), [docs/task-craftax-classic.md](docs/task-craftax-classic.md).
+Craftax reference offline baseline uses **`Qwen/Qwen3.5-4B`** with a **`Qwen/Qwen3.5-9B`** teacher. The Craftax tracks are the repo's long-horizon RL lane; `classic` is the separate classic-RL lane; `nle_scout_runtime` is a NetHack/NLE runtime and eval smoke lane. Track rules: [docs/tracks/](docs/tracks/) · tasks: [docs/task-craftax.md](docs/task-craftax.md), [docs/task-craftax-classic.md](docs/task-craftax-classic.md), [docs/task-nle.md](docs/task-nle.md).
 
 ## Prompt-opt reference baseline
 
@@ -314,6 +355,7 @@ How to interpret prompt-opt results:
 - Shared Modal substrate: `src/nanohorizon/shared/modal_common.py`
 - Shared Craftax eval entrypoint: `src/nanohorizon/shared/modal_eval.py`
 - Shared Craftax runtime + HTTP shim: `src/nanohorizon/craftax_core/`
+- Shared NLE runtime + HTTP shim: `src/nanohorizon/nle_core/`
 - Offline/FBC core logic: `src/nanohorizon/baselines/offline_sft.py`
 - Offline/FBC Modal SFT entrypoint: `src/nanohorizon/baselines/offline_sft.py`
 - Shared teacher / student vLLM entrypoint: `src/nanohorizon/shared/modal_teacher.py`

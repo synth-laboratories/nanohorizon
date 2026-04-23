@@ -8,8 +8,9 @@ NanoHorizon now has **four** official tracks across two task families. The first
 | `offline_20min_1xa100_40gb` | [Offline track](tracks/offline_20min_1xa100_40gb.md) |
 | `prompt_opt_1usd_gpt54_family` | [Prompt optimization track](tracks/prompt_opt_1usd_gpt54_family.md) |
 | `classic` | [Classic track](tracks/classic.md) |
+| `nle_scout_runtime` | [NLE scout runtime track](tracks/nle_scout_runtime.md) |
 
-Task definitions: [docs/task-craftax.md](task-craftax.md) and [docs/task-craftax-classic.md](task-craftax-classic.md)
+Task definitions: [docs/task-craftax.md](task-craftax.md), [docs/task-craftax-classic.md](task-craftax-classic.md), and [docs/task-nle.md](task-nle.md)
 
 ## Planned Track Families
 

@@ -42,11 +42,12 @@ def _sync_shared_cache(
         report["restored_from_shared_cache"] = True
         report["exists"] = True
 
-    if target_path.exists():
-        if not shared_path.exists() or target_path.stat().st_mtime > shared_path.stat().st_mtime:
-            shutil.copy2(target_path, shared_path)
-            report["shared_cache_updated"] = True
-            report["shared_exists"] = True
+    if target_path.exists() and (
+        not shared_path.exists() or target_path.stat().st_mtime > shared_path.stat().st_mtime
+    ):
+        shutil.copy2(target_path, shared_path)
+        report["shared_cache_updated"] = True
+        report["shared_exists"] = True
     return report
 
 
@@ -61,7 +62,10 @@ def _module_texture_cache_target(
     if texture_cache_file:
         return Path(str(texture_cache_file)).expanduser().resolve()
 
-    spec = importlib.util.find_spec(package_name)
+    try:
+        spec = importlib.util.find_spec(package_name)
+    except ModuleNotFoundError:
+        return None
     origin = getattr(spec, "origin", None) if spec is not None else None
     if not origin:
         return None
