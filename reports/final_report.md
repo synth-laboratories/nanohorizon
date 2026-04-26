@@ -1,62 +1,95 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Prompt History Candidate
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+The objective was to make the smallest honest NanoHorizon Craftax change that could plausibly improve leaderboard behavior without changing the protected harness surface more than necessary.
+
+Success meant:
+
+1. the rollout prompt should carry more useful decision context than the baseline
+2. the change should be validated against a controlled baseline-vs-candidate slice
+3. the work should be published as a reviewable commit and GitHub PR
+4. verifier feedback should be consulted before calling the candidate ready
 
 ## Experiments cited
 
-1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
+1. [`src/nanohorizon/craftax_core/rollout.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/src/nanohorizon/craftax_core/rollout.py)
+   - Question: does adding bounded recent action/reward history to the prompt change Craftax behavior in a useful direction?
    - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+   - Evidence: the prompt builder now appends a compact recent-history section before the action request, and `run_rollout()` records reward history across turns.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. [`src/nanohorizon/craftax_core/http_shim.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/src/nanohorizon/craftax_core/http_shim.py)
+   - Question: can the local Craftax HTTP entrypoint be restored without changing the rollout contract?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: `create_app()` now exposes `/health`, `/task_info`, `/rollout`, and `/rollouts`, which matches the repo’s eval/tunnel expectations and unblocks local verification.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
+3. [`tests/test_craftax_core_contract.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/tests/test_craftax_core_contract.py), [`tests/test_craftax_core_runtime_guarantees.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/tests/test_craftax_core_runtime_guarantees.py), [`tests/test_craftax_interface.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/tests/test_craftax_interface.py), [`tests/test_craftax_core_rollout_state_view.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/tests/test_craftax_core_rollout_state_view.py)
+   - Question: do the harness changes preserve the existing prompt and rollout expectations?
    - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+   - Evidence: 19 targeted tests passed in the isolated `uv` environment.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-   - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+4. [`experiments/craftax_candidate_20260412/scripts/proxy_eval.py`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/experiments/craftax_candidate_20260412/scripts/proxy_eval.py) and [`experiments/craftax_candidate_20260412/results/proxy_eval_comparison.json`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/experiments/craftax_candidate_20260412/results/proxy_eval_comparison.json)
+   - Question: does the candidate outperform a baseline slice when the model can actually use the added history?
+   - Outcome: supporting on the proxy slice, inconclusive for live model quality.
+   - Evidence: fixed-seed comparison on seeds `0..3` produced baseline mean `outcome_reward = 1.0` and candidate mean `outcome_reward = 2.0` with `delta = +1.0`.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The missing signal in the original rollout path was not just state text, but prior turn context. The candidate now carries a bounded recent action/reward window into the next prompt, which is the smallest direct behavioral change that could plausibly reduce repeated loops.
+2. Restoring the HTTP shim surface was necessary to keep the existing Craftax entrypoint and local verification path alive. Without it, the rollout code could not be exercised as intended.
+3. On the proxy evaluation slice, the candidate clearly dominated the baseline on the chosen metric. That supports retaining the prompt-history change, while still leaving live-model uplift unproven.
+4. The evidence is honest but limited: the local workspace lacks `craftax` and `craftaxlm`, so the comparison used the fake Craftax runner plus a deterministic mock policy endpoint rather than a live Qwen rollout.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
-- Repo handoff: `findings.txt`
+### Environments
+
+- Local isolated `uv` test environment created with:
+  - `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml --with uvicorn ...`
+- Proxy eval environment:
+  - `experiments/craftax_candidate_20260412/scripts/proxy_eval.py`
+  - fixed seeds, fake runner, deterministic mock policy
+
+### Data
+
+- Proxy comparison output:
+  - [`experiments/craftax_candidate_20260412/results/proxy_eval_comparison.json`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/experiments/craftax_candidate_20260412/results/proxy_eval_comparison.json)
+- Durable experiment log:
+  - [`experiments/craftax_candidate_20260412/experiment_log.txt`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/experiments/craftax_candidate_20260412/experiment_log.txt)
+- Handoff note:
+  - [`findings.txt`](/synth/state/.out/smr/projects/2afc6cd5-d5f7-4b26-b81c-7acd5bfd62ed/runs/caeffd64-dbf3-42f5-a270-b82109f8bed1/workspace/findings.txt)
+
+### Models / checkpoints
+
+- No model checkpoint was trained or changed.
+- This run only changed prompt shaping and the local shim surface.
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
-- Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Targeted validation command:
+  - `PYTHONPATH=src uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml --with uvicorn python -m pytest tests/test_craftax_core_contract.py tests/test_craftax_core_runtime_guarantees.py tests/test_craftax_interface.py tests/test_craftax_core_rollout_state_view.py -q`
+- Result:
+  - `19 passed`
+- Proxy evaluation command:
+  - `PYTHONPATH=src:. uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml --with uvicorn python experiments/craftax_candidate_20260412/scripts/proxy_eval.py --output-dir experiments/craftax_candidate_20260412/results --seed-start 0 --num-seeds 4`
+- Result:
+  - baseline mean `outcome_reward = 1.0`
+  - candidate mean `outcome_reward = 2.0`
+  - delta `+1.0`
+- Explicitly not validated:
+  - live Craftax rollouts against `craftax` / `craftaxlm`
+  - a real model rollout on Qwen 3.5
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Workspace commit from `workspace_push`:
+  - `cd300d0b41cd8ab55a7f65e196bb43c9715edfed`
+- GitHub push / review branch:
+  - `pr/worker/run-caeffd64-dbf3-42f5-a270-b82109f8bed1`
+  - GitHub commit `b431bb8246a9a292474a2591ee112f9385fbd016`
+- PR:
+  - [synth-laboratories/nanohorizon#36](https://github.com/synth-laboratories/nanohorizon/pull/36)
+- Main risk:
+  - the gain is measured on a proxy slice because the live Craftax dependency stack is absent locally
+- Current blocker:
+  - external verifier feedback has been requested but is not yet available in the run artifacts, so the candidate is published and reproducibly measured but not fully externally verified yet

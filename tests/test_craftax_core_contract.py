@@ -4,7 +4,13 @@ from fastapi.testclient import TestClient
 
 from nanohorizon.craftax_core.http_shim import create_app
 from nanohorizon.craftax_core.metadata import DEFAULT_ACTION_NAMES, PRIMARY_TOOL_NAME
-from nanohorizon.craftax_core.rollout import _chat_completion, _extract_reasoning_text, run_rollout
+from nanohorizon.craftax_core.rollout import (
+    _chat_completion,
+    _extract_reasoning_text,
+    _format_reward_history,
+    _observation_prompt,
+    run_rollout,
+)
 from nanohorizon.shared.openai_compat import extract_craftax_actions
 
 
@@ -206,3 +212,44 @@ def test_rollout_repair_prompt_avoids_replaying_assistant_tool_calls(monkeypatch
     assert len(call_messages) == 2
     repair_messages = call_messages[1]
     assert not any(message.get("role") == "assistant" for message in repair_messages)
+
+
+def test_observation_prompt_includes_recent_reward_history():
+    from nanohorizon.craftax_core.metadata import RewardHistoryEntry, RewardHistoryWindow
+
+    history = RewardHistoryWindow(
+        [
+            RewardHistoryEntry(action="move_right", observation_summary="near a tree", reward_delta=0.0),
+            RewardHistoryEntry(action="do", observation_summary="collected wood", reward_delta=1.0),
+        ]
+    )
+
+    prompt = _observation_prompt(
+        observation_text="Craftax state summary\ninventory: wood=1",
+        target_action_batch_size=5,
+        state_view={"inventory": {"wood": 1}},
+        reward_history=history,
+    )
+
+    assert "Recent action history:" in prompt
+    assert "actions=do" in prompt
+    assert "Reward trend: neutral, +" in prompt
+    assert "Use this history to avoid repeating unproductive loops." in prompt
+
+
+def test_format_reward_history_is_bounded():
+    from nanohorizon.craftax_core.metadata import RewardHistoryEntry, RewardHistoryWindow
+
+    history = RewardHistoryWindow(
+        [
+            RewardHistoryEntry(action=f"a{i}", observation_summary=f"summary-{i}", reward_delta=float(i))
+            for i in range(7)
+        ]
+    )
+
+    rendered = _format_reward_history(history)
+
+    assert "a0" not in rendered
+    assert "a1" not in rendered
+    assert "a2" in rendered
+    assert "a6" in rendered

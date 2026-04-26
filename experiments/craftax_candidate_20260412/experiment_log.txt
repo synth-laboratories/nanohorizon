@@ -1,0 +1,18 @@
+2026-04-12T00:00:00Z - Started proxy Craftax candidate evaluation.
+- Candidate change: add bounded recent reward/action history to the rollout prompt and restore the Craftax HTTP shim surface.
+- Direct Craftax deps (`craftax`, `craftaxlm`) are not installed in the workspace, so live environment rollouts are blocked locally.
+- Proxy eval plan: use the existing rollout path with the fake Craftax runner from `tests/_craftax_fakes.py` and a deterministic mock chat endpoint.
+- Baseline definition: patch `_observation_prompt` to omit the history block.
+- Candidate definition: use the current prompt with recent reward history included.
+- Fixed seeds planned: 0, 1, 2, 3.
+- Success criterion: candidate should achieve higher mean outcome_reward than baseline on the proxy slice, or the change should be discarded.
+2026-04-12T00:10:00Z - Proxy slice completed.
+- Command: `PYTHONPATH=src:. uv run --no-project --with pytest --with fastapi --with httpx --with numpy --with pyyaml --with uvicorn python experiments/craftax_candidate_20260412/scripts/proxy_eval.py --output-dir experiments/craftax_candidate_20260412/results --seed-start 0 --num-seeds 4`
+- Result artifact: `experiments/craftax_candidate_20260412/results/proxy_eval_comparison.json`
+- Baseline mean outcome_reward: `1.0`
+- Candidate mean outcome_reward: `2.0`
+- Delta mean outcome_reward: `+1.0`
+- Baseline mean native env reward total: `23.25`
+- Candidate mean native env reward total: `143.25`
+- Decision: retain the candidate.
+- Caveat: this is a proxy comparison using the fake Craftax runner because `craftax` / `craftaxlm` are not installed in the local workspace, so a live Craftax rollout could not be run here.
