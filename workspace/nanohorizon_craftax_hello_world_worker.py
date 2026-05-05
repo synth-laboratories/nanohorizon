@@ -15,8 +15,8 @@ SYSTEM_PROMPT = (
     "actions unless the episode is already done. Use only the tool call as the "
     "final answer. Do not output JSON, prose, or a plain-text action list."
 )
-DEFAULT_ROLLOUT_COUNT = 1
-DEFAULT_ROLLOUT_CONCURRENCY = 1
+DEFAULT_ROLLOUT_COUNT = 10
+DEFAULT_ROLLOUT_CONCURRENCY = 10
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -106,6 +106,10 @@ def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(row, sort_keys=True) + "\n")
 
 
+def _media_output_dir() -> str:
+    return str(os.getenv("NANOHORIZON_ROLLOUT_MEDIA_DIR") or Path("artifacts") / "rollout_media")
+
+
 async def _run_eval() -> tuple[list[dict[str, Any]], dict[str, Any]]:
     inference_url, model, api_key = _load_inference_config()
     from nanohorizon.shared.craftax_data import (
@@ -139,6 +143,8 @@ async def _run_eval() -> tuple[list[dict[str, Any]], dict[str, Any]]:
         request_timeout_seconds=45.0,
         max_concurrent_rollouts=rollout_concurrency,
         trace_prefix="nanohorizon_craftax_hello_world",
+        video_capture_output_dir=_media_output_dir(),
+        video_capture_all_rollouts=True,
         rollout_concurrency=rollout_concurrency,
         rollout_semaphore_limit=rollout_concurrency,
         request_logprobs=False,

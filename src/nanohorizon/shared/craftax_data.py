@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+import os
 import time
 from collections.abc import Callable
 from statistics import mean
@@ -41,6 +42,36 @@ CRAFTAX_INTERACT_TOOL = {
 }
 
 CRAFTAX_CORE_ACHIEVEMENTS = list(DEFAULT_ACHIEVEMENT_NAMES)
+
+
+def _rollout_media_config(
+    *,
+    index: int,
+    seed: int,
+    capture_index: int | None,
+    capture_all: bool,
+    output_dir: str,
+    fps: int,
+    tile_size: int,
+    show_status_bars: bool,
+) -> dict[str, Any] | None:
+    if not capture_all and (capture_index is None or index != int(capture_index)):
+        return None
+    media: dict[str, Any] = {
+        "capture_video": True,
+        "fps": int(fps),
+        "tile_size": int(tile_size),
+        "show_status_bars": bool(show_status_bars),
+        "write_mp4": False,
+    }
+    if str(output_dir).strip():
+        base_output_dir = str(output_dir).strip()
+        media["output_dir"] = (
+            os.path.join(base_output_dir, f"rollout_{index:02d}_{int(seed)}")
+            if capture_all
+            else base_output_dir
+        )
+    return media
 
 
 def _is_synthtunnel_url(url: str) -> bool:
@@ -319,6 +350,7 @@ async def collect_rollouts_concurrently(
     trace_prefix: str,
     video_capture_rollout_index: int | None = None,
     video_capture_output_dir: str = "",
+    video_capture_all_rollouts: bool = False,
     video_capture_fps: int = 6,
     video_capture_tile_size: int = 16,
     video_capture_show_status_bars: bool = True,
@@ -347,6 +379,7 @@ async def collect_rollouts_concurrently(
         trace_prefix=trace_prefix,
         video_capture_rollout_index=video_capture_rollout_index,
         video_capture_output_dir=video_capture_output_dir,
+        video_capture_all_rollouts=video_capture_all_rollouts,
         video_capture_fps=video_capture_fps,
         video_capture_tile_size=video_capture_tile_size,
         video_capture_show_status_bars=video_capture_show_status_bars,
@@ -379,6 +412,7 @@ async def collect_rollouts_concurrently_with_summary(
     trace_prefix: str,
     video_capture_rollout_index: int | None = None,
     video_capture_output_dir: str = "",
+    video_capture_all_rollouts: bool = False,
     video_capture_fps: int = 6,
     video_capture_tile_size: int = 16,
     video_capture_show_status_bars: bool = True,
@@ -401,14 +435,16 @@ async def collect_rollouts_concurrently_with_summary(
         semaphore = asyncio.Semaphore(max(1, int(rollout_semaphore_limit or max_concurrent_rollouts)))
 
         async def _run_one_direct(seed: int, index: int) -> dict[str, Any]:
-            media = None
-            if video_capture_rollout_index is not None and index == int(video_capture_rollout_index):
-                media = {
-                    "capture_video": True,
-                    "fps": int(video_capture_fps),
-                }
-                if str(video_capture_output_dir).strip():
-                    media["output_dir"] = str(video_capture_output_dir).strip()
+            media = _rollout_media_config(
+                index=index,
+                seed=seed,
+                capture_index=video_capture_rollout_index,
+                capture_all=video_capture_all_rollouts,
+                output_dir=video_capture_output_dir,
+                fps=video_capture_fps,
+                tile_size=video_capture_tile_size,
+                show_status_bars=video_capture_show_status_bars,
+            )
             request_body = build_rollout_request(
                 inference_url=inference_url,
                 model=model,
@@ -563,16 +599,16 @@ async def collect_rollouts_concurrently_with_summary(
     async def _run_one(client: httpx.AsyncClient, seed: int, index: int) -> dict[str, Any]:
         container_base = container_bases[index % len(container_bases)]
         headers = headers_by_base[container_base]
-        media = None
-        if video_capture_rollout_index is not None and index == int(video_capture_rollout_index):
-            media = {
-                "capture_video": True,
-                "fps": int(video_capture_fps),
-                "tile_size": int(video_capture_tile_size),
-                "show_status_bars": bool(video_capture_show_status_bars),
-            }
-            if str(video_capture_output_dir).strip():
-                media["output_dir"] = str(video_capture_output_dir).strip()
+        media = _rollout_media_config(
+            index=index,
+            seed=seed,
+            capture_index=video_capture_rollout_index,
+            capture_all=video_capture_all_rollouts,
+            output_dir=video_capture_output_dir,
+            fps=video_capture_fps,
+            tile_size=video_capture_tile_size,
+            show_status_bars=video_capture_show_status_bars,
+        )
         request_body = build_rollout_request(
             inference_url=inference_url,
             model=model,

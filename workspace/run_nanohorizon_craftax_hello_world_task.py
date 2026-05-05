@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import subprocess
@@ -24,6 +25,9 @@ ARTIFACTS = {
     "container_proof": "artifacts/container_proof.json",
     "verifier_review": "artifacts/verifier_review.json",
     "reportbench_output": "artifacts/reportbench_output.json",
+    "craftax_scorecard": "artifacts/craftax_scorecard.json",
+    "craftax_rollout_media_json": "artifacts/craftax_rollout_media.json",
+    "craftax_experiment_result": "artifacts/craftax_experiment_result.json",
     "reproduction": "reports/reproduction.md",
 }
 
@@ -70,6 +74,20 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _load_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if not path.exists():
+        return rows
+    for line in path.read_text(encoding="utf-8").splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        payload = json.loads(text)
+        if isinstance(payload, dict):
+            rows.append(payload)
+    return rows
+
+
 def _resolve_nanohorizon_root() -> Path:
     explicit = str(os.getenv("NANOHORIZON_REPO_ROOT") or "").strip()
     cwd = Path.cwd().resolve()
@@ -94,13 +112,13 @@ def _resolve_nanohorizon_python(nanohorizon_root: Path) -> str:
     explicit = str(os.getenv("NANOHORIZON_PYTHON") or "").strip()
     candidates = [
         Path(explicit).expanduser() if explicit else None,
-        nanohorizon_root / ".venv" / "bin" / "python",
         Path(sys.executable),
+        nanohorizon_root / ".venv" / "bin" / "python",
     ]
     for candidate in candidates:
         if candidate is None or not candidate.exists():
             continue
-        return str(candidate.resolve())
+        return str(candidate.absolute())
     return sys.executable
 
 
@@ -192,6 +210,184 @@ def _num_errors(summary: dict[str, Any]) -> int:
     if isinstance(rollout_summary, dict):
         return int(rollout_summary.get("num_errors") or 0)
     return 0
+
+
+def _rollout_reward(rollout: dict[str, Any]) -> float:
+    reward_info = rollout.get("reward_info")
+    if isinstance(reward_info, dict):
+        objectives = reward_info.get("outcome_objectives")
+        if isinstance(objectives, dict):
+            for key in ("unique_achievements", "reward", "native_env_reward_total"):
+                try:
+                    value = objectives.get(key)
+                    if value is not None:
+                        return float(value)
+                except (TypeError, ValueError):
+                    pass
+        try:
+            return float(reward_info.get("outcome_reward", 0.0))
+        except (TypeError, ValueError):
+            return 0.0
+    return 0.0
+
+
+def _rollout_achievements(rollout: dict[str, Any]) -> list[str]:
+    metadata = rollout.get("metadata")
+    if isinstance(metadata, dict) and isinstance(metadata.get("achievements"), list):
+        return [str(item).strip() for item in metadata["achievements"] if str(item).strip()]
+    reward_info = rollout.get("reward_info")
+    if isinstance(reward_info, dict):
+        details = reward_info.get("details")
+        if isinstance(details, dict) and isinstance(details.get("achievements"), list):
+            return [str(item).strip() for item in details["achievements"] if str(item).strip()]
+    return []
+
+
+def _rollout_seed(rollout: dict[str, Any]) -> int | None:
+    metadata = rollout.get("metadata")
+    if isinstance(metadata, dict):
+        try:
+            value = metadata.get("seed")
+            if value is not None:
+                return int(value)
+        except (TypeError, ValueError):
+            pass
+    try:
+        value = rollout.get("_request_seed") or rollout.get("seed")
+        if value is not None:
+            return int(value)
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def _relative_path(path: Path, output_root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(output_root.resolve()))
+    except ValueError:
+        return str(path)
+
+
+def _gif_media_ref(output_root: Path, rollout: dict[str, Any]) -> dict[str, Any] | None:
+    media = rollout.get("media")
+    if not isinstance(media, dict):
+        return None
+    raw_gif_path = str(media.get("gif_path") or "").strip()
+    if not raw_gif_path:
+        return None
+    gif_path = Path(raw_gif_path)
+    if not gif_path.is_absolute():
+        gif_path = output_root / gif_path
+    if not gif_path.exists():
+        return None
+    data_url = "data:image/gif;base64," + base64.b64encode(gif_path.read_bytes()).decode("ascii")
+    return {
+        "kind": "gif",
+        "content_type": "image/gif",
+        "path": _relative_path(gif_path, output_root),
+        "url": data_url,
+        "data_url": data_url,
+        "file_size_bytes": gif_path.stat().st_size,
+    }
+
+
+def _build_rollout_detail(output_root: Path, rollout: dict[str, Any], index: int) -> dict[str, Any]:
+    rollout_id = str(
+        rollout.get("rollout_id")
+        or rollout.get("trial_id")
+        or rollout.get("trace_correlation_id")
+        or f"rollout_{index:02d}"
+    )
+    media_ref = _gif_media_ref(output_root, rollout)
+    media_refs = [media_ref] if media_ref is not None else []
+    detail = {
+        "rollout_id": rollout_id,
+        "label": f"Rollout {index + 1}",
+        "success_status": str(rollout.get("success_status") or ("error" if rollout.get("error") else "unknown")),
+        "outcome_reward": _rollout_reward(rollout),
+        "reward": _rollout_reward(rollout),
+        "seed": _rollout_seed(rollout),
+        "achievements": _rollout_achievements(rollout),
+        "media_refs": media_refs,
+    }
+    if media_ref is not None:
+        detail["gif_url"] = media_ref["data_url"]
+    if rollout.get("error"):
+        detail["error"] = str(rollout.get("error") or "")
+    return detail
+
+
+def _write_open_research_outputs(output_root: Path) -> None:
+    summary = _load_json(_artifact_path(output_root, "eval_summary"))
+    manifest = _load_json(_artifact_path(output_root, "result_manifest"))
+    rollouts = _load_jsonl(_artifact_path(output_root, "rollouts"))
+    rollout_details = [
+        _build_rollout_detail(output_root, rollout, index)
+        for index, rollout in enumerate(rollouts)
+        if isinstance(rollout, dict)
+    ]
+    requested_rollouts = int(summary.get("requested_rollouts") or len(rollout_details) or 0)
+    successful_rollouts = [
+        item
+        for item in rollout_details
+        if str(item.get("success_status") or "").lower() == "success" and not item.get("error")
+    ]
+    media_rollouts = [item for item in rollout_details if item.get("media_refs")]
+    rewards = [float(item.get("outcome_reward") or 0.0) for item in successful_rollouts]
+    score = float(summary.get("mean_outcome_reward") or (sum(rewards) / len(rewards) if rewards else 0.0))
+    media_manifest = {
+        "schema_version": "open_research.rollout_media.v1",
+        "application_id": "craftax",
+        "track": "craftax",
+        "generated_at": _utc_now(),
+        "requested_rollouts": requested_rollouts,
+        "rollout_count": len(rollout_details),
+        "media_rollout_count": len(media_rollouts),
+        "rollouts": rollout_details,
+    }
+    scorecard = {
+        "schema_version": "open_research.scorecard.v1",
+        "application_id": "craftax",
+        "track": "craftax",
+        "primary_metric": "mean_outcome_reward",
+        "primary_score": score,
+        "requested_rollouts": requested_rollouts,
+        "observed_rollouts": len(rollout_details),
+        "successful_rollouts": len(successful_rollouts),
+        "media_rollouts": len(media_rollouts),
+        "achievement_count": len({name for item in rollout_details for name in item.get("achievements", [])}),
+        "status": manifest.get("status"),
+        "model": summary.get("model"),
+    }
+    experiment_result = {
+        "schema_version": "open_research.experiment_result.v1",
+        "application_id": "craftax",
+        "track": "craftax",
+        "benchmark": TASK_ID,
+        "status": manifest.get("status"),
+        "primary_metric": "mean_outcome_reward",
+        "score": score,
+        "aggregate_reward": score,
+        "requested_rollouts": requested_rollouts,
+        "observed_rollouts": len(rollout_details),
+        "successful_rollouts": len(successful_rollouts),
+        "media_rollouts": len(media_rollouts),
+        "achievements": sorted({name for item in rollout_details for name in item.get("achievements", [])}),
+        "rollout_details": rollout_details,
+        "media": media_manifest,
+        "source_artifacts": {
+            "scorecard": ARTIFACTS["craftax_scorecard"],
+            "rollout_media": ARTIFACTS["craftax_rollout_media_json"],
+            "eval_summary": ARTIFACTS["eval_summary"],
+            "rollouts": ARTIFACTS["rollouts"],
+            "result_manifest": ARTIFACTS["result_manifest"],
+        },
+        "model": summary.get("model"),
+        "completed_at": manifest.get("completed_at") or _utc_now(),
+    }
+    _write_json(_artifact_path(output_root, "craftax_rollout_media_json"), media_manifest)
+    _write_json(_artifact_path(output_root, "craftax_scorecard"), scorecard)
+    _write_json(_artifact_path(output_root, "craftax_experiment_result"), experiment_result)
 
 
 def _concrete_failure_reasons(summary: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
@@ -411,6 +607,9 @@ def _build_reportbench_output(output_root: Path, verifier_mode: str) -> dict[str
             "result_manifest": ARTIFACTS["result_manifest"],
             "container_proof": ARTIFACTS["container_proof"],
             "verifier_review": ARTIFACTS["verifier_review"],
+            "craftax_scorecard": ARTIFACTS["craftax_scorecard"],
+            "craftax_rollout_media": ARTIFACTS["craftax_rollout_media_json"],
+            "craftax_experiment_result": ARTIFACTS["craftax_experiment_result"],
             "report": ARTIFACTS["reproduction"],
         },
         "task_title": TASK_TITLE,
@@ -425,7 +624,7 @@ def run(args: argparse.Namespace) -> int:
     process = _run_baseline(output_root)
     if process.returncode != 0:
         summary_path = _artifact_path(output_root, "eval_summary")
-        requested_rollouts = int(os.getenv("NANOHORIZON_ROLLOUTS") or "1")
+        requested_rollouts = int(os.getenv("NANOHORIZON_ROLLOUTS") or "10")
         if not summary_path.exists():
             _write_json(
                 summary_path,
@@ -437,7 +636,7 @@ def run(args: argparse.Namespace) -> int:
                     "requested_total_llm_calls": requested_rollouts,
                     "requested_max_steps_per_rollout": 1,
                     "requested_llm_calls_per_rollout": 1,
-                    "requested_rollout_concurrency": int(os.getenv("NANOHORIZON_ROLLOUT_CONCURRENCY") or "1"),
+                    "requested_rollout_concurrency": int(os.getenv("NANOHORIZON_ROLLOUT_CONCURRENCY") or "10"),
                     "mean_outcome_reward": 0.0,
                     "max_outcome_reward": 0.0,
                     "mean_llm_calls_per_rollout": 0.0,
@@ -455,6 +654,7 @@ def run(args: argparse.Namespace) -> int:
             rollouts_path.parent.mkdir(parents=True, exist_ok=True)
             rollouts_path.write_text("", encoding="utf-8")
     _write_result_manifest(output_root, process=process)
+    _write_open_research_outputs(output_root)
     _write_reproduction_report(output_root)
     return int(process.returncode)
 

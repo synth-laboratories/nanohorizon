@@ -382,7 +382,7 @@ def run_rollout(
             frames=frames,
             output_dir=output_dir,
             fps=int(media.get("fps", 6)),
-            write_mp4=True,
+            write_mp4=bool(media.get("write_mp4", True)),
         )
         media_payload = {
             "frames_dir": artifacts.frames_dir,
