@@ -15,7 +15,13 @@ from nanohorizon.craftax_core.metadata import (
     DEFAULT_ACTION_NAMES,
     PRIMARY_TOOL_NAME,
 )
-from nanohorizon.craftax_core.rollout import run_rollout_request
+from nanohorizon.craftax_core.rollout import (
+    collect_one_step_rollouts_with_parallel_inference,
+    persist_rollout_media_from_history,
+    prewarm_one_step,
+    run_rollout_request,
+)
+from nanohorizon.craftax_core.modalities import RenderMode
 
 CRAFTAX_INTERACT_TOOL = {
     "type": "function",
@@ -72,6 +78,47 @@ def _rollout_media_config(
             else base_output_dir
         )
     return media
+
+
+def _attach_deferred_rollout_media(
+    *,
+    rollouts: list[dict[str, Any]],
+    video_capture_rollout_index: int | None,
+    video_capture_all_rollouts: bool,
+    video_capture_output_dir: str,
+    video_capture_fps: int,
+    video_capture_tile_size: int,
+    video_capture_show_status_bars: bool,
+) -> None:
+    if video_capture_all_rollouts or video_capture_rollout_index is not None:
+        prewarm_one_step(
+            env_kind="full",
+            render_mode=RenderMode.BOTH,
+            block_pixel_size=int(video_capture_tile_size),
+        )
+    for index, rollout in enumerate(rollouts):
+        if not isinstance(rollout, dict) or rollout.get("error") or not is_rollout_payload(rollout):
+            continue
+        seed = int(rollout.get("_request_seed") or rollout.get("metadata", {}).get("seed") or 0)
+        media = _rollout_media_config(
+            index=index,
+            seed=seed,
+            capture_index=video_capture_rollout_index,
+            capture_all=video_capture_all_rollouts,
+            output_dir=video_capture_output_dir,
+            fps=video_capture_fps,
+            tile_size=video_capture_tile_size,
+            show_status_bars=video_capture_show_status_bars,
+        )
+        if media is None:
+            continue
+        try:
+            media_payload = persist_rollout_media_from_history(rollout=rollout, media=media)
+        except Exception as exc:  # noqa: BLE001
+            rollout["media_error"] = f"{type(exc).__name__}: {exc}"
+            continue
+        if media_payload:
+            rollout["media"] = media_payload
 
 
 def _is_synthtunnel_url(url: str) -> bool:
@@ -422,36 +469,14 @@ async def collect_rollouts_concurrently_with_summary(
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if not str(container_url or "").strip() or str(container_url).strip().lower().startswith("direct://"):
-        started_at = time.perf_counter()
-        rollout_queue: asyncio.Queue[tuple[int, int] | None] = asyncio.Queue()
-        for index, seed in enumerate(seeds):
-            rollout_queue.put_nowait((index, int(seed)))
-        results: list[dict[str, Any] | None] = [None] * len(seeds)
-        request_latencies_s: list[float] = []
-        active_rollouts = 0
-        high_watermark = 0
-        requests_started = 0
-        requests_finished = 0
-        semaphore = asyncio.Semaphore(max(1, int(rollout_semaphore_limit or max_concurrent_rollouts)))
-
-        async def _run_one_direct(seed: int, index: int) -> dict[str, Any]:
-            media = _rollout_media_config(
-                index=index,
-                seed=seed,
-                capture_index=video_capture_rollout_index,
-                capture_all=video_capture_all_rollouts,
-                output_dir=video_capture_output_dir,
-                fps=video_capture_fps,
-                tile_size=video_capture_tile_size,
-                show_status_bars=video_capture_show_status_bars,
-            )
-            request_body = build_rollout_request(
+        request_bodies = [
+            build_rollout_request(
                 inference_url=inference_url,
                 model=model,
                 api_key=api_key,
-                seed=seed,
+                seed=int(seed),
                 max_steps=max_steps,
-                trace_correlation_id=f"{trace_prefix}_{index:05d}_{seed}",
+                trace_correlation_id=f"{trace_prefix}_{index:05d}_{int(seed)}",
                 system_prompt=system_prompt,
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -461,103 +486,26 @@ async def collect_rollouts_concurrently_with_summary(
                 target_action_batch_size=target_action_batch_size,
                 min_action_batch_size=min_action_batch_size,
                 timeout_s=max(1, math.ceil(request_timeout_seconds)),
-                media=media,
+                media=None,
                 request_logprobs=request_logprobs,
             )
-            try:
-                payload = await asyncio.to_thread(run_rollout_request, request_body)
-                payload.setdefault("trace_correlation_id", request_body["trace_correlation_id"])
-                payload.setdefault("trial_id", request_body["trial_id"])
-                payload.setdefault("_request_seed", seed)
-                return payload
-            except Exception as exc:
-                error_text = str(exc).strip() or f"{type(exc).__name__}: no detail"
-                return {
-                    "error": error_text,
-                    "seed": seed,
-                    "trace_correlation_id": request_body["trace_correlation_id"],
-                }
-
-        async def _worker_direct() -> None:
-            nonlocal active_rollouts, high_watermark, requests_started, requests_finished
-            while True:
-                item = await rollout_queue.get()
-                if item is None:
-                    rollout_queue.task_done()
-                    return
-                index, seed = item
-                async with semaphore:
-                    active_rollouts += 1
-                    high_watermark = max(high_watermark, active_rollouts)
-                    requests_started += 1
-                    request_started_at = time.perf_counter()
-                    try:
-                        results[index] = await _run_one_direct(seed, index)
-                    finally:
-                        request_latencies_s.append(time.perf_counter() - request_started_at)
-                        requests_finished += 1
-                        active_rollouts -= 1
-                        latest = results[index]
-                        if progress_callback is not None and isinstance(latest, dict):
-                            completed_rollouts = [item for item in results if isinstance(item, dict)]
-                            valid_rollouts = [
-                                item
-                                for item in completed_rollouts
-                                if not item.get("error") and is_rollout_payload(item)
-                            ]
-                            rewards = [rollout_outcome_reward(item) for item in valid_rollouts]
-                            progress_callback(
-                                {
-                                    "stage": "teacher_rollout_progress",
-                                    "requested_rollouts": len(seeds),
-                                    "completed_rollouts": len(completed_rollouts),
-                                    "num_structured_rollouts": len(valid_rollouts),
-                                    "num_errors": len(completed_rollouts) - len(valid_rollouts),
-                                    "active_rollouts": active_rollouts,
-                                    "rollout_requests_started": requests_started,
-                                    "rollout_requests_finished": requests_finished,
-                                    "mean_outcome_reward": mean(rewards) if rewards else 0.0,
-                                    "max_outcome_reward": max(rewards) if rewards else 0.0,
-                                    "latest_rollout": latest,
-                                }
-                            )
-                rollout_queue.task_done()
-
-        workers = [
-            asyncio.create_task(_worker_direct())
-            for _ in range(max(1, int(rollout_concurrency or max_concurrent_rollouts)))
+            for index, seed in enumerate(seeds)
         ]
-        await rollout_queue.join()
-        for _ in workers:
-            rollout_queue.put_nowait(None)
-        await asyncio.gather(*workers)
-        completed_rollouts = [item for item in results if isinstance(item, dict)]
-        valid_rollouts = [
-            item for item in completed_rollouts if not item.get("error") and is_rollout_payload(item)
-        ]
-        rewards = [rollout_outcome_reward(item) for item in valid_rollouts]
-        elapsed_s = max(time.perf_counter() - started_at, 1e-9)
-        summary = {
-            "requested_rollouts": len(seeds),
-            "completed_rollouts": len(completed_rollouts),
-            "num_errors": len(completed_rollouts) - len(valid_rollouts),
-            "num_structured_rollouts": len(valid_rollouts),
-            "mean_outcome_reward": mean(rewards) if rewards else 0.0,
-            "max_outcome_reward": max(rewards) if rewards else 0.0,
-            "elapsed_s": elapsed_s,
-            "rollouts_per_minute": len(valid_rollouts) / (elapsed_s / 60.0),
-            "rollout_concurrency": max(1, int(rollout_concurrency or max_concurrent_rollouts)),
-            "rollout_semaphore_limit": max(1, int(rollout_semaphore_limit or max_concurrent_rollouts)),
-            "rollout_requests_started": requests_started,
-            "rollout_requests_finished": requests_finished,
-            "active_rollout_high_watermark": high_watermark,
-            "mean_request_latency_s": mean(request_latencies_s) if request_latencies_s else 0.0,
-            "max_request_latency_s": max(request_latencies_s) if request_latencies_s else 0.0,
-        }
-        normalized_results = [
-            item if isinstance(item, dict) else {"error": "missing rollout result"} for item in results
-        ]
-        return normalized_results, summary
+        rollouts, summary = await asyncio.to_thread(
+            collect_one_step_rollouts_with_parallel_inference,
+            requests=request_bodies,
+            max_workers=max(1, int(rollout_concurrency or max_concurrent_rollouts)),
+        )
+        _attach_deferred_rollout_media(
+            rollouts=rollouts,
+            video_capture_rollout_index=video_capture_rollout_index,
+            video_capture_all_rollouts=video_capture_all_rollouts,
+            video_capture_output_dir=video_capture_output_dir,
+            video_capture_fps=video_capture_fps,
+            video_capture_tile_size=video_capture_tile_size,
+            video_capture_show_status_bars=video_capture_show_status_bars,
+        )
+        return rollouts, summary
 
     container_bases = _container_base_urls(container_url)
     worker_count = max(
@@ -585,6 +533,68 @@ async def collect_rollouts_concurrently_with_summary(
     }
     for base in proxy_edge_bases:
         headers_by_base[base] = {**headers_by_base[base], "Connection": "close"}
+    use_batch_endpoint = (
+        len(container_bases) == 1
+        and str(os.getenv("NANOHORIZON_CRAFTAX_USE_BATCH_ENDPOINT") or "1").strip().lower()
+        not in {"0", "false", "no"}
+    )
+    if use_batch_endpoint:
+        container_base = container_bases[0]
+        request_bodies = [
+            build_rollout_request(
+                inference_url=inference_url,
+                model=model,
+                api_key=api_key,
+                seed=int(seed),
+                max_steps=max_steps,
+                trace_correlation_id=f"{trace_prefix}_{index:05d}_{int(seed)}",
+                system_prompt=system_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                enable_thinking=enable_thinking,
+                thinking_budget_tokens=thinking_budget_tokens,
+                policy_version=policy_version,
+                target_action_batch_size=target_action_batch_size,
+                min_action_batch_size=min_action_batch_size,
+                timeout_s=max(1, math.ceil(request_timeout_seconds)),
+                media=None,
+                request_logprobs=request_logprobs,
+            )
+            for index, seed in enumerate(seeds)
+        ]
+        async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+            response = await client.post(
+                f"{container_base}/rollouts",
+                headers=headers_by_base[container_base],
+                json=request_bodies,
+                follow_redirects=False,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        response_rollouts = payload.get("rollouts") if isinstance(payload, dict) else None
+        response_summary = payload.get("summary") if isinstance(payload, dict) else None
+        rollouts = [item for item in response_rollouts if isinstance(item, dict)] if isinstance(response_rollouts, list) else []
+        summary = dict(response_summary) if isinstance(response_summary, dict) else {}
+        for index, rollout in enumerate(rollouts):
+            rollout.setdefault("_request_seed", int(seeds[index]) if index < len(seeds) else None)
+        _attach_deferred_rollout_media(
+            rollouts=rollouts,
+            video_capture_rollout_index=video_capture_rollout_index,
+            video_capture_all_rollouts=video_capture_all_rollouts,
+            video_capture_output_dir=video_capture_output_dir,
+            video_capture_fps=video_capture_fps,
+            video_capture_tile_size=video_capture_tile_size,
+            video_capture_show_status_bars=video_capture_show_status_bars,
+        )
+        summary.setdefault("requested_rollouts", len(seeds))
+        summary.setdefault("completed_rollouts", len(rollouts))
+        summary.setdefault("rollout_concurrency", worker_count)
+        summary.setdefault("rollout_semaphore_limit", permit_limit)
+        summary.setdefault("rollout_requests_started", len(seeds))
+        summary.setdefault("rollout_requests_finished", len(rollouts))
+        summary.setdefault("active_rollout_high_watermark", worker_count)
+        return rollouts, summary
+
     rollout_queue: asyncio.Queue[tuple[int, int] | None] = asyncio.Queue()
     for index, seed in enumerate(seeds):
         rollout_queue.put_nowait((index, int(seed)))
@@ -599,16 +609,6 @@ async def collect_rollouts_concurrently_with_summary(
     async def _run_one(client: httpx.AsyncClient, seed: int, index: int) -> dict[str, Any]:
         container_base = container_bases[index % len(container_bases)]
         headers = headers_by_base[container_base]
-        media = _rollout_media_config(
-            index=index,
-            seed=seed,
-            capture_index=video_capture_rollout_index,
-            capture_all=video_capture_all_rollouts,
-            output_dir=video_capture_output_dir,
-            fps=video_capture_fps,
-            tile_size=video_capture_tile_size,
-            show_status_bars=video_capture_show_status_bars,
-        )
         request_body = build_rollout_request(
             inference_url=inference_url,
             model=model,
@@ -625,7 +625,7 @@ async def collect_rollouts_concurrently_with_summary(
             target_action_batch_size=target_action_batch_size,
             min_action_batch_size=min_action_batch_size,
             timeout_s=max(1, math.ceil(request_timeout_seconds)),
-            media=media,
+            media=None,
             request_logprobs=request_logprobs,
         )
         try:
@@ -742,6 +742,15 @@ async def collect_rollouts_concurrently_with_summary(
         await asyncio.gather(*workers)
 
     completed_rollouts = [item for item in results if isinstance(item, dict)]
+    _attach_deferred_rollout_media(
+        rollouts=completed_rollouts,
+        video_capture_rollout_index=video_capture_rollout_index,
+        video_capture_all_rollouts=video_capture_all_rollouts,
+        video_capture_output_dir=video_capture_output_dir,
+        video_capture_fps=video_capture_fps,
+        video_capture_tile_size=video_capture_tile_size,
+        video_capture_show_status_bars=video_capture_show_status_bars,
+    )
     valid_rollouts = [
         item for item in completed_rollouts if not item.get("error") and is_rollout_payload(item)
     ]

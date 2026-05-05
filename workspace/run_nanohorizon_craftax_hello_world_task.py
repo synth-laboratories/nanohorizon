@@ -392,6 +392,16 @@ def _gif_media_ref(output_root: Path, rollout: dict[str, Any]) -> dict[str, Any]
     media = rollout.get("media")
     if not isinstance(media, dict):
         return None
+    raw_data_url = str(media.get("data_url") or media.get("gif_url") or "").strip()
+    if raw_data_url.startswith("data:image/gif;base64,"):
+        return {
+            "kind": "gif",
+            "content_type": "image/gif",
+            "path": str(media.get("gif_path") or ""),
+            "url": raw_data_url,
+            "data_url": raw_data_url,
+            "file_size_bytes": int(media.get("file_size_bytes") or 0),
+        }
     raw_gif_path = str(media.get("gif_path") or "").strip()
     if not raw_gif_path:
         return None

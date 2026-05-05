@@ -8,6 +8,34 @@ from pathlib import Path
 from typing import Any
 
 
+FULL_TEXTURE_KEYS = {
+    "full_map_block_textures",
+    "full_map_item_textures",
+    "full_map_player_textures",
+    "full_map_player_textures_alpha",
+    "melee_mob_textures",
+    "melee_mob_texture_alphas",
+    "passive_mob_textures",
+    "passive_mob_texture_alphas",
+    "ranged_mob_textures",
+    "ranged_mob_texture_alphas",
+    "projectile_textures",
+    "projectile_texture_alphas",
+    "night_texture",
+    "night_noise_intensity_texture",
+    "number_textures",
+    "number_textures_alpha",
+    "number_textures_with_zero",
+    "number_textures_alpha_with_zero",
+    "smaller_block_textures",
+    "smaller_empty_texture",
+    "armour_textures",
+    "bow_textures",
+    "player_projectile_textures",
+    "potion_textures",
+}
+
+
 def _shared_cache_root() -> Path | None:
     raw = str(os.getenv("NANOHORIZON_CRAFTAX_CACHE_DIR") or "").strip()
     if not raw:
@@ -74,6 +102,57 @@ def _merge_reports(primary: dict[str, Any], secondary: dict[str, Any]) -> dict[s
     return merged
 
 
+def _repair_incomplete_texture_cache(
+    constants_module: Any,
+    *,
+    required_keys: set[str],
+) -> dict[str, Any]:
+    textures = getattr(constants_module, "TEXTURES", None)
+    block_sizes = [
+        int(getattr(constants_module, "BLOCK_PIXEL_SIZE_AGENT", 0) or 0),
+        int(getattr(constants_module, "BLOCK_PIXEL_SIZE_IMG", 0) or 0),
+        int(getattr(constants_module, "BLOCK_PIXEL_SIZE_HUMAN", 0) or 0),
+    ]
+    block_sizes = [item for item in dict.fromkeys(block_sizes) if item > 0]
+    report: dict[str, Any] = {
+        "texture_block_sizes": block_sizes,
+        "repaired_incomplete_cache": False,
+        "missing_required_keys": {},
+    }
+    if not isinstance(textures, dict):
+        return report
+    missing_by_size: dict[str, list[str]] = {}
+    for block_size in block_sizes:
+        texture_set = textures.get(block_size)
+        if not isinstance(texture_set, dict):
+            missing_by_size[str(block_size)] = sorted(required_keys)
+            continue
+        missing = sorted(required_keys - set(texture_set))
+        if missing:
+            missing_by_size[str(block_size)] = missing
+    report["missing_required_keys"] = missing_by_size
+    if not missing_by_size:
+        return report
+    load_all_textures = getattr(constants_module, "load_all_textures", None)
+    if load_all_textures is None:
+        report["repair_error"] = "load_all_textures unavailable"
+        return report
+    for block_size in block_sizes:
+        if str(block_size) in missing_by_size:
+            textures[block_size] = load_all_textures(block_size)
+    report["repaired_incomplete_cache"] = True
+    save_compressed_pickle = getattr(constants_module, "save_compressed_pickle", None)
+    texture_cache_file = getattr(constants_module, "TEXTURE_CACHE_FILE", None)
+    if save_compressed_pickle is None or texture_cache_file is None:
+        return report
+    try:
+        save_compressed_pickle(texture_cache_file, textures)
+        report["repair_saved_to_cache"] = True
+    except Exception as exc:  # noqa: BLE001
+        report["repair_save_error"] = f"{type(exc).__name__}: {exc}"
+    return report
+
+
 def ensure_texture_cache() -> dict[str, Any]:
     os.environ.pop("CRAFTAX_RELOAD_TEXTURES", None)
     shared_root = _shared_cache_root()
@@ -106,6 +185,10 @@ def ensure_texture_cache() -> dict[str, Any]:
     try:
         import craftax.craftax.constants as craftax_constants
 
+        repair_report = _repair_incomplete_texture_cache(
+            craftax_constants,
+            required_keys=FULL_TEXTURE_KEYS,
+        )
         report["full"] = _merge_reports(
             report["full"],
             _sync_shared_cache(
@@ -114,6 +197,7 @@ def ensure_texture_cache() -> dict[str, Any]:
                 namespace="full",
             ),
         )
+        report["full"] = _merge_reports(report["full"], repair_report)
     except Exception as exc:  # pragma: no cover - optional dependency
         report["full"] = {"error": f"{type(exc).__name__}: {exc}"}
     try:

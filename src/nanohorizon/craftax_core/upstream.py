@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
+import jax.numpy as jnp
 
 from .metadata import DEFAULT_ACHIEVEMENT_NAMES, FULL_ACHIEVEMENTS
 from .modalities import CallableRenderer, RenderMode
 from .runner import DeterministicCraftaxRunner
+from .texture_cache import FULL_TEXTURE_KEYS
 
 EnvKind = Literal["full", "classic"]
 
@@ -26,12 +28,38 @@ def _normalize_action_names(raw: dict[str, int]) -> dict[str, int]:
     return normalized
 
 
+def _coerce_texture_tree_for_jax(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return jnp.asarray(value)
+    if isinstance(value, dict):
+        return {key: _coerce_texture_tree_for_jax(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return tuple(_coerce_texture_tree_for_jax(item) for item in value)
+    if isinstance(value, list):
+        return [_coerce_texture_tree_for_jax(item) for item in value]
+    return value
+
+
+def _prepare_renderer_textures_for_jax(renderer_module: Any, block_pixel_size: int) -> None:
+    textures = getattr(renderer_module, "TEXTURES", None)
+    if not isinstance(textures, dict) or block_pixel_size not in textures:
+        return
+    missing_keys = FULL_TEXTURE_KEYS - set(textures[block_pixel_size])
+    if missing_keys:
+        load_all_textures = getattr(renderer_module, "load_all_textures", None)
+        if load_all_textures is None:
+            return
+        textures[block_pixel_size] = load_all_textures(block_pixel_size)
+    textures[block_pixel_size] = _coerce_texture_tree_for_jax(textures[block_pixel_size])
+
+
 @dataclass(frozen=True)
 class CraftaxRendererConfig:
     kind: EnvKind = "full"
     verbose: bool = True
     formatting: Literal["md", "xml"] = "md"
     map_format: Literal["full", "compact"] = "full"
+    block_pixel_size: int | None = None
 
 
 def _fallback_state_text(state: Any) -> str:
@@ -68,13 +96,16 @@ class CraftaxRendererFactory:
         try:
             if kind == "classic":
                 from craftax.craftax.constants import BLOCK_PIXEL_SIZE_HUMAN
-                from craftax.craftax_classic.renderer import render_craftax_pixels
+                from craftax.craftax_classic import renderer as renderer_module
             else:
                 from craftax.craftax.constants import BLOCK_PIXEL_SIZE_HUMAN
-                from craftax.craftax.renderer import render_craftax_pixels
+                from craftax.craftax import renderer as renderer_module
         except Exception as exc:  # pragma: no cover - optional dependency
             _raise_missing(str(exc))
 
+        block_pixel_size = int(self.config.block_pixel_size or BLOCK_PIXEL_SIZE_HUMAN)
+        _prepare_renderer_textures_for_jax(renderer_module, block_pixel_size)
+        render_craftax_pixels = renderer_module.render_craftax_pixels
         text_fn = _fallback_state_text
         structured_fn = None
         try:
@@ -108,7 +139,7 @@ class CraftaxRendererFactory:
             pass
 
         def render_pixels_fn(state: Any) -> np.ndarray:
-            frame = render_craftax_pixels(state, BLOCK_PIXEL_SIZE_HUMAN)
+            frame = render_craftax_pixels(state, block_pixel_size)
             return np.asarray(frame, dtype=np.uint8)
 
         return CallableRenderer(
@@ -136,6 +167,7 @@ def make_runner(
     verbose: bool = True,
     formatting: Literal["md", "xml"] = "md",
     map_format: Literal["full", "compact"] = "full",
+    block_pixel_size: int | None = None,
 ) -> DeterministicCraftaxRunner:
     renderer = CraftaxRendererFactory(
         CraftaxRendererConfig(
@@ -143,6 +175,7 @@ def make_runner(
             verbose=verbose,
             formatting=formatting,
             map_format=map_format,
+            block_pixel_size=block_pixel_size,
         )
     ).build()
     return DeterministicCraftaxRunner(
@@ -217,4 +250,3 @@ def achievement_names_from_state(state: Any) -> list[str]:
         if float(value) > 0:
             unlocked.append(FULL_ACHIEVEMENTS.get(index, f"achievement_{index}"))
     return unlocked
-
