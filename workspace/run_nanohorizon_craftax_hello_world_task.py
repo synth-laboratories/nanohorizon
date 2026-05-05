@@ -5,11 +5,14 @@ import argparse
 import base64
 import json
 import os
+import socket
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib import request
 
 TASK_ID = "nanohorizon_craftax_hello_world"
 TASK_TITLE = "NanoHorizon Craftax Hello World"
@@ -30,6 +33,8 @@ ARTIFACTS = {
     "craftax_experiment_result": "artifacts/craftax_experiment_result.json",
     "reproduction": "reports/reproduction.md",
 }
+
+LOCAL_HTTP_TIMEOUT_SECONDS = 180.0
 
 
 def _utc_now() -> str:
@@ -122,12 +127,7 @@ def _resolve_nanohorizon_python(nanohorizon_root: Path) -> str:
     return sys.executable
 
 
-def _run_baseline(output_root: Path) -> subprocess.CompletedProcess[str]:
-    nanohorizon_root = _resolve_nanohorizon_root()
-    nanohorizon_python = _resolve_nanohorizon_python(nanohorizon_root)
-    summary_path = _artifact_path(output_root, "eval_summary")
-    rollouts_path = _artifact_path(output_root, "rollouts")
-    env = os.environ.copy()
+def _apply_craftax_runtime_env(env: dict[str, str], nanohorizon_root: Path) -> None:
     pythonpath_parts = [
         str(nanohorizon_root),
         str(nanohorizon_root / "src"),
@@ -137,52 +137,172 @@ def _run_baseline(output_root: Path) -> subprocess.CompletedProcess[str]:
         pythonpath_parts.append(existing_pythonpath)
     env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
     env["NANOHORIZON_REPO_ROOT"] = str(nanohorizon_root)
-    proof_process = subprocess.run(
-        [
-            nanohorizon_python,
-            str(RESOURCE_SCRIPT),
-            "local-proof",
-            "--output",
-            str(_artifact_path(output_root, "container_proof")),
-        ],
+    env.setdefault("JAX_PLATFORMS", "cpu")
+    env.setdefault("JAX_PLATFORM_NAME", "cpu")
+    env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+    env.setdefault("XLA_PYTHON_CLIENT_MEM_FRACTION", "0.25")
+
+
+def _allocate_local_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _probe_http_health(url: str, timeout_seconds: float = 2.0) -> dict[str, Any]:
+    with request.urlopen(f"{url.rstrip('/')}/health", timeout=timeout_seconds) as response:
+        body = response.read().decode("utf-8", errors="replace")
+        return {
+            "status_code": int(response.status),
+            "ok": 200 <= int(response.status) < 300,
+            "body_preview": body[:1000],
+        }
+
+
+def _start_local_http_resource(
+    output_root: Path,
+    *,
+    nanohorizon_python: str,
+    env: dict[str, str],
+) -> tuple[subprocess.Popen[str], str]:
+    port = int(os.getenv("NANOHORIZON_CRAFTAX_BIND_PORT") or _allocate_local_port())
+    service_env = env.copy()
+    service_env["NANOHORIZON_CRAFTAX_BIND_HOST"] = "127.0.0.1"
+    service_env["NANOHORIZON_CRAFTAX_BIND_PORT"] = str(port)
+    service_env.setdefault("NANOHORIZON_CRAFTAX_UVICORN_WORKERS", "1")
+    service_url = f"http://127.0.0.1:{port}"
+    stdout_path = output_root / "artifacts" / "craftax_http_stdout.log"
+    stderr_path = output_root / "artifacts" / "craftax_http_stderr.log"
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_handle = stdout_path.open("w", encoding="utf-8")
+    stderr_handle = stderr_path.open("w", encoding="utf-8")
+    process = subprocess.Popen(
+        [nanohorizon_python, "-m", "nanohorizon.craftax_core.http_shim"],
         cwd=str(output_root),
-        env=env,
-        capture_output=True,
+        env=service_env,
+        stdout=stdout_handle,
+        stderr=stderr_handle,
         text=True,
-        check=False,
     )
-    if proof_process.returncode != 0:
-        _write_json(
-            _artifact_path(output_root, "container_proof"),
-            {
-                "recorded_at": _utc_now(),
-                "resource_id": "craftax_rollout_http",
-                "resource_ownership": "actor_managed",
-                "shared_context_key": "runtime_resources.craftax",
-                "ready": False,
-                "proof_exit_code": int(proof_process.returncode),
-                "stdout_preview": proof_process.stdout[:2000],
-                "stderr_preview": proof_process.stderr[:2000],
-                "note": "Actor-managed Craftax resource proof failed before the worker eval.",
-            },
+    deadline = time.monotonic() + LOCAL_HTTP_TIMEOUT_SECONDS
+    last_error = ""
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(
+                "Craftax local HTTP resource exited before /health became ready. "
+                f"exit_code={process.returncode} stdout={stdout_path} stderr={stderr_path}"
+            )
+        try:
+            health = _probe_http_health(service_url)
+            if health.get("ok"):
+                return process, service_url
+        except Exception as exc:  # noqa: BLE001
+            last_error = repr(exc)
+        time.sleep(1.0)
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=10)
+    raise RuntimeError(
+        "Craftax local HTTP resource did not become healthy. "
+        f"last_error={last_error} stdout={stdout_path} stderr={stderr_path}"
+    )
+
+
+def _stop_local_http_resource(process: subprocess.Popen[str] | None) -> None:
+    if process is None or process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=10)
+
+
+def _run_baseline(output_root: Path) -> subprocess.CompletedProcess[str]:
+    nanohorizon_root = _resolve_nanohorizon_root()
+    nanohorizon_python = _resolve_nanohorizon_python(nanohorizon_root)
+    summary_path = _artifact_path(output_root, "eval_summary")
+    rollouts_path = _artifact_path(output_root, "rollouts")
+    env = os.environ.copy()
+    _apply_craftax_runtime_env(env, nanohorizon_root)
+    local_http_process: subprocess.Popen[str] | None = None
+    explicit_url = str(env.get("NANOHORIZON_CRAFTAX_CONTAINER_URL") or "").strip()
+    direct_requested = str(env.get("NANOHORIZON_CRAFTAX_RESOURCE_MODE") or "").strip() == "direct"
+    try:
+        if not explicit_url and not direct_requested:
+            local_http_process, service_url = _start_local_http_resource(
+                output_root,
+                nanohorizon_python=nanohorizon_python,
+                env=env,
+            )
+            env["NANOHORIZON_CRAFTAX_CONTAINER_URL"] = service_url
+            env.pop("NANOHORIZON_ALLOW_DIRECT_LOCAL", None)
+        elif direct_requested:
+            env["NANOHORIZON_ALLOW_DIRECT_LOCAL"] = "1"
+        proof_process = subprocess.run(
+            [
+                nanohorizon_python,
+                str(RESOURCE_SCRIPT),
+                "local-proof",
+                "--output",
+                str(_artifact_path(output_root, "container_proof")),
+            ],
+            cwd=str(output_root),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
         )
-        return proof_process
-    cmd = [
-        nanohorizon_python,
-        str(WORKER_SCRIPT),
-        "--summary-output",
-        str(summary_path),
-        "--rollouts-output",
-        str(rollouts_path),
-    ]
-    return subprocess.run(
-        cmd,
-        cwd=str(output_root),
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+        if proof_process.returncode != 0:
+            _write_json(
+                _artifact_path(output_root, "container_proof"),
+                {
+                    "recorded_at": _utc_now(),
+                    "resource_id": "craftax_rollout_http",
+                    "resource_ownership": "actor_managed",
+                    "shared_context_key": "runtime_resources.craftax",
+                    "ready": False,
+                    "proof_exit_code": int(proof_process.returncode),
+                    "stdout_preview": proof_process.stdout[:2000],
+                    "stderr_preview": proof_process.stderr[:2000],
+                    "note": "Actor-managed Craftax resource proof failed before the worker eval.",
+                },
+            )
+            return proof_process
+        if local_http_process is not None:
+            proof = _load_json(_artifact_path(output_root, "container_proof"))
+            proof.update(
+                {
+                    "mode": "local_http",
+                    "managed_by": "workspace/run_nanohorizon_craftax_hello_world_task.py",
+                    "resource_url": env["NANOHORIZON_CRAFTAX_CONTAINER_URL"],
+                    "stdout_log": "artifacts/craftax_http_stdout.log",
+                    "stderr_log": "artifacts/craftax_http_stderr.log",
+                }
+            )
+            _write_json(_artifact_path(output_root, "container_proof"), proof)
+        cmd = [
+            nanohorizon_python,
+            str(WORKER_SCRIPT),
+            "--summary-output",
+            str(summary_path),
+            "--rollouts-output",
+            str(rollouts_path),
+        ]
+        return subprocess.run(
+            cmd,
+            cwd=str(output_root),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        _stop_local_http_resource(local_http_process)
 
 
 def _requested_rollouts(summary: dict[str, Any]) -> int:

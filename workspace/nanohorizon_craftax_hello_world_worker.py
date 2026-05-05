@@ -17,6 +17,7 @@ SYSTEM_PROMPT = (
 )
 DEFAULT_ROLLOUT_COUNT = 10
 DEFAULT_ROLLOUT_CONCURRENCY = 10
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 180.0
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -110,6 +111,17 @@ def _media_output_dir() -> str:
     return str(os.getenv("NANOHORIZON_ROLLOUT_MEDIA_DIR") or Path("artifacts") / "rollout_media")
 
 
+def _positive_float_env(name: str, default: float) -> float:
+    raw = str(os.getenv(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return max(1.0, value)
+
+
 async def _run_eval() -> tuple[list[dict[str, Any]], dict[str, Any]]:
     inference_url, model, api_key = _load_inference_config()
     from nanohorizon.shared.craftax_data import (
@@ -140,7 +152,10 @@ async def _run_eval() -> tuple[list[dict[str, Any]], dict[str, Any]]:
         policy_version="hello_world",
         target_action_batch_size=5,
         min_action_batch_size=5,
-        request_timeout_seconds=45.0,
+        request_timeout_seconds=_positive_float_env(
+            "NANOHORIZON_REQUEST_TIMEOUT_SECONDS",
+            DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        ),
         max_concurrent_rollouts=rollout_concurrency,
         trace_prefix="nanohorizon_craftax_hello_world",
         video_capture_output_dir=_media_output_dir(),
