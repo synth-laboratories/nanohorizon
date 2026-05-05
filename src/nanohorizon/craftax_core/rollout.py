@@ -221,6 +221,7 @@ def _chat_completion(
                 timeout=timeout,
                 follow_redirects=True,
                 headers={"Connection": "close"} if uses_proxy_edge else None,
+                trust_env=False,
             ) as client:
                 response = client.post(inference_url, headers=headers, json=request_body)
             if response.status_code in retryable_statuses and attempt < 6:

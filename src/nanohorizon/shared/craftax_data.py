@@ -733,6 +733,7 @@ async def collect_rollouts_concurrently_with_summary(
             }
         )
 
+    client_kwargs["trust_env"] = False
     async with httpx.AsyncClient(**client_kwargs) as client:
         workers = [asyncio.create_task(_worker(client)) for _ in range(worker_count)]
         await rollout_queue.join()
