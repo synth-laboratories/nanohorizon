@@ -63,7 +63,10 @@ def save_mp4(*, frames: list[np.ndarray], output_path: str | Path, fps: int = 6)
         return None
     target = Path(output_path).expanduser().resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
-    iio.imwrite(target, [_to_uint8_frame(frame) for frame in frames], fps=max(1, int(fps)))
+    try:
+        iio.imwrite(target, [_to_uint8_frame(frame) for frame in frames], fps=max(1, int(fps)))
+    except Exception:
+        return None
     return str(target)
 
 
@@ -79,4 +82,3 @@ def persist_media(
     gif_path = save_gif(frames=frames, output_path=target / "rollout.gif", fps=fps)
     mp4_path = save_mp4(frames=frames, output_path=target / "rollout.mp4", fps=fps) if write_mp4 else None
     return MediaArtifacts(frames_dir=frames_dir, gif_path=gif_path, mp4_path=mp4_path)
-
