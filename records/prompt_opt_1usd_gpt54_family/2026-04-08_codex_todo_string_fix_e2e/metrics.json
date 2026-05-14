@@ -1,0 +1,15 @@
+{
+  "status": "not_run",
+  "baseline": "gepa_craftax_prompt_optimization",
+  "comparison_baseline_record": "records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline",
+  "comparison_candidate_record": "records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate",
+  "policy_model": "Qwen/Qwen3.5-4B",
+  "request_model": "qwen35-4b-prompt-opt",
+  "optimizer_budget_usd": 1.0,
+  "primary_score": null,
+  "submission_mean_outcome_reward": null,
+  "submission_achievement_frequencies": {},
+  "baseline_primary_score": 0.35,
+  "bootstrap_primary_score": 0.6,
+  "residual_risk": "Candidate was not executed in this task; scoreboard impact is unmeasured."
+}
