@@ -46,8 +46,8 @@ def _default_train_seeds() -> list[int]:
 
 def define() -> dict[str, Any]:
     return {
-        "name": "craftax_submission_agent",
-        "description": "Single-file NanoHorizon submission surface for prompt-first Craftax agents.",
+        "name": "craftax_publication_smoke_submission_agent",
+        "description": "Single-file NanoHorizon publication smoke submission surface for prompt-first Craftax agents.",
         "base_model": _env_str("NANOHORIZON_SUBMISSION_BASE_MODEL", "Qwen/Qwen3.5-4B"),
         "train_seeds": _default_train_seeds(),
         "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 10),
