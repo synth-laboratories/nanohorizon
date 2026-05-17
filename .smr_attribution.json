@@ -1,0 +1,5 @@
+{
+  "provider_usage_ingest_base_url": "http://backend-api:8000",
+  "run_id": "586cf9ae-f7fb-4351-9ec5-abd0167b6deb",
+  "schema_version": 1
+}
