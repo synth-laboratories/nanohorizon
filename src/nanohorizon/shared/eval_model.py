@@ -71,8 +71,8 @@ def evaluate_model(
     ).strip()
     if not resolved_container_worker_token:
         resolved_container_worker_token = str(
-        os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN")
-        or ""
+            os.getenv("NANOHORIZON_CRAFTAX_CONTAINER_WORKER_TOKEN")
+            or ""
         ).strip()
     resolved_inference_url = str(inference_url or "").strip()
     resolved_inference_api_key = str(
@@ -97,7 +97,7 @@ def evaluate_model(
         or (
             "You are a Craftax policy.\n"
             f"You may think for up to about {int(thinking_budget_tokens)} tokens before answering.\n"
-            "Return a short useful macro-action with 5-10 valid full-Craftax actions.\n"
+            "Return a short useful macro-action with 3-4 valid full-Craftax actions.\n"
             "Use movement to explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
@@ -121,8 +121,8 @@ def evaluate_model(
                 enable_thinking=enable_thinking,
                 thinking_budget_tokens=thinking_budget_tokens,
                 policy_version="finetuned-eval" if adapter_dir is not None else "base-eval",
-                target_action_batch_size=8,
-                min_action_batch_size=5,
+                target_action_batch_size=4,
+                min_action_batch_size=3,
                 request_timeout_seconds=float(request_timeout_seconds),
                 max_concurrent_rollouts=max_concurrent_rollouts,
                 trace_prefix=summary_name.removesuffix(".json"),
@@ -164,8 +164,8 @@ def evaluate_model(
                     enable_thinking=enable_thinking,
                     thinking_budget_tokens=thinking_budget_tokens,
                     policy_version="finetuned-eval" if adapter_dir is not None else "base-eval",
-                    target_action_batch_size=8,
-                    min_action_batch_size=5,
+                    target_action_batch_size=4,
+                    min_action_batch_size=3,
                     request_timeout_seconds=float(request_timeout_seconds),
                     max_concurrent_rollouts=max_concurrent_rollouts,
                     trace_prefix=summary_name.removesuffix(".json"),

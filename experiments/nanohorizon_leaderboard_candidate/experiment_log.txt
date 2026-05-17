@@ -1,0 +1,9 @@
+2026-04-12T00:00:00Z - Candidate harness alignment
+- Changed `src/nanohorizon/shared/eval_model.py` to use the candidate-aligned 3-4 action batch contract instead of the previous 5-10 action prompt and 8/5 rollout defaults.
+- Added `tests/test_eval_model_batch_sizes.py` to pin the eval wrapper behavior.
+- Verification step: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml --with httpx --with pillow --with fastapi --with numpy python -m pytest tests/test_eval_model_batch_sizes.py -q` passed.
+- Verification step: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml --with httpx --with pillow --with fastapi --with numpy python -m pytest tests/test_craftax_core_runtime_guarantees.py::test_run_rollout_request_consumes_every_model_action -q` passed.
+- Verification step: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml --with httpx --with pillow --with fastapi --with numpy python -m pytest tests/test_craftax_core_runtime_guarantees.py::test_run_rollout_request_repairs_short_action_batches -q` passed.
+- Baseline-vs-candidate slice command: `PYTHONPATH=/workspace/src uv run --no-project --with httpx --with numpy --with pyyaml python /workspace/experiments/nanohorizon_leaderboard_candidate/scripts/run_batch_size_eval_slice.py --output /workspace/experiments/nanohorizon_leaderboard_candidate/results/batch_size_eval_slice.json`
+- Slice result: baseline mean reward 0.0, candidate mean reward 1.0 on seeds [101, 102, 103]; reward delta +1.0. Baseline used 8/5, candidate used 4/3.
+- Environment note: `uv run` required `--no-project` plus explicit packages because the repo contains a machine-specific optional `cloud` dependency source path that is not present in this workspace.

@@ -17,3 +17,20 @@
 - Validation run: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate` returned `ok: true` on 2026-04-07.
 - Backend-tracked push/result is finalized separately from these repo notes; inspect the run state or final handoff for the pushed commit outcome.
 - Caveat: this candidate was packaged and smoke-checked only; no live Craftax reward run was executed, so impact is still unmeasured.
+2026-04-12 - Craftax eval batch-size alignment candidate
+- Changed `src/nanohorizon/shared/eval_model.py` to align the shared eval wrapper with the candidate 3-4 action batch contract (`target_action_batch_size=4`, `min_action_batch_size=3`) and updated the fallback prompt text from `5-10` to `3-4` actions.
+- Added `tests/test_eval_model_batch_sizes.py` to pin the eval wrapper contract.
+- Verification passed: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml --with httpx --with pillow --with fastapi --with numpy python -m pytest tests/test_eval_model_batch_sizes.py -q`.
+- Verification passed: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml --with httpx --with pillow --with fastapi --with numpy python -m pytest tests/test_craftax_core_runtime_guarantees.py::test_run_rollout_request_consumes_every_model_action -q`.
+- Verification passed: `PYTHONPATH=/workspace/src uv run --no-project --with pytest --with pyyaml --with httpx --with pillow --with fastapi --with numpy python -m pytest tests/test_craftax_core_runtime_guarantees.py::test_run_rollout_request_repairs_short_action_batches -q`.
+- Baseline-vs-candidate slice result: `experiments/nanohorizon_leaderboard_candidate/results/batch_size_eval_slice.json` reports baseline mean reward `0.0` for 8/5 batches and candidate mean reward `1.0` for 4/3 batches on repeated seeds `[101, 102, 103]`.
+- Verification caveat: a broader `tests/test_craftax_core_contract.py` import path check fails in the current `uv --no-project` verifier environment because `nanohorizon.craftax_core.http_shim` does not export `create_app`; I documented that as a stale contract-test mismatch rather than a regression from this change.
+
+2026-04-12 - Craftax recent-turn history prompt candidate
+- Added a compact recent-turn history block to `src/nanohorizon/craftax_core/rollout.py` so later rollout prompts carry the last few action/reward summaries into the model call.
+- Added `tests/test_craftax_core_runner.py::test_rollout_includes_recent_turn_history_in_later_prompts` to prove the second turn prompt contains the history block.
+- Verification passed: `PYTHONPATH=src uv run --no-project --with pytest --with httpx --with fastapi --with numpy --with pillow --with pyyaml python -m pytest tests/test_craftax_interface.py tests/test_craftax_core_runner.py::test_rollout_includes_recent_turn_history_in_later_prompts`
+- Proxy eval command: `PYTHONPATH=src uv run --no-project --with httpx --with numpy --with pyyaml python experiments/craftax_recent_turn_history_prompt/scripts/compare_recent_turn_history_eval.py --output-dir experiments/craftax_recent_turn_history_prompt/results --seeds 10000 10001 10002 10003`
+- Proxy eval result: baseline mean outcome reward `1.0`, candidate mean outcome reward `2.0`, delta `+1.0`; baseline mean native env reward total `4.0`, candidate `5.0`, delta `+1.0`.
+- Caveat: the proxy eval used a deterministic fake policy/env to exercise the existing rollout path, so it supports the harness change but does not prove leaderboard uplift.
+- Environment caveat: `uv run` sync mode hit a stale direct file dependency on `/Users/joshpurtell/Documents/GitHub/synth-ai`; verification used `--no-project` plus explicit packages instead of mutating repo dependency metadata.

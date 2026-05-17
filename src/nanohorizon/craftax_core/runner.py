@@ -1,10 +1,15 @@
+"""CLI and helpers for the Craftax interface-shaped candidate."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Protocol
-
 import copy
+import json
+import sys
+from dataclasses import dataclass
+from typing import Any, Callable, Iterable, Mapping, Protocol
 
+from .http_shim import render_prompt_turn
+from .metadata import PromptContext, RewardHistoryEntry, RewardHistoryWindow, StructuredObservation
 from .checkpoint import Checkpoint
 from .modalities import CallableRenderer, RenderBundle, RenderMode
 
@@ -12,6 +17,84 @@ try:
     import jax
 except Exception:  # pragma: no cover - optional dependency
     jax = None
+
+
+# ---------------------------------------------------------------------------
+# Interface v1 helpers
+# ---------------------------------------------------------------------------
+
+
+def summarize_reward_history(
+    history: Iterable[Mapping[str, Any] | RewardHistoryEntry],
+) -> list[dict[str, Any]]:
+    window = RewardHistoryWindow()
+    for item in history:
+        if isinstance(item, RewardHistoryEntry):
+            window.append(item)
+        else:
+            window.append(
+                RewardHistoryEntry(
+                    action=item.get("action"),
+                    observation_summary=str(item.get("observation_summary", "")),
+                    reward_delta=float(item.get("reward_delta", 0.0)),
+                )
+            )
+    return window.to_prompt_payload()
+
+
+def build_prompt_context(
+    observation: Any,
+    history: Iterable[Mapping[str, Any] | RewardHistoryEntry] = (),
+    *,
+    metadata: Mapping[str, Any] | None = None,
+) -> PromptContext:
+    return PromptContext(
+        observation=StructuredObservation.from_observation(observation),
+        reward_history=RewardHistoryWindow(
+            [entry if isinstance(entry, RewardHistoryEntry) else RewardHistoryEntry(
+                action=entry.get("action"),
+                observation_summary=str(entry.get("observation_summary", "")),
+                reward_delta=float(entry.get("reward_delta", 0.0)),
+            ) for entry in history]
+        ),
+        metadata=dict(metadata or {}),
+    )
+
+
+def _load_payload_from_stdin() -> dict[str, Any]:
+    raw = sys.stdin.read().strip()
+    if not raw:
+        return {}
+    return json.loads(raw)
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in {"-h", "--help"}:
+        print(
+            "Usage: python -m nanohorizon.craftax_core.runner < input.json\n"
+            "Reads an observation/history payload from stdin and emits a prompt-ready JSON object."
+        )
+        return 0
+
+    payload = _load_payload_from_stdin()
+    prompt = render_prompt_turn(
+        payload.get("observation"),
+        payload.get("history", ()),
+        metadata=payload.get("metadata"),
+    )
+    json.dump(prompt, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+# ---------------------------------------------------------------------------
+# DeterministicCraftaxRunner — preserved for upstream.py compatibility
+# ---------------------------------------------------------------------------
 
 
 class EnvLike(Protocol):
@@ -157,4 +240,3 @@ class DeterministicCraftaxRunner:
         if self.episode_start is None:
             raise RuntimeError("no episode start checkpoint available")
         return self.restore(self.episode_start)
-
