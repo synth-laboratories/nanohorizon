@@ -18,6 +18,7 @@ from nanohorizon.shared.common import write_json
 from nanohorizon.shared.eval_model import evaluate_model
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+PUBLICATION_SMOKE_NOTE = "PUBLICATION_SMOKE_NOTE: keep the rollout compact, reproducible, and easy to audit."
 
 
 def _env_int(name: str, default: int) -> int:
@@ -64,7 +65,8 @@ def define() -> dict[str, Any]:
             "Explore when nothing useful is adjacent.\n"
             "Use 'do' only when facing a useful nearby object or resource.\n"
             "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
+            "Call the action tool exactly once in the final answer.\n"
+            f"{PUBLICATION_SMOKE_NOTE}"
         ),
     }
 
@@ -136,8 +138,6 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
             video_capture_rollout_index=0 if capture_video else None,
             video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
             summary_name=f"rollout_{index:05d}_{seed}.json",
         )
         detail = dict((summary.get("details") or [{}])[0])
