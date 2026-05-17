@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import importlib.util
 import json
 import os
@@ -14,10 +15,30 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from nanohorizon.shared.craftax_data import collect_rollouts_concurrently
 from nanohorizon.shared.common import write_json
-from nanohorizon.shared.eval_model import evaluate_model
+from nanohorizon.shared.vllm_eval import LocalVLLMEvalConfig, local_vllm_server
 
 _SEED_MANIFEST_PATH = REPO_ROOT / "data" / "craftax" / "craftax_prompt_opt_starter_seeds.json"
+_OFFICIAL_TRAIN_SEEDS = list(range(10_000, 10_020))
+_CANDIDATE_LABEL = "codex-20260418T085957Z"
+
+
+def _system_prompt() -> str:
+    return (
+        "You are a Craftax policy for an early-game resource ladder.\n"
+        "Primary objective order:\n"
+        "1. If collect_sapling is not yet achieved, move toward the nearest visible sapling or tree.\n"
+        "2. Once collect_sapling and collect_wood are both achieved, switch from gathering to\n"
+        "place_plant whenever a valid adjacent grass tile is available.\n"
+        "3. If a tree is adjacent and you are facing it, use do immediately instead of continuing to move.\n"
+        "4. If a sapling or tree interaction failed, change position or facing before repeating do.\n"
+        "5. If nothing useful is adjacent, explore with a short movement adjustment rather than looping.\n"
+        "6. Do not sleep unless energy is low, and do not craft before the sapling/wood start is established.\n"
+        "7. Prefer reliable sapling + wood + place_plant progression over speculative crafting or combat.\n"
+        "Use the craftax_interact tool exactly once for the final answer.\n"
+        "Return only valid full-Craftax actions."
+    )
 
 
 def _env_int(name: str, default: int) -> int:
@@ -39,9 +60,9 @@ def _default_train_seeds() -> list[int]:
     if _SEED_MANIFEST_PATH.exists():
         payload = json.loads(_SEED_MANIFEST_PATH.read_text(encoding="utf-8"))
         values = payload.get("train_seeds") if isinstance(payload, dict) else None
-        if isinstance(values, list) and values:
+        if isinstance(values, list) and len(values) >= len(_OFFICIAL_TRAIN_SEEDS):
             return [int(item) for item in values]
-    return [seed for seed in range(0, 20)]
+    return [seed for seed in _OFFICIAL_TRAIN_SEEDS]
 
 
 def define() -> dict[str, Any]:
@@ -50,22 +71,15 @@ def define() -> dict[str, Any]:
         "description": "Single-file NanoHorizon submission surface for prompt-first Craftax agents.",
         "base_model": _env_str("NANOHORIZON_SUBMISSION_BASE_MODEL", "Qwen/Qwen3.5-4B"),
         "train_seeds": _default_train_seeds(),
-        "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 10),
+        "max_steps": _env_int("NANOHORIZON_SUBMISSION_MAX_STEPS", 12),
         "max_concurrent_rollouts": 1,
         "max_length": 8192,
-        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 512),
-        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 3000),
-        "enable_thinking": False,
-        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 8),
-        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 5),
-        "system_prompt": (
-            "You are a Craftax policy.\n"
-            "Think briefly, then return a short useful macro-action with valid full-Craftax actions.\n"
-            "Explore when nothing useful is adjacent.\n"
-            "Use 'do' only when facing a useful nearby object or resource.\n"
-            "Read the recent action history and avoid repeating unproductive loops.\n"
-            "Call the action tool exactly once in the final answer."
-        ),
+        "max_new_tokens": _env_int("NANOHORIZON_SUBMISSION_MAX_NEW_TOKENS", 384),
+        "thinking_budget_tokens": _env_int("NANOHORIZON_SUBMISSION_THINKING_BUDGET_TOKENS", 2000),
+        "enable_thinking": True,
+        "target_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_TARGET_ACTION_BATCH_SIZE", 4),
+        "min_action_batch_size": _env_int("NANOHORIZON_SUBMISSION_MIN_ACTION_BATCH_SIZE", 3),
+        "system_prompt": _system_prompt(),
     }
 
 
@@ -75,6 +89,8 @@ def train(data_dir: Path, out_dir: Path) -> None:
         "define": define(),
         "train_data_dir": str(data_dir),
         "trained": False,
+        "candidate_label": _CANDIDATE_LABEL,
+        "notes": "Prompt-first candidate targeting sapling -> wood -> plant/drink progression.",
     }
     write_json(out_dir / "checkpoint.json", checkpoint)
 
@@ -87,6 +103,24 @@ def _resolve_seeds(data_dir: Path, config: dict[str, Any]) -> list[int]:
         if isinstance(values, list):
             return [int(item) for item in values]
     return [int(item) for item in config.get("train_seeds", [])]
+
+
+def _normalize_inference_url(raw_url: str) -> str:
+    url = str(raw_url or "").strip()
+    if not url:
+        return ""
+    if url.endswith("/chat/completions"):
+        return url
+    if url.endswith("/v1"):
+        return f"{url}/chat/completions"
+    if url.endswith("/v1/"):
+        return f"{url}chat/completions"
+    return url.rstrip("/") + "/v1/chat/completions"
+
+
+def _is_local_inference(inference_url: str) -> bool:
+    url = str(inference_url or "").strip().lower()
+    return not url or url.startswith("direct://") or url.endswith("localhost") or url.endswith("127.0.0.1")
 
 
 def _can_capture_video() -> bool:
@@ -108,6 +142,8 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
     seeds = _resolve_seeds(data_dir, config)
     rollout_root = out_dir / "rollouts"
     rollout_root.mkdir(parents=True, exist_ok=True)
+    progress_root = out_dir / "progress"
+    progress_root.mkdir(parents=True, exist_ok=True)
     details: list[dict[str, Any]] = []
     rewards: list[float] = []
     llm_calls: list[float] = []
@@ -127,17 +163,17 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             max_steps=int(config.get("max_steps", 10)),
             max_concurrent_rollouts=1,
             max_length=int(config.get("max_length", 8192)),
-            max_new_tokens=int(config.get("max_new_tokens", 512)),
-            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 3000)),
-            enable_thinking=bool(config.get("enable_thinking", False)),
+            max_new_tokens=int(config.get("max_new_tokens", 1024)),
+            thinking_budget_tokens=int(config.get("thinking_budget_tokens", 2000)),
+            enable_thinking=bool(config.get("enable_thinking", True)),
             system_prompt=str(config.get("system_prompt", "")),
             inference_url=str(os.getenv("NANOHORIZON_EVAL_INFERENCE_URL", os.getenv("NANOHORIZON_EVAL_INFERENCE_BASE_URL", ""))),
             inference_api_key=str(os.getenv("NANOHORIZON_EVAL_API_KEY", "")),
             request_model=str(os.getenv("NANOHORIZON_EVAL_REQUEST_MODEL", "")),
             video_capture_rollout_index=0 if capture_video else None,
             video_capture_output_dir=str(rollout_dir) if capture_video else "",
-            target_action_batch_size=int(config.get("target_action_batch_size", 8)),
-            min_action_batch_size=int(config.get("min_action_batch_size", 5)),
+            target_action_batch_size=int(config.get("target_action_batch_size", 4)),
+            min_action_batch_size=int(config.get("min_action_batch_size", 3)),
             summary_name=f"rollout_{index:05d}_{seed}.json",
         )
         detail = dict((summary.get("details") or [{}])[0])
@@ -158,8 +194,36 @@ def eval(checkpoint_dir: Path, data_dir: Path, out_dir: Path) -> dict[str, Any]:
             achievement_names.add(name)
             achievement_counts[name] = achievement_counts.get(name, 0) + 1
 
+        completed_num_eval_rollouts = index + 1
+        write_json(
+            progress_root / f"{index:05d}_{seed}.json",
+            {
+                "candidate_label": _CANDIDATE_LABEL,
+                "seed": int(seed),
+                "rollout_index": int(index),
+                "requested_num_eval_rollouts": len(seeds),
+                "completed_num_eval_rollouts": completed_num_eval_rollouts,
+                "mean_outcome_reward_so_far": mean(rewards) if rewards else 0.0,
+                "max_outcome_reward_so_far": max(rewards) if rewards else 0.0,
+                "achievement_names_so_far": sorted(achievement_names),
+                "achievement_frequencies_so_far": {
+                    name: {
+                        "count": int(achievement_counts.get(name, 0)),
+                        "frequency": (
+                            float(achievement_counts.get(name, 0)) / float(completed_num_eval_rollouts)
+                        )
+                        if completed_num_eval_rollouts
+                        else 0.0,
+                    }
+                    for name in sorted(achievement_names)
+                },
+                "details_so_far": [dict(item) for item in details],
+            },
+        )
+
     requested = len(seeds)
     result = {
+        "candidate_label": _CANDIDATE_LABEL,
         "primary_score": mean(rewards) if rewards else 0.0,
         "requested_num_eval_rollouts": requested,
         "num_eval_rollouts": len([detail for detail in details if not detail.get("error")]),
