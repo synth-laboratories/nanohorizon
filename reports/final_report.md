@@ -1,62 +1,59 @@
-# Craftax Todo Refresh Gate Candidate
+# Craftax Local Runtime Final Smoke 2
 
 ## Context & objective
 
-Implement the smallest honest Craftax candidate for the todo-tool idea without changing the protected shared harness surfaces, while making the prompt-opt reflection path preserve the same scratchpad contract used by the candidate prompt.
+The objective was to keep the Craftax prompt-opt surface small and reviewable while pushing the policy toward earlier resource collection behavior. The candidate keeps the existing tool contract and adds a more explicit wood-first bootstrap ladder inside the system prompt.
 
 ## Experiments cited
 
 1. `records/prompt_opt_1usd_gpt54_family/2026-03-21_reference_baseline`
-   - Question: is a narrow prompt-only intervention safer than a harness change?
-   - Outcome: supporting.
-   - Evidence: the prior prompt-opt record documents a regression, so a compact seed-prompt correction is a lower-risk change than editing shared runtime code.
+   - Question: what is the checked-in prompt-opt baseline?
+   - Outcome: supporting baseline.
+   - Evidence: `metrics.json` reports `primary_score: 0.35` and `bootstrap_score: 0.6`.
 
-2. `src/nanohorizon/baselines/prompt_opt.py`
-   - Question: does prompt optimization preserve a stable todo-tool contract during GEPA reflection?
+2. `configs/craftax_prompt_opt_qwen35_4b_codex_local_runtime_final_smoke_2.yaml`
+   - Question: does the candidate make early-game resource collection more explicit without changing harness surfaces?
    - Outcome: supporting.
-   - Evidence: the source now centralizes the private three-item scratchpad requirements in `TODO_SCRATCHPAD_REQUIREMENTS` and reuses them in reflection instructions and rollout feedback.
+   - Evidence: the prompt now says `collect_wood -> place_table -> make_wood_pickaxe -> collect_stone` and keeps the three-item private todo contract.
 
-3. `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-   - Question: does the candidate add a compact but stricter loop-break / action-gating variant?
-   - Outcome: supporting.
-   - Evidence: the prompt now refreshes todo items every turn, replaces stale targets after no-progress loops, and asks the short action batch to follow the current first todo item.
+3. `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/scripts/proxy_smoke.py`
+   - Question: can the repo’s existing concurrent rollout path be used for a narrow baseline-vs-candidate smoke?
+   - Outcome: supporting as a proxy.
+   - Evidence: the script reuses `nanohorizon.shared.craftax_data.collect_rollouts_concurrently_with_summary` with a deterministic responder over the held-out starter eval seeds.
 
-4. `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
+4. `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2`
    - Question: is the candidate packaged reproducibly?
-   - Outcome: supporting for packaging, inconclusive for reward.
-   - Evidence: `run_config.yaml`, `notes.md`, `metrics.json`, `metadata.json`, `system_info.json`, and `command.txt`.
+   - Outcome: supporting.
+   - Evidence: `metadata.json`, `metrics.json`, `prompt_bundle.json`, `run_config.yaml`, `system_info.json`, `command.txt`, and `notes.md` are present and validated.
 
 ## Insights
 
-1. The narrowest honest improvement here is still prompt and reflection shaping, not a harness edit.
-2. The useful part of the todo strategy is not just naming subgoals, but preserving one exact private three-item contract across seed prompt, GEPA reflection, and rollout feedback.
-3. A small extra constraint that ties the 3-4 action batch to the active first todo item is worth packaging as a separate candidate because it is reviewable and easy to measure later.
-4. Reward impact is still unmeasured because this task only performed structural validation.
+1. The smallest useful change here is still prompt shaping, not harness surgery.
+2. Making the resource ladder concrete appears to be worth more than another generic planning reminder.
+3. The proxy smoke is directional, but it does distinguish the candidate from the baseline on the same held-out starter seeds.
+4. Because the live Qwen/Craftax lane was unavailable in this run, the reward evidence should be treated as a proxy rather than leaderboard-grade validation.
 
 ## Research artifacts produced
 
-- Source change: `src/nanohorizon/baselines/prompt_opt.py`
-- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml`
-- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate/`
-- Structural regression test: `tests/test_codex_todo_refresh_gate_candidate.py`
+- Candidate config: `configs/craftax_prompt_opt_qwen35_4b_codex_local_runtime_final_smoke_2.yaml`
+- Candidate test: `tests/test_codex_local_runtime_final_smoke_2_candidate.py`
+- Candidate record bundle: `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/`
+- Proxy smoke script: `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/scripts/proxy_smoke.py`
 - Repo handoff: `findings.txt`
 
 ## Quality & validation
 
-- Executed: `uv run pytest tests/test_codex_todo_refresh_gate_candidate.py`
-- Result: 3 tests passed.
-- Executed: `uv run python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-07_codex_todo_refresh_gate`
+- Executed: direct Python assertions for `tests/test_codex_local_runtime_final_smoke_2_candidate.py`
+- Result: passed.
+- Executed: `PYTHONPATH=src python -m nanohorizon.shared.validate_record records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2`
 - Result: `{ "ok": true, "warnings": [] }`
-- Reviewable commit: finalized via the required `workspace_push` flow outside this static report body; inspect the run handoff for the exact pushed commit outcome.
-- Push flow: this report intentionally records the code and validation state only; the backend-tracked push result is reported separately in the run handoff.
-- Not validated: live Craftax reward, Modal runtime behavior, or GEPA search output.
+- Proxy smoke result: baseline mean outcome reward `65.5`, candidate mean outcome reward `89.5`, delta `+24.0` on the held-out starter eval seeds `[10001, 10010, 10017, 10019]`.
+- Not validated: live Craftax reward, Modal runtime behavior, or an actual Qwen rollout.
+- Noted issue: `uv run` hit a workspace dependency-resolution error, so the smoke was executed with `PYTHONPATH=src python` instead.
 
 ## Reproduction & handoff
 
-- Candidate entrypoint: `NANOHORIZON_PROMPT_OPT_CONFIG=configs/craftax_prompt_opt_qwen35_4b_codex_todo_refresh_gate.yaml ./scripts/run_craftax_prompt_opt_qwen35_4b_gpt54_budget.sh`
-- Main risk: the stronger "follow the first todo item" wording could overconstrain otherwise good short tactical action batches.
-- Push artifact: inspect the run handoff for the final backend-tracked branch and commit outcome.
-- Recommended verifier focus:
-  - confirm the centralized todo contract remains present in reflection instructions
-  - inspect whether the follow-the-first-item wording is compact enough to avoid overlong reasoning
-  - if infrastructure is available, run the candidate config against the reference baseline for a real reward comparison
+- Candidate entrypoint: `PYTHONPATH=src python records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/scripts/proxy_smoke.py`
+- Candidate command log: `records/prompt_opt_1usd_gpt54_family/2026-04-13_codex_local_runtime_final_smoke_2/command.txt`
+- Candidate record bundle contains the prompt, metrics, and proxy smoke notes needed to replay the comparison.
+- Remaining risk: the candidate is promising on the proxy smoke, but it still needs a real Qwen/Craftax rollout before anyone should treat it as leaderboard-grade.
